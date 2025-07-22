@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-english bg-primary-50 text-gray-900;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+}
+
+@layer components {
+  .menu-card {
+    @apply bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden;
+  }
+  
+  .menu-item {
+    @apply p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-200;
+  }
+  
+  .category-header {
+    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-t-xl;
+  }
+  
+  .price-tag {
+    @apply text-primary-600 font-semibold text-lg;
+  }
+  
+  .veg-indicator {
+    @apply w-4 h-4 border-2 border-secondary-500 bg-secondary-500 rounded-sm flex items-center justify-center;
+  }
+  
+  .non-veg-indicator {
+    @apply w-4 h-4 border-2 border-red-500 bg-red-500 rounded-sm flex items-center justify-center;
+  }
+  
+  .restaurant-header {
+    @apply bg-gradient-to-br from-primary-600 via-primary-500 to-accent-500 text-white;
+  }
+} 

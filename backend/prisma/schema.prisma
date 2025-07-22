@@ -1,0 +1,500 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  fullName  String
+  phone     String?
+  role      UserRole @default(OWNER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  properties Property[]
+  createdTenants Tenant[] @relation("CreatedBy")
+  createdPayments Payment[] @relation("CreatedBy")
+  createdNotices Notice[] @relation("CreatedBy")
+  createdDocuments Document[] @relation("CreatedBy")
+  userSettings UserSettings?
+  dashboardSettings DashboardSettings?
+
+  @@map("users")
+}
+
+// User Settings and Preferences
+model UserSettings {
+  id                String   @id @default(cuid())
+  theme             String   @default("light") // light, dark, auto
+  language          String   @default("en")
+  timezone          String   @default("Asia/Kolkata")
+  dateFormat        String   @default("DD/MM/YYYY")
+  currency          String   @default("INR")
+  emailNotifications Boolean @default(true)
+  smsNotifications  Boolean  @default(false)
+  pushNotifications Boolean  @default(true)
+  rentReminders     Boolean  @default(true)
+  maintenanceAlerts Boolean  @default(true)
+  newTenantAlerts   Boolean  @default(true)
+  paymentAlerts     Boolean  @default(true)
+  systemUpdates     Boolean  @default(false)
+  twoFactorEnabled  Boolean  @default(false)
+  sessionTimeout    Int      @default(60) // minutes
+  loginNotifications Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  @@map("user_settings")
+}
+
+// Dashboard Settings and Preferences
+model DashboardSettings {
+  id               String   @id @default(cuid())
+  defaultView      String   @default("cards") // cards, table
+  showNotifications Boolean @default(true)
+  autoRefresh      Boolean  @default(false)
+  refreshInterval  Int      @default(30) // seconds
+  defaultProperty  String?  // Property ID
+  favoriteCharts   String[] @default(["occupancy", "revenue"])
+  compactMode      Boolean  @default(false)
+  statsVisible     Boolean  @default(true)
+  activitiesVisible Boolean @default(true)
+  chartsVisible    Boolean  @default(true)
+  quickActionsVisible Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  @@map("dashboard_settings")
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+// Property Management
+model Property {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  city        String
+  state       String
+  pincode     String
+  description String?
+  totalFloors Int      @default(0)
+  totalRooms  Int      @default(0)
+  totalBeds   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  floors    Floor[]
+  tenants   Tenant[]
+  payments  Payment[]
+  notices   Notice[]
+  documents Document[]
+  settings  PropertySettings?
+
+  @@map("properties")
+}
+
+// Floor Management
+model Floor {
+  id          String   @id @default(cuid())
+  name        String   // Ground Floor, 1st Floor, etc.
+  floorNumber Int
+  description String?
+  totalRooms  Int      @default(0)
+  totalBeds   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+
+  rooms Room[]
+
+  @@unique([propertyId, floorNumber])
+  @@map("floors")
+}
+
+// Room Management
+model Room {
+  id           String     @id @default(cuid())
+  roomNumber   String
+  name         String?    // Room A, Room B, etc.
+  roomType     RoomType   @default(SHARED)
+  capacity     Int        @default(1)
+  currentBeds  Int        @default(0)
+  rent         Float
+  deposit      Float
+  description  String?
+  amenities    String[]   @default([])
+  status       RoomStatus @default(AVAILABLE)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  floor   Floor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  floorId String
+
+  beds Bed[]
+
+  @@unique([floorId, roomNumber])
+  @@map("rooms")
+}
+
+enum RoomType {
+  SINGLE
+  SHARED
+  DORMITORY
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  RESERVED
+}
+
+// Bed Management
+model Bed {
+  id          String    @id @default(cuid())
+  bedNumber   String
+  bedType     BedType   @default(SINGLE)
+  rent        Float
+  deposit     Float
+  status      BedStatus @default(AVAILABLE)
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId String
+
+  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  tenantId String? @unique
+
+  payments Payment[]
+
+  @@unique([roomId, bedNumber])
+  @@map("beds")
+}
+
+enum BedType {
+  SINGLE
+  DOUBLE
+  BUNK
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  RESERVED
+}
+
+// Tenant Management
+model Tenant {
+  id              String       @id @default(cuid())
+  tenantId        String       @unique // Custom tenant ID like PG001
+  fullName        String
+  email           String?
+  phone           String
+  alternatePhone  String?
+  emergencyContact String?
+  address         String
+  idProofType     IdProofType
+  idProofNumber   String
+  occupation      String?
+  company         String?
+  monthlyIncome   Float?
+  joiningDate     DateTime
+  leavingDate     DateTime?
+  status          TenantStatus @default(ACTIVE)
+  securityDeposit Float        @default(0)
+  advanceRent     Float        @default(0)
+  profilePhoto    String?
+  idProofDocument String?
+  agreementDocument String?
+  termsAccepted   Boolean      @default(false)
+  termsAcceptedAt DateTime?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+
+  bed Bed?
+
+  createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById String
+
+  payments Payment[]
+  notices  Notice[]
+
+  @@map("tenants")
+}
+
+enum IdProofType {
+  AADHAR
+  PAN
+  PASSPORT
+  DRIVING_LICENSE
+  VOTER_ID
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  VACATED
+  TERMINATED
+  NOTICE_PERIOD
+  PENDING
+}
+
+// Payment Management
+model Payment {
+  id            String        @id @default(cuid())
+  paymentId     String        @unique // Custom payment ID
+  amount        Float
+  paymentType   PaymentType
+  paymentMethod PaymentMethod @default(CASH)
+  dueDate       DateTime
+  paidDate      DateTime?
+  status        PaymentStatus @default(PENDING)
+  month         String        // Format: "2024-01"
+  year          Int
+  description   String?
+  lateFee       Float         @default(0)
+  discount      Float         @default(0)
+  receipt       String?       // Receipt file path
+  transactionId String?       // For online payments
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+
+  bed   Bed?    @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  bedId String?
+
+  createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById String
+
+  @@map("payments")
+}
+
+enum PaymentType {
+  RENT
+  DEPOSIT
+  MAINTENANCE
+  ELECTRICITY
+  WATER
+  INTERNET
+  LAUNDRY
+  LATE_FEE
+  OTHER
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  UPI
+  CARD
+  CHEQUE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIAL
+  CANCELLED
+}
+
+// Notice Management
+model Notice {
+  id          String      @id @default(cuid())
+  title       String
+  content     String
+  noticeType  NoticeType  @default(GENERAL)
+  priority    Priority    @default(MEDIUM)
+  isPublished Boolean     @default(false)
+  publishDate DateTime?
+  expiryDate  DateTime?
+  attachment  String?     // File path
+  readBy      String[]    @default([]) // Array of tenant IDs
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+
+  targetTenants Tenant[]
+
+  createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById String
+
+  @@map("notices")
+}
+
+enum NoticeType {
+  GENERAL
+  MAINTENANCE
+  PAYMENT_REMINDER
+  RULE_UPDATE
+  EVENT
+  EMERGENCY
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Document Management
+model Document {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?
+  documentType DocumentType
+  filePath     String
+  fileName     String
+  fileSize     Int          // in bytes
+  mimeType     String
+  tags         String[]     @default([])
+  isPublic     Boolean      @default(false)
+  expiryDate   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+
+  createdBy   User   @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById String
+
+  @@map("documents")
+}
+
+enum DocumentType {
+  AGREEMENT
+  ID_PROOF
+  RECEIPT
+  POLICY
+  MAINTENANCE
+  LEGAL
+  INSURANCE
+  OTHER
+}
+
+// Property Settings
+model PropertySettings {
+  id                    String   @id @default(cuid())
+  termsAndConditions    String?
+  privacyPolicy         String?
+  rules                 String[]  @default([])
+  amenities             String[]  @default([])
+  contactInfo           Json?     // Store contact details as JSON
+  paymentSettings       Json?     // Payment configurations
+  notificationSettings Json?     // Notification preferences
+  maintenanceSchedule   Json?     // Maintenance schedules
+  emergencyContacts     Json?     // Emergency contact details
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String   @unique
+
+  @@map("property_settings")
+}
+
+// Reports and Analytics (for future use)
+model Report {
+  id          String     @id @default(cuid())
+  title       String
+  reportType  ReportType
+  dateFrom    DateTime
+  dateTo      DateTime
+  data        Json       // Store report data as JSON
+  generatedBy String
+  createdAt   DateTime   @default(now())
+
+  @@map("reports")
+}
+
+enum ReportType {
+  OCCUPANCY
+  REVENUE
+  PAYMENT_STATUS
+  TENANT_SUMMARY
+  MAINTENANCE
+  CUSTOM
+}
+
+// Maintenance Requests (for future expansion)
+model MaintenanceRequest {
+  id          String            @id @default(cuid())
+  title       String
+  description String
+  priority    Priority          @default(MEDIUM)
+  status      MaintenanceStatus @default(PENDING)
+  requestedBy String            // Tenant ID
+  assignedTo  String?           // Staff ID
+  cost        Float?
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("maintenance_requests")
+}
+
+enum MaintenanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
