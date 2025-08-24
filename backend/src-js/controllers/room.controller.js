@@ -141,48 +141,37 @@ const getRoom = asyncHandler(async (req, res) => {
 
 // POST /api/rooms - Create new room
 const createRoom = asyncHandler(async (req, res) => {
-  const {
-    roomNumber,
-    name,
-    floorId,
-    type = 'Shared',
-    capacity = 2,
-    description,
-    amenities = []
-  } = req.body;
-
   console.log('🔧 CREATE ROOM REQUEST:', {
-    roomNumber,
-    name,
-    floorId,
-    type,
-    capacity,
-    amenities: amenities.length
+    body: req.body,
+    user: req.user ? { id: req.user.id, email: req.user.email } : 'NO USER'
   });
 
+  const { roomNumber, name, floorId, type, capacity, amenities, description, rent, deposit } = req.body;
+  
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required - please login first' }
+    });
+  }
+  
+  const userId = req.user.id;
+
   // Validation
-  if (!roomNumber || !floorId) {
+  if (!roomNumber || !floorId || !type || !capacity) {
     return res.status(400).json({
       success: false,
-      error: { message: 'Room number and floor ID are required' }
+      error: { message: 'Room number, floor ID, type, and capacity are required' }
     });
   }
 
-  // Validate capacity
-  const capacityNum = parseInt(capacity);
-  if (capacityNum < 1 || capacityNum > 12) {
-    return res.status(400).json({
-      success: false,
-      error: { message: 'Room capacity must be between 1 and 12 beds' }
-    });
-  }
-
-  // Check if floor exists and user owns it
+  // Check if floor exists and belongs to user's property
   const floor = await prisma.floor.findFirst({
     where: { 
       id: floorId,
       property: {
-        ownerId: req.user.id
+        ownerId: userId
       }
     },
     include: {
@@ -200,92 +189,74 @@ const createRoom = asyncHandler(async (req, res) => {
   // Check if room number already exists on this floor
   const existingRoom = await prisma.room.findFirst({
     where: {
-      roomNumber,
-      floorId
+      floorId,
+      roomNumber
     }
   });
 
   if (existingRoom) {
-    return res.status(400).json({
+    return res.status(409).json({
       success: false,
-      error: { message: `Room number ${roomNumber} already exists on ${floor.name}` }
+      error: { message: `Room number ${roomNumber} already exists on this floor` }
     });
   }
 
-  // Create room with proper mapping
-  const roomTypeMapping = {
-    'Single': 'SINGLE',
-    'Shared': 'SHARED', 
-    'Dormitory': 'DORMITORY'
-  };
+  // Validate capacity
+  const numCapacity = parseInt(capacity);
+  if (numCapacity < 1 || numCapacity > 12) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'Room capacity must be between 1 and 12 beds' }
+    });
+  }
 
-  const room = await prisma.room.create({
-    data: {
-      roomNumber,
-      name: name || null,
-      floorId,
-      roomType: roomTypeMapping[type] || 'SHARED',
-      capacity: capacityNum,
-      currentBeds: 0, // No beds initially
-      rent: 0, // Rent is set on beds, not rooms
-      deposit: 0, // Deposit is set on beds, not rooms
-      description: description || null,
-      amenities,
-      status: 'AVAILABLE'
-    },
-    include: {
-      floor: {
-        include: {
-          property: {
-            select: {
-              id: true,
-              name: true
-            }
+  // Validate room type
+  const validTypes = ['Single', 'Shared', 'Dormitory'];
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'Room type must be Single, Shared, or Dormitory' }
+    });
+  }
+
+  try {
+    const room = await prisma.room.create({
+      data: {
+        roomNumber,
+        name,
+        roomType: type.toUpperCase(),
+        capacity: numCapacity,
+        rent: rent ? parseFloat(rent) : 0,
+        deposit: deposit ? parseFloat(deposit) : 0,
+        amenities: amenities || [],
+        description,
+        floorId
+      },
+      include: {
+        floor: {
+          select: {
+            id: true,
+            name: true,
+            floorNumber: true
           }
         }
       }
-    }
-  });
+    });
 
-  // Update floor room count
-  await prisma.floor.update({
-    where: { id: floorId },
-    data: {
-      totalRooms: {
-        increment: 1
-      }
-    }
-  });
+    console.log('✅ Room created successfully:', room.id);
 
-  // Update property room count
-  await prisma.property.update({
-    where: { id: floor.property.id },
-    data: {
-      totalRooms: {
-        increment: 1
-      }
-    }
-  });
-
-  console.log('✅ Room created successfully:', room.id);
-
-  // Map enum values to display values for response
-  const roomTypeDisplayMapping = {
-    'SINGLE': 'Single',
-    'SHARED': 'Shared',
-    'DORMITORY': 'Dormitory'
-  };
-
-  const roomWithDisplayType = {
-    ...room,
-    type: roomTypeDisplayMapping[room.roomType] || room.roomType
-  };
-
-  res.status(201).json({
-    success: true,
-    data: roomWithDisplayType,
-    message: `Room ${roomNumber} created successfully with capacity for ${capacityNum} beds`
-  });
+    res.status(201).json({
+      success: true,
+      data: room,
+      message: 'Room created successfully'
+    });
+  } catch (error) {
+    console.error('❌ Database error creating room:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: 'Failed to create room due to database error' }
+    });
+  }
 });
 
 // PUT /api/rooms/:id - Update room

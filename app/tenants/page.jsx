@@ -70,6 +70,7 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
     bedId: '',
     securityDeposit: '',
     advanceRent: '',
+    paymentMode: 'CASH',
     termsAccepted: false
   });
 
@@ -122,6 +123,7 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
         bedId: tenant.bed?.id || '',
         securityDeposit: tenant.securityDeposit || '',
         advanceRent: tenant.advanceRent || '',
+        paymentMode: tenant.paymentMode || 'CASH',
         termsAccepted: true // Assume existing tenants have accepted terms
       });
     } else {
@@ -143,6 +145,7 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
         bedId: '',
         securityDeposit: '',
         advanceRent: '',
+        paymentMode: 'CASH',
         termsAccepted: false
       });
     }
@@ -296,6 +299,15 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
     { value: 'PASSPORT', label: 'Passport' },
     { value: 'DRIVING_LICENSE', label: 'Driving License' },
     { value: 'VOTER_ID', label: 'Voter ID' }
+  ];
+
+  const paymentModeOptions = [
+    { value: 'CASH', label: 'Cash Payment' },
+    { value: 'UPI', label: 'UPI/Digital Payment' },
+    { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+    { value: 'CHEQUE', label: 'Cheque' },
+    { value: 'CARD', label: 'Debit/Credit Card' },
+    { value: 'NET_BANKING', label: 'Net Banking' }
   ];
 
   // Validate ID proof number
@@ -593,27 +605,41 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
 
                 {/* Financial Fields */}
                 {selectedBed && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      label="Security Deposit (₹) *"
-                      type="number"
-                      min="0"
-                      value={formData.securityDeposit}
-                      onChange={(e) => setFormData(prev => ({ ...prev, securityDeposit: e.target.value }))}
-                      placeholder="Security deposit amount"
-                      helpText={`Suggested: ₹${selectedBed.rent * 2} (2 months rent)`}
-                      required
-                    />
-                    <Input
-                      label="Advance Rent (₹) *"
-                      type="number"
-                      min="0"
-                      value={formData.advanceRent}
-                      onChange={(e) => setFormData(prev => ({ ...prev, advanceRent: e.target.value }))}
-                      placeholder="Advance rent paid"
-                      helpText={`Suggested: ₹${selectedBed.rent} (1 month rent)`}
-                      required
-                    />
+                  <div className="space-y-4">
+                    {/* Payment Mode Selection */}
+                    <div className="grid grid-cols-1 gap-4">
+                      <Dropdown
+                        label="Payment Mode *"
+                        options={paymentModeOptions}
+                        value={formData.paymentMode}
+                        onChange={(value) => setFormData(prev => ({ ...prev, paymentMode: value }))}
+                        helpText="Select how the initial payment will be made"
+                      />
+                    </div>
+                    
+                    {/* Amount Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        label="Security Deposit (₹) *"
+                        type="number"
+                        min="0"
+                        value={formData.securityDeposit}
+                        onChange={(e) => setFormData(prev => ({ ...prev, securityDeposit: e.target.value }))}
+                        placeholder="Security deposit amount"
+                        helpText={`Suggested: ₹${selectedBed.rent * 2} (2 months rent)`}
+                        required
+                      />
+                      <Input
+                        label="Advance Rent (₹) *"
+                        type="number"
+                        min="0"
+                        value={formData.advanceRent}
+                        onChange={(e) => setFormData(prev => ({ ...prev, advanceRent: e.target.value }))}
+                        placeholder="Advance rent paid"
+                        helpText={`Suggested: ₹${selectedBed.rent} (1 month rent)`}
+                        required
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -621,7 +647,7 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                 {selectedBed && formData.securityDeposit && formData.advanceRent && (
                   <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
                     <h5 className="font-medium text-green-800 mb-2">💰 Financial Summary</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-green-700">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-green-700">
                       <div>
                         <span className="font-medium">Monthly Rent:</span> ₹{selectedBed.rent}
                       </div>
@@ -630,6 +656,9 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                       </div>
                       <div>
                         <span className="font-medium">Advance Rent:</span> ₹{formData.advanceRent || 0}
+                      </div>
+                      <div>
+                        <span className="font-medium">Payment Mode:</span> {paymentModeOptions.find(opt => opt.value === formData.paymentMode)?.label || 'Cash'}
                       </div>
                     </div>
                     <div className="mt-2 pt-2 border-t border-green-300">

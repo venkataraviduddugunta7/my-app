@@ -166,57 +166,48 @@ const getBed = asyncHandler(async (req, res) => {
 
 // POST /api/beds - Create new bed
 const createBed = asyncHandler(async (req, res) => {
-  const {
-    bedNumber,
-    roomId,
-    bedType = 'Single',
-    rent,
-    deposit,
-    description
-  } = req.body;
-
   console.log('🔧 CREATE BED REQUEST:', {
-    bedNumber,
-    roomId,
-    bedType,
-    rent,
-    deposit
+    body: req.body,
+    user: req.user ? { id: req.user.id, email: req.user.email } : 'NO USER'
   });
 
+  const { bedNumber, roomId, bedType, rent, deposit, description } = req.body;
+  
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required - please login first' }
+    });
+  }
+  
+  const userId = req.user.id;
+
   // Validation
-  if (!bedNumber || !roomId || !rent || !deposit) {
+  if (!bedNumber || !roomId || !bedType) {
     return res.status(400).json({
       success: false,
-      error: { message: 'Bed number, room ID, rent, and deposit are required' }
+      error: { message: 'Bed number, room ID, and bed type are required' }
     });
   }
 
-  // Validate rent amount
-  const rentAmount = parseFloat(rent);
-  if (rentAmount < 1000) {
-    return res.status(400).json({
-      success: false,
-      error: { message: 'Rent amount must be at least ₹1,000' }
-    });
-  }
-
-  // Check if room exists and user owns it
+  // Check if room exists and belongs to user's property
   const room = await prisma.room.findFirst({
     where: { 
       id: roomId,
       floor: {
         property: {
-          ownerId: req.user.id
+          ownerId: userId
         }
       }
     },
     include: {
+      beds: true,
       floor: {
         include: {
           property: true
         }
-      },
-      beds: true // Get existing beds to check capacity
+      }
     }
   });
 
@@ -227,108 +218,78 @@ const createBed = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check room capacity
-  const currentBedCount = room.beds.length;
-  if (currentBedCount >= room.capacity) {
-    return res.status(400).json({
-      success: false,
-      error: { 
-        message: `Room ${room.roomNumber} is at full capacity (${room.capacity} beds). Cannot add more beds.`
-      }
-    });
-  }
-
   // Check if bed number already exists in this room
-  const existingBed = room.beds.find(bed => bed.bedNumber === bedNumber);
+  const existingBed = await prisma.bed.findFirst({
+    where: {
+      roomId,
+      bedNumber
+    }
+  });
+
   if (existingBed) {
-    return res.status(400).json({
+    return res.status(409).json({
       success: false,
-      error: { message: `Bed number ${bedNumber} already exists in room ${room.roomNumber}` }
+      error: { message: `Bed number ${bedNumber} already exists in this room` }
     });
   }
 
-  // Map bed types
-  const bedTypeMapping = {
-    'Single': 'SINGLE',
-    'Double': 'DOUBLE',
-    'Bunk': 'BUNK'
-  };
+  // Check room capacity
+  if (room.beds.length >= room.capacity) {
+    return res.status(400).json({
+      success: false,
+      error: { message: `Room is at full capacity (${room.capacity} beds). Cannot add more beds.` }
+    });
+  }
 
-  const bed = await prisma.bed.create({
-    data: {
-      bedNumber,
-      roomId,
-      bedType: bedTypeMapping[bedType] || 'SINGLE',
-      rent: rentAmount,
-      deposit: parseFloat(deposit),
-      description: description || null,
-      status: 'AVAILABLE'
-    },
-    include: {
-      room: {
-        include: {
-          floor: {
-            include: {
-              property: {
-                select: {
-                  id: true,
-                  name: true
-                }
+  // Validate bed type
+  const validBedTypes = ['Single', 'Double', 'Bunk'];
+  if (!validBedTypes.includes(bedType)) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'Bed type must be Single, Double, or Bunk' }
+    });
+  }
+
+  try {
+    const bed = await prisma.bed.create({
+      data: {
+        bedNumber,
+        bedType: bedType.toUpperCase(),
+        rent: rent ? parseFloat(rent) : 0,
+        deposit: deposit ? parseFloat(deposit) : 0,
+        description,
+        roomId,
+        status: 'AVAILABLE'
+      },
+      include: {
+        room: {
+          include: {
+            floor: {
+              select: {
+                id: true,
+                name: true,
+                floorNumber: true
               }
             }
           }
         }
       }
-    }
-  });
+    });
 
-  // Update room current beds count
-  await prisma.room.update({
-    where: { id: roomId },
-    data: {
-      currentBeds: currentBedCount + 1
-    }
-  });
+    console.log('✅ Bed created successfully:', bed.id);
 
-  // Update floor bed count
-  await prisma.floor.update({
-    where: { id: room.floor.id },
-    data: {
-      totalBeds: {
-        increment: 1
-      }
-    }
-  });
-
-  // Update property bed count
-  await prisma.property.update({
-    where: { id: room.floor.property.id },
-    data: {
-      totalBeds: {
-        increment: 1
-      }
-    }
-  });
-
-  console.log('✅ Bed created successfully:', bed.id);
-
-  // Map enum values to display values for response
-  const bedTypeDisplayMapping = {
-    'SINGLE': 'Single',
-    'DOUBLE': 'Double',
-    'BUNK': 'Bunk'
-  };
-
-  const bedWithDisplayType = {
-    ...bed,
-    bedType: bedTypeDisplayMapping[bed.bedType] || bed.bedType
-  };
-
-  res.status(201).json({
-    success: true,
-    data: bedWithDisplayType,
-    message: `Bed ${bedNumber} created successfully in room ${room.roomNumber} (${currentBedCount + 1}/${room.capacity} beds)`
-  });
+    res.status(201).json({
+      success: true,
+      data: bed,
+      message: 'Bed created successfully'
+    });
+  } catch (error) {
+    console.error('❌ Database error creating bed:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: 'Failed to create bed due to database error' }
+    });
+  }
 });
 
 // PUT /api/beds/:id - Update bed

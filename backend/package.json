@@ -4,10 +4,10 @@
   "description": "Backend API for PG Management System",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src-js/index.js",
+    "dev": "PORT=9000 NODE_ENV=development nodemon src-js/index.js",
     "dev-ts": "nodemon src/index.ts",
     "build": "echo 'No build needed for JavaScript'",
-    "start": "node src-js/index.js",
+    "start": "PORT=9000 node src-js/index.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",

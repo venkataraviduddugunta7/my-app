@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api';
 
 // Async thunks for API calls
 export const fetchProperties = createAsyncThunk(
@@ -88,11 +88,11 @@ export const updateProperty = createAsyncThunk(
 
 export const deleteProperty = createAsyncThunk(
   'property/deleteProperty',
-  async (propertyId, { rejectWithValue, getState }) => {
+  async (id, { rejectWithValue, getState }) => {
     try {
       const token = getState().auth.token;
       
-      const response = await fetch(`${API_BASE_URL}/properties/${propertyId}`, {
+      const response = await fetch(`${API_BASE_URL}/properties/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -106,7 +106,7 @@ export const deleteProperty = createAsyncThunk(
         return rejectWithValue(data.error?.message || 'Failed to delete property');
       }
 
-      return propertyId;
+      return id;
     } catch (error) {
       return rejectWithValue(error.message || 'Network error');
     }
@@ -125,15 +125,44 @@ const propertySlice = createSlice({
   name: 'property',
   initialState,
   reducers: {
+    selectProperty: (state, action) => {
+      const property = state.properties.find(p => p.id === action.payload);
+      if (property) {
+        state.selectedProperty = property;
+        localStorage.setItem('selectedPropertyId', property.id);
+      }
+    },
+    clearSelectedProperty: (state) => {
+      state.selectedProperty = null;
+      localStorage.removeItem('selectedPropertyId');
+    },
     clearError: (state) => {
       state.error = null;
-    },
-    setSelectedProperty: (state, action) => {
-      state.selectedProperty = action.payload;
     },
     clearProperties: (state) => {
       state.properties = [];
       state.selectedProperty = null;
+    },
+    // Auto-select property from localStorage or first property
+    autoSelectProperty: (state) => {
+      if (state.properties.length > 0 && !state.selectedProperty) {
+        const savedPropertyId = localStorage.getItem('selectedPropertyId');
+        let propertyToSelect = null;
+        
+        if (savedPropertyId) {
+          propertyToSelect = state.properties.find(p => p.id === savedPropertyId);
+        }
+        
+        // If saved property not found, select first property
+        if (!propertyToSelect) {
+          propertyToSelect = state.properties[0];
+        }
+        
+        if (propertyToSelect) {
+          state.selectedProperty = propertyToSelect;
+          localStorage.setItem('selectedPropertyId', propertyToSelect.id);
+        }
+      }
     }
   },
   extraReducers: (builder) => {
@@ -146,12 +175,28 @@ const propertySlice = createSlice({
       .addCase(fetchProperties.fulfilled, (state, action) => {
         state.loading = false;
         state.properties = action.payload;
-        // Auto-select first property if none selected
-        if (!state.selectedProperty && action.payload.length > 0) {
-          state.selectedProperty = action.payload[0];
-        }
         state.lastFetch = new Date().toISOString();
         state.error = null;
+        
+        // Auto-select property if none selected
+        if (action.payload.length > 0 && !state.selectedProperty) {
+          const savedPropertyId = localStorage.getItem('selectedPropertyId');
+          let propertyToSelect = null;
+          
+          if (savedPropertyId) {
+            propertyToSelect = action.payload.find(p => p.id === savedPropertyId);
+          }
+          
+          // If saved property not found, select first property
+          if (!propertyToSelect) {
+            propertyToSelect = action.payload[0];
+          }
+          
+          if (propertyToSelect) {
+            state.selectedProperty = propertyToSelect;
+            localStorage.setItem('selectedPropertyId', propertyToSelect.id);
+          }
+        }
       })
       .addCase(fetchProperties.rejected, (state, action) => {
         state.loading = false;
@@ -166,10 +211,13 @@ const propertySlice = createSlice({
       .addCase(createProperty.fulfilled, (state, action) => {
         state.loading = false;
         state.properties.push(action.payload);
-        // Auto-select new property if none selected
+        
+        // Auto-select the newly created property if no property is selected
         if (!state.selectedProperty) {
           state.selectedProperty = action.payload;
+          localStorage.setItem('selectedPropertyId', action.payload.id);
         }
+        
         state.error = null;
       })
       .addCase(createProperty.rejected, (state, action) => {
@@ -182,10 +230,11 @@ const propertySlice = createSlice({
         const index = state.properties.findIndex(property => property.id === action.payload.id);
         if (index !== -1) {
           state.properties[index] = action.payload;
-        }
-        // Update selected property if it was updated
-        if (state.selectedProperty?.id === action.payload.id) {
-          state.selectedProperty = action.payload;
+          
+          // Update selected property if it's the one being updated
+          if (state.selectedProperty?.id === action.payload.id) {
+            state.selectedProperty = action.payload;
+          }
         }
         state.error = null;
       })
@@ -196,10 +245,19 @@ const propertySlice = createSlice({
       // Delete Property
       .addCase(deleteProperty.fulfilled, (state, action) => {
         state.properties = state.properties.filter(property => property.id !== action.payload);
+        
         // Clear selected property if it was deleted
         if (state.selectedProperty?.id === action.payload) {
-          state.selectedProperty = state.properties.length > 0 ? state.properties[0] : null;
+          state.selectedProperty = null;
+          localStorage.removeItem('selectedPropertyId');
+          
+          // Auto-select first remaining property
+          if (state.properties.length > 0) {
+            state.selectedProperty = state.properties[0];
+            localStorage.setItem('selectedPropertyId', state.properties[0].id);
+          }
         }
+        
         state.error = null;
       })
       .addCase(deleteProperty.rejected, (state, action) => {
@@ -208,5 +266,12 @@ const propertySlice = createSlice({
   },
 });
 
-export const { clearError, setSelectedProperty, clearProperties } = propertySlice.actions;
+export const { 
+  selectProperty, 
+  clearSelectedProperty, 
+  clearError, 
+  clearProperties, 
+  autoSelectProperty 
+} = propertySlice.actions;
+
 export default propertySlice.reducer; 

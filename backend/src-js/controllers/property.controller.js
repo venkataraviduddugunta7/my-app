@@ -5,11 +5,21 @@ const prisma = new PrismaClient();
 
 // GET /api/properties - Get all properties for authenticated user
 const getProperties = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  console.log('🔧 GET PROPERTIES REQUEST:', {
+    user: req.user ? { id: req.user.id, email: req.user.email } : 'NO USER'
+  });
+
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required' }
+    });
+  }
 
   const properties = await prisma.property.findMany({
     where: {
-      ownerId: userId
+      ownerId: req.user.id
     },
     include: {
       floors: {
@@ -20,18 +30,14 @@ const getProperties = asyncHandler(async (req, res) => {
             }
           }
         }
-      },
-      _count: {
-        select: {
-          floors: true,
-          tenants: true
-        }
       }
     },
     orderBy: {
       createdAt: 'desc'
     }
   });
+
+  console.log('✅ Properties fetched successfully:', properties.length);
 
   res.status(200).json({
     success: true,
@@ -43,53 +49,37 @@ const getProperties = asyncHandler(async (req, res) => {
 // GET /api/properties/:id - Get property by ID
 const getProperty = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.id;
+
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required' }
+    });
+  }
 
   const property = await prisma.property.findFirst({
     where: {
       id,
-      ownerId: userId
+      ownerId: req.user.id
     },
     include: {
       floors: {
         include: {
           rooms: {
             include: {
-              beds: {
-                include: {
-                  tenant: {
-                    select: {
-                      id: true,
-                      tenantId: true,
-                      fullName: true,
-                      status: true
-                    }
-                  }
-                }
-              }
+              beds: true
             }
           }
-        },
-        orderBy: {
-          floorNumber: 'asc'
         }
-      },
-      tenants: {
-        select: {
-          id: true,
-          tenantId: true,
-          fullName: true,
-          status: true
-        }
-      },
-      settings: true
+      }
     }
   });
 
   if (!property) {
     return res.status(404).json({
       success: false,
-      error: { message: 'Property not found' }
+      error: { message: 'Property not found or access denied' }
     });
   }
 
@@ -101,15 +91,22 @@ const getProperty = asyncHandler(async (req, res) => {
 
 // POST /api/properties - Create new property
 const createProperty = asyncHandler(async (req, res) => {
+  console.log('🔧 CREATE PROPERTY REQUEST:', {
+    body: req.body,
+    user: req.user ? { id: req.user.id, email: req.user.email } : 'NO USER'
+  });
+
+  const { name, address, city, state, pincode, description } = req.body;
+  
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required - please login first' }
+    });
+  }
+  
   const userId = req.user.id;
-  const {
-    name,
-    address,
-    city,
-    state,
-    pincode,
-    description
-  } = req.body;
 
   // Validation
   if (!name || !address || !city || !state || !pincode) {
@@ -119,79 +116,74 @@ const createProperty = asyncHandler(async (req, res) => {
     });
   }
 
-  const property = await prisma.property.create({
-    data: {
-      name,
-      address,
-      city,
-      state,
-      pincode,
-      description,
-      ownerId: userId
-    },
-    include: {
-      _count: {
-        select: {
-          floors: true,
-          tenants: true
-        }
+  try {
+    const property = await prisma.property.create({
+      data: {
+        name,
+        address,
+        city,
+        state,
+        pincode,
+        description,
+        ownerId: userId
       }
-    }
-  });
+    });
 
-  res.status(201).json({
-    success: true,
-    data: property,
-    message: 'Property created successfully'
-  });
+    console.log('✅ Property created successfully:', property.id);
+
+    res.status(201).json({
+      success: true,
+      data: property,
+      message: 'Property created successfully'
+    });
+  } catch (error) {
+    console.error('❌ Database error creating property:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: 'Failed to create property due to database error' }
+    });
+  }
 });
 
 // PUT /api/properties/:id - Update property
 const updateProperty = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.id;
-  const {
-    name,
-    address,
-    city,
-    state,
-    pincode,
-    description
-  } = req.body;
+  const { name, address, city, state, pincode, description } = req.body;
+
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required' }
+    });
+  }
 
   // Check if property exists and belongs to user
   const existingProperty = await prisma.property.findFirst({
-    where: {
+    where: { 
       id,
-      ownerId: userId
+      ownerId: req.user.id
     }
   });
 
   if (!existingProperty) {
     return res.status(404).json({
       success: false,
-      error: { message: 'Property not found' }
+      error: { message: 'Property not found or access denied' }
     });
   }
 
+  const updateData = {};
+  if (name !== undefined) updateData.name = name;
+  if (address !== undefined) updateData.address = address;
+  if (city !== undefined) updateData.city = city;
+  if (state !== undefined) updateData.state = state;
+  if (pincode !== undefined) updateData.pincode = pincode;
+  if (description !== undefined) updateData.description = description;
+
   const property = await prisma.property.update({
     where: { id },
-    data: {
-      ...(name && { name }),
-      ...(address && { address }),
-      ...(city && { city }),
-      ...(state && { state }),
-      ...(pincode && { pincode }),
-      ...(description !== undefined && { description })
-    },
-    include: {
-      _count: {
-        select: {
-          floors: true,
-          tenants: true
-        }
-      }
-    }
+    data: updateData
   });
 
   res.status(200).json({
@@ -204,45 +196,62 @@ const updateProperty = asyncHandler(async (req, res) => {
 // DELETE /api/properties/:id - Delete property
 const deleteProperty = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.id;
+
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required' }
+    });
+  }
 
   // Check if property exists and belongs to user
-  const property = await prisma.property.findFirst({
-    where: {
+  const existingProperty = await prisma.property.findFirst({
+    where: { 
       id,
-      ownerId: userId
+      ownerId: req.user.id
     },
     include: {
       floors: {
         include: {
           rooms: {
             include: {
-              beds: true
+              beds: {
+                include: {
+                  tenant: true
+                }
+              }
             }
           }
         }
-      },
-      tenants: true
+      }
     }
   });
 
-  if (!property) {
+  if (!existingProperty) {
     return res.status(404).json({
       success: false,
-      error: { message: 'Property not found' }
+      error: { message: 'Property not found or access denied' }
     });
   }
 
-  // Check if property has active tenants
-  const activeTenants = property.tenants.filter(tenant => tenant.status === 'ACTIVE');
-  if (activeTenants.length > 0) {
+  // Check for active tenants
+  const activeTenantsCount = existingProperty.floors.reduce((count, floor) => {
+    return count + floor.rooms.reduce((roomCount, room) => {
+      return roomCount + room.beds.filter(bed => bed.tenant && bed.tenant.status === 'ACTIVE').length;
+    }, 0);
+  }, 0);
+
+  if (activeTenantsCount > 0) {
     return res.status(400).json({
       success: false,
-      error: { message: `Cannot delete property with ${activeTenants.length} active tenants. Please terminate all tenants first.` }
+      error: { 
+        message: `Cannot delete property with ${activeTenantsCount} active tenant${activeTenantsCount > 1 ? 's' : ''}. Please relocate or vacate all tenants first.` 
+      }
     });
   }
 
-  // Delete property (cascade will handle floors, rooms, beds)
+  // Delete property (cascade will handle floors, rooms, and beds)
   await prisma.property.delete({
     where: { id }
   });
@@ -253,90 +262,10 @@ const deleteProperty = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/properties/:id/stats - Get property statistics
-const getPropertyStats = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.id;
-
-  // Check if property belongs to user
-  const property = await prisma.property.findFirst({
-    where: {
-      id,
-      ownerId: userId
-    }
-  });
-
-  if (!property) {
-    return res.status(404).json({
-      success: false,
-      error: { message: 'Property not found' }
-    });
-  }
-
-  // Get comprehensive statistics
-  const [
-    totalFloors,
-    totalRooms,
-    totalBeds,
-    occupiedBeds,
-    activeTenants,
-    monthlyRevenue
-  ] = await Promise.all([
-    prisma.floor.count({
-      where: { propertyId: id }
-    }),
-    prisma.room.count({
-      where: { floor: { propertyId: id } }
-    }),
-    prisma.bed.count({
-      where: { room: { floor: { propertyId: id } } }
-    }),
-    prisma.bed.count({
-      where: { 
-        room: { floor: { propertyId: id } },
-        status: 'OCCUPIED'
-      }
-    }),
-    prisma.tenant.count({
-      where: { 
-        propertyId: id,
-        status: 'ACTIVE'
-      }
-    }),
-    prisma.payment.aggregate({
-      where: {
-        propertyId: id,
-        status: 'PAID',
-        month: new Date().toISOString().slice(0, 7) // Current month
-      },
-      _sum: {
-        amount: true
-      }
-    })
-  ]);
-
-  const occupancyRate = totalBeds > 0 ? ((occupiedBeds / totalBeds) * 100).toFixed(1) : 0;
-
-  res.status(200).json({
-    success: true,
-    data: {
-      totalFloors,
-      totalRooms,
-      totalBeds,
-      occupiedBeds,
-      availableBeds: totalBeds - occupiedBeds,
-      occupancyRate: parseFloat(occupancyRate),
-      activeTenants,
-      monthlyRevenue: monthlyRevenue._sum.amount || 0
-    }
-  });
-});
-
 module.exports = {
   getProperties,
   getProperty,
   createProperty,
   updateProperty,
-  deleteProperty,
-  getPropertyStats
+  deleteProperty
 }; 

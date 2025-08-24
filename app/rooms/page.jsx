@@ -781,10 +781,10 @@ function FloorTable({ floors, onEdit, onDelete, onClick }) {
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {floor.floorName}
+                        {floor.floorName || floor.name}
                       </div>
                       <div className="text-sm text-gray-500">
-                        Created: {new Date(floor.createdAt).toLocaleDateString()}
+                        Floor {floor.floorNumber}
                       </div>
                     </div>
                   </div>
@@ -2045,20 +2045,34 @@ export default function RoomsPage() {
         variant: 'success'
       }));
     } else {
-      // Add propertyId to floor data
+      // Add propertyId to floor data and ensure field names match backend
       const floorDataWithProperty = {
-        ...floorData,
+        name: floorData.name, // Use 'name' instead of 'floorName'
+        floorNumber: floorData.floorNumber,
+        description: floorData.description,
         propertyId: selectedProperty.id
       };
       
       console.log('🏢 Creating floor with data:', floorDataWithProperty);
       
-      dispatch(createFloor(floorDataWithProperty));
-      dispatch(addToast({
-        title: 'Floor Added',
-        description: 'New floor has been added successfully.',
-        variant: 'success'
-      }));
+      dispatch(createFloor(floorDataWithProperty))
+        .unwrap()
+        .then(() => {
+          dispatch(addToast({
+            title: 'Floor Added',
+            description: 'New floor has been added successfully.',
+            variant: 'success'
+          }));
+          setShowFloorModal(false);
+        })
+        .catch((error) => {
+          console.error('❌ Floor creation failed:', error);
+          dispatch(addToast({
+            title: 'Floor Creation Failed',
+            description: error || 'Failed to create floor. Please try again.',
+            variant: 'error'
+          }));
+        });
     }
   };
 

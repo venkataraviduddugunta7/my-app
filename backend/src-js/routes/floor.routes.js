@@ -4,10 +4,9 @@ const {
   getFloor,
   createFloor,
   updateFloor,
-  deleteFloor,
-  getFloorRooms
+  deleteFloor
 } = require('../controllers/floor.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate } = require('../middleware/auth.middleware');
 
 const router = Router();
 
@@ -21,15 +20,12 @@ router.get('/', getFloors);
 router.get('/:id', getFloor);
 
 // POST /api/floors - Create new floor
-router.post('/', authorize('OWNER', 'MANAGER'), createFloor);
+router.post('/', createFloor);
 
 // PUT /api/floors/:id - Update floor
-router.put('/:id', authorize('OWNER', 'MANAGER'), updateFloor);
+router.put('/:id', updateFloor);
 
 // DELETE /api/floors/:id - Delete floor
-router.delete('/:id', authorize('OWNER', 'MANAGER'), deleteFloor);
-
-// GET /api/floors/:id/rooms - Get all rooms for a floor
-router.get('/:id/rooms', getFloorRooms);
+router.delete('/:id', deleteFloor);
 
 module.exports = router; 

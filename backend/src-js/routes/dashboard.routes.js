@@ -7,26 +7,29 @@ const {
   getUserDashboardSettings,
   updateUserDashboardSettings
 } = require('../controllers/dashboard.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate } = require('../middleware/auth.middleware');
 
 const router = Router();
 
-// GET /api/dashboard/stats - Get comprehensive dashboard statistics
-router.get('/stats', authenticate, getDashboardStats);
+// Apply authentication to all routes
+router.use(authenticate);
+
+// GET /api/dashboard/stats - Get dashboard statistics
+router.get('/stats', getDashboardStats);
 
 // GET /api/dashboard/activities - Get recent activities
-router.get('/activities', authenticate, getRecentActivities);
+router.get('/activities', getRecentActivities);
 
 // GET /api/dashboard/occupancy-trends - Get occupancy trends
-router.get('/occupancy-trends', authenticate, getOccupancyTrends);
+router.get('/occupancy-trends', getOccupancyTrends);
 
 // GET /api/dashboard/revenue-trends - Get revenue trends
-router.get('/revenue-trends', authenticate, getRevenueTrends);
+router.get('/revenue-trends', getRevenueTrends);
 
-// GET /api/dashboard/user-settings - Get user dashboard settings
-router.get('/user-settings', authenticate, getUserDashboardSettings);
+// GET /api/dashboard/user-settings - Get user settings
+router.get('/user-settings', getUserDashboardSettings);
 
-// PUT /api/dashboard/user-settings - Update user dashboard settings
-router.put('/user-settings', authenticate, updateUserDashboardSettings);
+// PUT /api/dashboard/user-settings - Update user settings
+router.put('/user-settings', updateUserDashboardSettings);
 
 module.exports = router;

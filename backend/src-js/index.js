@@ -61,9 +61,31 @@ if (process.env.NODE_ENV !== 'development' || process.env.ENABLE_RATE_LIMIT === 
 } else {
   console.log('⚠️  Rate limiting disabled for development');
 }
+// CORS configuration - Allow all localhost origins in development
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, or direct server access)
+    if (!origin) return callback(null, true);
+    
+    // In development, allow all localhost origins
+    if (process.env.NODE_ENV === 'development' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    // For production, use allowed origins from env
+    const allowedOrigins = process.env.ALLOWED_ORIGINS 
+      ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+      : ['http://localhost:3000'];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key']
 }));
 app.use(morgan('combined')); // Logging
 app.use(express.json({ limit: '10mb' }));

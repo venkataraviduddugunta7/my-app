@@ -8,7 +8,7 @@ const {
   assignTenant,
   unassignTenant
 } = require('../controllers/bed.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate } = require('../middleware/auth.middleware');
 
 const router = Router();
 
@@ -22,18 +22,18 @@ router.get('/', getBeds);
 router.get('/:id', getBed);
 
 // POST /api/beds - Create new bed
-router.post('/', authorize('OWNER', 'MANAGER'), createBed);
+router.post('/', createBed);
 
 // PUT /api/beds/:id - Update bed
-router.put('/:id', authorize('OWNER', 'MANAGER'), updateBed);
+router.put('/:id', updateBed);
 
 // DELETE /api/beds/:id - Delete bed
-router.delete('/:id', authorize('OWNER', 'MANAGER'), deleteBed);
+router.delete('/:id', deleteBed);
 
 // PUT /api/beds/:id/assign - Assign tenant to bed
-router.put('/:id/assign', authorize('OWNER', 'MANAGER'), assignTenant);
+router.put('/:id/assign', assignTenant);
 
 // PUT /api/beds/:id/unassign - Remove tenant from bed
-router.put('/:id/unassign', authorize('OWNER', 'MANAGER'), unassignTenant);
+router.put('/:id/unassign', unassignTenant);
 
 module.exports = router;

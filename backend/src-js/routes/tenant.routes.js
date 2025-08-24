@@ -8,29 +8,32 @@ const {
   assignBed,
   vacateTenant
 } = require('../controllers/tenant.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate } = require('../middleware/auth.middleware');
 
 const router = Router();
+
+// Apply authentication to all routes
+router.use(authenticate);
 
 // GET /api/tenants - Get all tenants
 router.get('/', getTenants);
 
-// GET /api/tenants/:id - Get tenant by ID
-router.get('/:id', getTenant);
+// POST /api/tenants - Create new tenant
+router.post('/', createTenant);
 
-// POST /api/tenants - Create new tenant (requires authentication)
-router.post('/', authenticate, authorize('OWNER', 'MANAGER'), createTenant);
-
-// PUT /api/tenants/:id - Update tenant (requires authentication)
-router.put('/:id', authenticate, authorize('OWNER', 'MANAGER'), updateTenant);
+// PUT /api/tenants/:id - Update tenant
+router.put('/:id', updateTenant);
 
 // PUT /api/tenants/:id/assign-bed - Assign bed to tenant
-router.put('/:id/assign-bed', authenticate, authorize('OWNER', 'MANAGER'), assignBed);
+router.put('/:id/assign-bed', assignBed);
 
-// PUT /api/tenants/:id/vacate - Vacate tenant (requires authentication)
-router.put('/:id/vacate', authenticate, authorize('OWNER', 'MANAGER'), vacateTenant);
+// PUT /api/tenants/:id/vacate - Mark tenant as vacated
+router.put('/:id/vacate', vacateTenant);
 
-// DELETE /api/tenants/:id - Delete tenant (requires authentication)
-router.delete('/:id', authenticate, authorize('OWNER', 'MANAGER'), deleteTenant);
+// DELETE /api/tenants/:id - Delete tenant
+router.delete('/:id', deleteTenant);
+
+// GET /api/tenants/:id - Get tenant by ID
+router.get('/:id', getTenant);
 
 module.exports = router;

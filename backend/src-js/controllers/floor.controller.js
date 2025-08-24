@@ -8,10 +8,38 @@ const prisma = new PrismaClient();
 const getFloors = asyncHandler(async (req, res) => {
   const { propertyId } = req.query;
   
+  console.log('🔧 GET FLOORS REQUEST:', {
+    propertyId,
+    user: req.user ? { id: req.user.id, email: req.user.email } : 'NO USER'
+  });
+  
   if (!propertyId) {
     return res.status(400).json({
       success: false,
       error: { message: 'Property ID is required' }
+    });
+  }
+
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required' }
+    });
+  }
+
+  // Verify property belongs to user
+  const property = await prisma.property.findFirst({
+    where: { 
+      id: propertyId,
+      ownerId: req.user.id
+    }
+  });
+
+  if (!property) {
+    return res.status(404).json({
+      success: false,
+      error: { message: 'Property not found or access denied' }
     });
   }
 
@@ -30,6 +58,8 @@ const getFloors = asyncHandler(async (req, res) => {
       floorNumber: 'asc'
     }
   });
+
+  console.log('✅ Floors fetched successfully:', floors.length);
 
   res.status(200).json({
     success: true,
@@ -74,7 +104,9 @@ const createFloor = asyncHandler(async (req, res) => {
     headers: req.headers.authorization ? 'TOKEN PROVIDED' : 'NO TOKEN'
   });
 
-  const { floorName, floorNumber, description, propertyId } = req.body;
+  // Handle both 'name' and 'floorName' fields for backward compatibility
+  const { name, floorName, floorNumber, description, propertyId } = req.body;
+  const finalFloorName = name || floorName;
   
   // Check if user is authenticated
   if (!req.user || !req.user.id) {
@@ -88,7 +120,8 @@ const createFloor = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   // Validation
-  if (!floorName || floorNumber === undefined || !propertyId) {
+  if (!finalFloorName || floorNumber === undefined || !propertyId) {
+    console.log('❌ Validation failed:', { finalFloorName, floorNumber, propertyId });
     return res.status(400).json({
       success: false,
       error: { message: 'Floor name, floor number, and property ID are required' }
@@ -104,6 +137,7 @@ const createFloor = asyncHandler(async (req, res) => {
   });
 
   if (!property) {
+    console.log('❌ Property not found or access denied:', { propertyId, userId });
     return res.status(404).json({
       success: false,
       error: { message: 'Property not found or access denied' }
@@ -119,53 +153,79 @@ const createFloor = asyncHandler(async (req, res) => {
   });
 
   if (existingFloor) {
+    console.log('❌ Floor number already exists:', { propertyId, floorNumber });
     return res.status(409).json({
       success: false,
-      error: { message: 'Floor number already exists for this property' }
+      error: { message: `Floor number ${floorNumber} already exists for this property` }
     });
   }
 
-  const floor = await prisma.floor.create({
-    data: {
-      name: floorName,
-      floorNumber: parseInt(floorNumber),
-      description,
-      propertyId
-    },
-    include: {
-      rooms: true
-    }
-  });
+  try {
+    const floor = await prisma.floor.create({
+      data: {
+        name: finalFloorName,
+        floorNumber: parseInt(floorNumber),
+        description,
+        propertyId
+      },
+      include: {
+        rooms: true
+      }
+    });
 
-  console.log('✅ Floor created successfully:', floor.id);
+    console.log('✅ Floor created successfully:', floor.id);
 
-  res.status(201).json({
-    success: true,
-    data: floor,
-    message: 'Floor created successfully'
-  });
+    res.status(201).json({
+      success: true,
+      data: floor,
+      message: 'Floor created successfully'
+    });
+  } catch (error) {
+    console.error('❌ Database error creating floor:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: 'Failed to create floor due to database error' }
+    });
+  }
 });
 
 // PUT /api/floors/:id - Update floor
 const updateFloor = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { floorName, floorNumber, description } = req.body;
+  const { name, floorName, floorNumber, description } = req.body;
+  const finalFloorName = name || floorName;
 
-  // Check if floor exists
-  const existingFloor = await prisma.floor.findUnique({
-    where: { id }
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required' }
+    });
+  }
+
+  // Check if floor exists and belongs to user's property
+  const existingFloor = await prisma.floor.findFirst({
+    where: { 
+      id,
+      property: {
+        ownerId: req.user.id
+      }
+    },
+    include: {
+      property: true
+    }
   });
 
   if (!existingFloor) {
     return res.status(404).json({
       success: false,
-      error: { message: 'Floor not found' }
+      error: { message: 'Floor not found or access denied' }
     });
   }
 
-  // If updating floor number, check for conflicts
+  // Check for duplicate floor number if it's being changed
   if (floorNumber !== undefined && floorNumber !== existingFloor.floorNumber) {
-    const conflictingFloor = await prisma.floor.findFirst({
+    const duplicateFloor = await prisma.floor.findFirst({
       where: {
         propertyId: existingFloor.propertyId,
         floorNumber: parseInt(floorNumber),
@@ -173,21 +233,22 @@ const updateFloor = asyncHandler(async (req, res) => {
       }
     });
 
-    if (conflictingFloor) {
+    if (duplicateFloor) {
       return res.status(409).json({
         success: false,
-        error: { message: 'Floor number already exists for this property' }
+        error: { message: `Floor number ${floorNumber} already exists for this property` }
       });
     }
   }
 
-  const updatedFloor = await prisma.floor.update({
+  const updateData = {};
+  if (finalFloorName !== undefined) updateData.name = finalFloorName;
+  if (floorNumber !== undefined) updateData.floorNumber = parseInt(floorNumber);
+  if (description !== undefined) updateData.description = description;
+
+  const floor = await prisma.floor.update({
     where: { id },
-    data: {
-      ...(floorName && { floorName }),
-      ...(floorNumber !== undefined && { floorNumber: parseInt(floorNumber) }),
-      ...(description !== undefined && { description })
-    },
+    data: updateData,
     include: {
       rooms: true
     }
@@ -195,7 +256,7 @@ const updateFloor = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: updatedFloor,
+    data: floor,
     message: 'Floor updated successfully'
   });
 });
@@ -203,185 +264,55 @@ const updateFloor = asyncHandler(async (req, res) => {
 // DELETE /api/floors/:id - Delete floor
 const deleteFloor = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { forceDelete = false } = req.body;
 
-  // Check if floor exists
-  const floor = await prisma.floor.findUnique({
-    where: { id },
+  // Check if user is authenticated
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authentication required' }
+    });
+  }
+
+  // Check if floor exists and belongs to user's property
+  const existingFloor = await prisma.floor.findFirst({
+    where: { 
+      id,
+      property: {
+        ownerId: req.user.id
+      }
+    },
     include: {
       rooms: {
         include: {
           beds: {
             include: {
-              tenant: {
-                select: {
-                  id: true,
-                  tenantId: true,
-                  fullName: true,
-                  phone: true,
-                  status: true
-                }
-              }
+              tenant: true
             }
           }
-        }
-      },
-      property: {
-        select: {
-          id: true,
-          name: true
         }
       }
     }
   });
 
-  if (!floor) {
+  if (!existingFloor) {
     return res.status(404).json({
       success: false,
-      error: { message: 'Floor not found' }
+      error: { message: 'Floor not found or access denied' }
     });
   }
 
-  // Check for occupied beds across all rooms
-  const allBeds = floor.rooms.flatMap(room => room.beds);
-  const occupiedBeds = allBeds.filter(bed => bed.tenant);
-  const totalTenants = occupiedBeds.length;
+  // Check for active tenants
+  const activeTenantsCount = existingFloor.rooms.reduce((count, room) => {
+    return count + room.beds.filter(bed => bed.tenant && bed.tenant.status === 'ACTIVE').length;
+  }, 0);
 
-  // If floor has rooms with tenants and not force delete
-  if (floor.rooms.length > 0 && !forceDelete) {
-    // Find available beds in other floors of the same property
-    const availableBeds = await prisma.bed.findMany({
-      where: {
-        room: {
-          floor: {
-            propertyId: floor.propertyId,
-            id: { not: id } // Exclude floors being deleted
-          }
-        },
-        tenantId: null,
-        status: 'AVAILABLE'
-      },
-      include: {
-        room: {
-          include: {
-            floor: {
-              select: {
-                id: true,
-                name: true,
-                floorNumber: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: [
-        { room: { floor: { floorNumber: 'asc' } } },
-        { room: { roomNumber: 'asc' } },
-        { bedNumber: 'asc' }
-      ]
-    });
-
-    // Prepare detailed information about affected tenants
-    const affectedTenants = occupiedBeds.map(bed => {
-      const room = floor.rooms.find(r => r.beds.some(b => b.id === bed.id));
-      return {
-        tenantId: bed.tenant.tenantId,
-        tenantName: bed.tenant.fullName,
-        phone: bed.tenant.phone,
-        currentLocation: {
-          floor: floor.name,
-          room: room.roomNumber,
-          bed: bed.bedNumber,
-          bedType: bed.bedType,
-          rent: bed.rent
-        }
-      };
-    });
-
+  if (activeTenantsCount > 0) {
     return res.status(400).json({
       success: false,
       error: { 
-        message: totalTenants > 0 
-          ? `Cannot delete floor with ${totalTenants} tenants in ${floor.rooms.length} rooms. Please relocate all tenants first.`
-          : `Cannot delete floor with ${floor.rooms.length} rooms. Please remove all rooms first.`
-      },
-      floorInfo: {
-        id: floor.id,
-        name: floor.name,
-        floorNumber: floor.floorNumber,
-        totalRooms: floor.rooms.length,
-        totalBeds: allBeds.length,
-        occupiedBeds: occupiedBeds.length,
-        totalTenants
-      },
-      affectedTenants,
-      relocationOptions: {
-        availableBeds: availableBeds.length,
-        canRelocateAll: availableBeds.length >= totalTenants,
-        availableBedsDetails: availableBeds.map(bed => ({
-          id: bed.id,
-          location: `${bed.room.floor.name} - Room ${bed.room.roomNumber} - Bed ${bed.bedNumber}`,
-          bedType: bed.bedType,
-          rent: bed.rent,
-          floor: bed.room.floor.name,
-          room: bed.room.roomNumber,
-          bedNumber: bed.bedNumber
-        }))
-      },
-      requiresAction: totalTenants > 0 ? 'RELOCATE_ALL_TENANTS' : 'REMOVE_ALL_ROOMS',
-      recommendations: {
-        message: totalTenants > 0 
-          ? (availableBeds.length >= totalTenants 
-            ? `✅ ${availableBeds.length} available beds found across other floors - relocation possible`
-            : `⚠️ Only ${availableBeds.length} available beds found for ${totalTenants} tenants - need ${totalTenants - availableBeds.length} more beds`)
-          : `Remove all ${floor.rooms.length} rooms first before deleting the floor`,
-        priority: totalTenants > 0 ? 'HIGH' : 'MEDIUM',
-        actions: totalTenants > 0 ? [
-          {
-            type: 'BULK_RELOCATE',
-            description: 'Relocate all tenants to available beds in other floors',
-            endpoint: 'POST /api/floors/:id/relocate-tenants',
-            note: 'Automated relocation to best available beds'
-          },
-          {
-            type: 'MANUAL_RELOCATE',
-            description: 'Manually relocate each tenant',
-            endpoint: 'PUT /api/tenants/:tenantId/assign-bed',
-            note: 'Relocate tenants one by one to preferred beds'
-          },
-          {
-            type: 'FORCE_DELETE',
-            description: 'Delete floor and make all tenants unassigned (EXTREME CAUTION)',
-            endpoint: `DELETE /api/floors/${id}`,
-            payload: { forceDelete: true },
-            warning: `This will displace ${totalTenants} tenants - use only in emergency`
-          }
-        ] : [
-          {
-            type: 'REMOVE_ROOMS',
-            description: 'Remove all rooms first',
-            note: `Delete ${floor.rooms.length} rooms individually, then delete floor`
-          }
-        ]
+        message: `Cannot delete floor with ${activeTenantsCount} active tenant${activeTenantsCount > 1 ? 's' : ''}. Please relocate or vacate tenants first.` 
       }
     });
-  }
-
-  // Handle force delete scenario
-  if (forceDelete && totalTenants > 0) {
-    console.log(`🚨 FORCE DELETE FLOOR: ${floor.name} with ${totalTenants} tenants across ${floor.rooms.length} rooms`);
-    
-    // Mark all affected tenants as pending reassignment
-    for (const bed of occupiedBeds) {
-      await prisma.tenant.update({
-        where: { id: bed.tenant.id },
-        data: {
-          status: 'PENDING' // Mark as pending reassignment
-        }
-      });
-      
-      console.log(`⚠️ Tenant ${bed.tenant.tenantId} (${bed.tenant.fullName}) displaced from floor deletion`);
-    }
   }
 
   // Delete floor (cascade will handle rooms and beds)
@@ -389,60 +320,9 @@ const deleteFloor = asyncHandler(async (req, res) => {
     where: { id }
   });
 
-  // Update property counts
-  await prisma.property.update({
-    where: { id: floor.propertyId },
-    data: {
-      totalFloors: { decrement: 1 },
-      totalRooms: { decrement: floor.rooms.length },
-      totalBeds: { decrement: allBeds.length }
-    }
-  });
-
-  const responseMessage = totalTenants > 0 && forceDelete
-    ? `Floor deleted successfully. ${totalTenants} tenants across ${floor.rooms.length} rooms marked as unassigned.`
-    : `Floor deleted successfully. ${floor.rooms.length} rooms and ${allBeds.length} beds removed.`;
-
   res.status(200).json({
     success: true,
-    message: responseMessage,
-    deletedFloor: {
-      id: floor.id,
-      name: floor.name,
-      floorNumber: floor.floorNumber,
-      totalRooms: floor.rooms.length,
-      totalBeds: allBeds.length,
-      affectedTenants: totalTenants
-    }
-  });
-});
-
-// GET /api/floors/:id/rooms - Get all rooms for a specific floor
-const getFloorRooms = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  const floor = await prisma.floor.findUnique({
-    where: { id },
-    include: {
-      rooms: {
-        include: {
-          beds: true
-        }
-      }
-    }
-  });
-
-  if (!floor) {
-    return res.status(404).json({
-      success: false,
-      error: { message: 'Floor not found' }
-    });
-  }
-
-  res.status(200).json({
-    success: true,
-    data: floor.rooms,
-    count: floor.rooms.length
+    message: 'Floor deleted successfully'
   });
 });
 
@@ -451,6 +331,5 @@ module.exports = {
   getFloor,
   createFloor,
   updateFloor,
-  deleteFloor,
-  getFloorRooms
+  deleteFloor
 }; 

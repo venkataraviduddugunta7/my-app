@@ -7,7 +7,7 @@ const {
   deleteRoom,
   getRoomBeds
 } = require('../controllers/room.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate } = require('../middleware/auth.middleware');
 
 const router = Router();
 
@@ -21,13 +21,13 @@ router.get('/', getRooms);
 router.get('/:id', getRoom);
 
 // POST /api/rooms - Create new room
-router.post('/', authorize('OWNER', 'MANAGER'), createRoom);
+router.post('/', createRoom);
 
 // PUT /api/rooms/:id - Update room
-router.put('/:id', authorize('OWNER', 'MANAGER'), updateRoom);
+router.put('/:id', updateRoom);
 
 // DELETE /api/rooms/:id - Delete room
-router.delete('/:id', authorize('OWNER', 'MANAGER'), deleteRoom);
+router.delete('/:id', deleteRoom);
 
 // GET /api/rooms/:id/beds - Get all beds for a room
 router.get('/:id/beds', getRoomBeds);

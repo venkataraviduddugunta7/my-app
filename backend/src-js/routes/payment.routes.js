@@ -8,29 +8,32 @@ const {
   markPaymentPaid,
   getPaymentStats
 } = require('../controllers/payment.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate } = require('../middleware/auth.middleware');
 
 const router = Router();
 
-// GET /api/payments/stats - Get payment statistics
-router.get('/stats', authenticate, getPaymentStats);
+// Apply authentication to all routes
+router.use(authenticate);
 
 // GET /api/payments - Get all payments
 router.get('/', getPayments);
 
+// GET /api/payments/stats - Get payment statistics
+router.get('/stats', getPaymentStats);
+
+// POST /api/payments - Create new payment
+router.post('/', createPayment);
+
+// PUT /api/payments/:id - Update payment
+router.put('/:id', updatePayment);
+
+// DELETE /api/payments/:id - Delete payment
+router.delete('/:id', deletePayment);
+
+// PUT /api/payments/:id/mark-paid - Mark payment as paid
+router.put('/:id/mark-paid', markPaymentPaid);
+
 // GET /api/payments/:id - Get payment by ID
 router.get('/:id', getPayment);
-
-// POST /api/payments - Create new payment (requires authentication)
-router.post('/', authenticate, authorize('OWNER', 'MANAGER'), createPayment);
-
-// PUT /api/payments/:id - Update payment (requires authentication)
-router.put('/:id', authenticate, authorize('OWNER', 'MANAGER'), updatePayment);
-
-// DELETE /api/payments/:id - Delete payment (requires authentication)
-router.delete('/:id', authenticate, authorize('OWNER', 'MANAGER'), deletePayment);
-
-// PUT /api/payments/:id/mark-paid - Mark payment as paid (requires authentication)
-router.put('/:id/mark-paid', authenticate, authorize('OWNER', 'MANAGER'), markPaymentPaid);
 
 module.exports = router;
