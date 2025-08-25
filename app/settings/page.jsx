@@ -27,8 +27,10 @@ import {
   Upload,
   Plus,
   Trash2,
-  Eye
+  Eye,
+  Edit3
 } from 'lucide-react';
+import { DeleteIcon, EditIcon, ICON_COLORS } from '@/src/assets/icons';
 
 function ProfileSettings() {
   const dispatch = useDispatch();
@@ -111,26 +113,26 @@ function ProfileSettings() {
 
   const currencyOptions = [
     { value: 'INR', label: 'Indian Rupee (₹)' },
-    { value: 'USD', label: 'US Dollar ($)' },
-    { value: 'EUR', label: 'Euro (€)' }
+    // { value: 'USD', label: 'US Dollar ($)' },
+    // { value: 'EUR', label: 'Euro (€)' }
   ];
 
   const dateFormatOptions = [
     { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-    { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-    { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' }
+    // { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+    // { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' }
   ];
 
   const timezoneOptions = [
     { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
-    { value: 'UTC', label: 'UTC' },
-    { value: 'America/New_York', label: 'America/New_York (EST)' }
+    // { value: 'UTC', label: 'UTC' },
+    // { value: 'America/New_York', label: 'America/New_York (EST)' }
   ];
 
   const themeOptions = [
     { value: 'light', label: 'Light Theme' },
-    { value: 'dark', label: 'Dark Theme' },
-    { value: 'auto', label: 'Auto (System)' }
+    // { value: 'dark', label: 'Dark Theme' },
+    // { value: 'auto', label: 'Auto (System)' }
   ];
 
   if (loading && !userSettings) {
@@ -405,6 +407,7 @@ function TermsAndConditionsSettings() {
   const { properties, selectedProperty } = useSelector((state) => state.property);
   const [loading, setLoading] = useState(false);
   const [terms, setTerms] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
 
   // Fetch terms and conditions on component mount
@@ -456,6 +459,7 @@ function TermsAndConditionsSettings() {
 
   const handleAddTerm = () => {
     setTerms([...terms, ""]);
+    setEditingIndex(terms.length); // Start editing the new term
   };
 
   const handleUpdateTerm = (index, value) => {
@@ -467,6 +471,11 @@ function TermsAndConditionsSettings() {
   const handleDeleteTerm = (index) => {
     if (terms.length > 1) {
       setTerms(terms.filter((_, i) => i !== index));
+      if (editingIndex === index) {
+        setEditingIndex(null);
+      } else if (editingIndex > index) {
+        setEditingIndex(editingIndex - 1);
+      }
     } else {
       dispatch(addToast({
         title: 'Cannot Delete',
@@ -474,6 +483,26 @@ function TermsAndConditionsSettings() {
         variant: 'warning'
       }));
     }
+  };
+
+  const handleEditTerm = (index) => {
+    setEditingIndex(index);
+  };
+
+  const handleSaveEdit = (index) => {
+    if (terms[index].trim() === '') {
+      dispatch(addToast({
+        title: 'Invalid Term',
+        description: 'Term cannot be empty.',
+        variant: 'error'
+      }));
+      return;
+    }
+    setEditingIndex(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
   };
 
   const handleSave = async () => {
@@ -569,22 +598,69 @@ function TermsAndConditionsSettings() {
                 {index + 1}.
               </span>
               <div className="flex-1">
-                <textarea
-                  value={term}
-                  onChange={(e) => handleUpdateTerm(index, e.target.value)}
-                  placeholder="Enter term or condition..."
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
+                {editingIndex === index ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={term}
+                      onChange={(e) => handleUpdateTerm(index, e.target.value)}
+                      placeholder="Enter term or condition..."
+                      rows={1}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[40px] max-h-[120px]"
+                      style={{ 
+                        minHeight: '40px',
+                        height: 'auto',
+                        overflow: 'hidden'
+                      }}
+                      onInput={(e) => {
+                        e.target.style.height = 'auto';
+                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                      }}
+                      autoFocus
+                    />
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveEdit(index)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Save className="w-3 h-3 mr-1" />
+                        Save
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full px-3 py-2 text-gray-700 leading-relaxed">
+                    {term || <span className="text-gray-400 italic">Empty term</span>}
+                  </div>
+                )}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDeleteTerm(index)}
-                className="mt-1"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              {editingIndex !== index && (
+                <div className="flex space-x-1 mt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditTerm(index)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <EditIcon  />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteTerm(index)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <DeleteIcon color={ICON_COLORS.error}/>
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -593,7 +669,7 @@ function TermsAndConditionsSettings() {
           <Button
             variant="outline"
             onClick={handleAddTerm}
-            disabled={terms.some(term => term.trim() === "")}
+            disabled={editingIndex !== null}
           >
             <Plus className="w-4 h-4 mr-2" />
             Add New Term
@@ -603,13 +679,14 @@ function TermsAndConditionsSettings() {
             <Button
               variant="outline"
               onClick={() => setShowPreview(true)}
+              disabled={editingIndex !== null}
             >
               <Eye className="w-4 h-4 mr-2" />
               Preview
             </Button>
             <Button
               onClick={handleSave}
-              disabled={terms.some(term => term.trim() === "")}
+              disabled={editingIndex !== null || terms.some(term => term.trim() === "")}
             >
               <Save className="w-4 h-4 mr-2" />
               Save Terms
