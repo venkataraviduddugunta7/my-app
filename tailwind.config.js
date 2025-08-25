@@ -47,8 +47,18 @@ module.exports = {
         }
       },
       fontFamily: {
+        'sans': ['var(--font-poppins)', 'system-ui', 'sans-serif'],
         'hindi': ['Noto Sans Devanagari', 'sans-serif'],
         'english': ['Inter', 'system-ui', 'sans-serif'],
+        'poppins': ['var(--font-poppins)', 'sans-serif'],
+        'lato': ['var(--font-lato)', 'sans-serif'],
+        'poppins-light': ['var(--font-poppins)', 'sans-serif'],
+        'poppins-medium': ['var(--font-poppins)', 'sans-serif'],
+        'poppins-semibold': ['var(--font-poppins)', 'sans-serif'],
+        'poppins-bold': ['var(--font-poppins)', 'sans-serif'],
+        'lato-light': ['var(--font-lato)', 'sans-serif'],
+        'lato-regular': ['var(--font-lato)', 'sans-serif'],
+        'lato-bold': ['var(--font-lato)', 'sans-serif'],
       },
     },
   },
