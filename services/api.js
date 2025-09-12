@@ -31,8 +31,20 @@ class ApiService {
 
   // Base request method with caching and deduplication
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
     const token = this.getToken();
+    
+    // Skip API calls for demo mode
+    if (token && token.startsWith('demo-')) {
+      console.log('🎭 Demo mode - skipping API call:', endpoint);
+      // Return mock success response for demo mode
+      return {
+        success: true,
+        data: null,
+        message: 'Demo mode - no API call made'
+      };
+    }
+    
+    const url = `${this.baseURL}${endpoint}`;
     
     const config = {
       ...options,
@@ -69,10 +81,13 @@ class ApiService {
 
       return data;
     } catch (error) {
-      console.error('❌ API Error:', {
-        url,
-        error: error.message
-      });
+      // Only log errors in development, not in production
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ API Error (Dev Mode):', {
+          url,
+          error: error.message
+        });
+      }
       throw error;
     }
   }

@@ -132,6 +132,13 @@ const propertySlice = createSlice({
         localStorage.setItem('selectedPropertyId', property.id);
       }
     },
+    setSelectedProperty: (state, action) => {
+      // Set property directly (for demo mode)
+      state.selectedProperty = action.payload;
+      if (action.payload?.id) {
+        localStorage.setItem('selectedPropertyId', action.payload.id);
+      }
+    },
     clearSelectedProperty: (state) => {
       state.selectedProperty = null;
       localStorage.removeItem('selectedPropertyId');
@@ -267,7 +274,8 @@ const propertySlice = createSlice({
 });
 
 export const { 
-  selectProperty, 
+  selectProperty,
+  setSelectedProperty, 
   clearSelectedProperty, 
   clearError, 
   clearProperties, 

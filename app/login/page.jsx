@@ -1,72 +1,75 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useDispatch, useSelector } from 'react-redux';
-import { motion } from 'framer-motion';
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
-  Shield, 
-  Zap, 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { motion } from "framer-motion";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Shield,
+  Zap,
   Star,
   Building2,
   Users,
   BarChart3,
   CheckCircle,
   Sparkles,
-  Activity
-} from 'lucide-react';
-import { loginUser } from '@/store/slices/authSlice';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { addToast } from '@/store/slices/uiSlice';
+  Activity,
+} from "lucide-react";
+import { setCredentials } from "@/store/slices/authSlice";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { addToast } from "@/store/slices/uiSlice";
+import { setSelectedProperty } from "@/store/slices/propertySlice";
 
 const features = [
   {
     icon: Activity,
-    title: 'Real-time Updates',
-    description: 'Live dashboard with instant notifications'
+    title: "Real-time Updates",
+    description: "Live dashboard with instant notifications",
   },
   {
     icon: BarChart3,
-    title: 'Advanced Analytics',
-    description: 'Comprehensive insights and forecasting'
+    title: "Advanced Analytics",
+    description: "Comprehensive insights and forecasting",
   },
   {
     icon: Shield,
-    title: 'Enterprise Security',
-    description: 'Bank-grade security with JWT authentication'
+    title: "Enterprise Security",
+    description: "Bank-grade security with JWT authentication",
   },
   {
     icon: Zap,
-    title: 'Lightning Fast',
-    description: 'Optimized performance with caching'
-  }
+    title: "Lightning Fast",
+    description: "Optimized performance with caching",
+  },
 ];
 
 const testimonials = [
   {
-    name: 'Raj Patel',
-    role: 'Property Owner',
-    content: 'This system transformed how I manage my 50+ bed PG. The real-time updates are game-changing!',
-    rating: 5
+    name: "Raj Patel",
+    role: "Property Owner",
+    content:
+      "This system transformed how I manage my 50+ bed PG. The real-time updates are game-changing!",
+    rating: 5,
   },
   {
-    name: 'Priya Sharma',
-    role: 'PG Manager',
-    content: 'The analytics help me make data-driven decisions. Revenue increased by 30% in 3 months.',
-    rating: 5
-  }
+    name: "Priya Sharma",
+    role: "PG Manager",
+    content:
+      "The analytics help me make data-driven decisions. Revenue increased by 30% in 3 months.",
+    rating: 5,
+  },
 ];
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -79,7 +82,7 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/');
+      router.push("/");
     }
   }, [isAuthenticated, router]);
 
@@ -93,33 +96,84 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.email || !formData.password) {
+      dispatch(
+        addToast({
+          title: "Missing Information",
+          description: "Please fill in all required fields",
+          variant: "warning",
+        })
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Mock login for demo
+      // Demo login - accept any credentials for demonstration
+      const demoUser = {
+        user: {
+          id: "demo-user-" + Date.now(),
+          email: formData.email,
+          fullName: formData.email
+            .split("@")[0]
+            .replace(/[^a-zA-Z]/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase()),
+          role: "OWNER",
+        },
+        token: "demo-token-" + Date.now(),
+      };
+
+      // Store in localStorage for persistence
+      if (typeof window !== "undefined") {
+        localStorage.setItem("auth_token", demoUser.token);
+        localStorage.setItem("auth_user", JSON.stringify(demoUser.user));
+      }
+
+      // Update Redux state directly without API call
+      dispatch(setCredentials(demoUser));
+
+      // Set a demo property for the dashboard
+      const demoProperty = {
+        id: "demo-property-1",
+        name: "Sunrise PG",
+        address: "123 Main Street, City",
+        totalBeds: 24,
+        occupiedBeds: 21,
+      };
+
+      dispatch(setSelectedProperty(demoProperty));
+
+      dispatch(
+        addToast({
+          title: "Welcome Back! 🎉",
+          description: "Successfully logged into PG Manager Pro",
+          variant: "success",
+        })
+      );
+
+      // Small delay for better UX, then navigate
       setTimeout(() => {
-        dispatch(addToast({
-          title: 'Welcome Back! 🎉',
-          description: 'Successfully logged into PG Manager Pro',
-          variant: 'success'
-        }));
-        setLoading(false);
-        router.push('/');
-      }, 2000);
+        router.push("/");
+      }, 1000);
     } catch (error) {
+      dispatch(
+        addToast({
+          title: "Login Failed",
+          description: error.message || "Please check your credentials",
+          variant: "error",
+        })
+      );
+    } finally {
       setLoading(false);
-      dispatch(addToast({
-        title: 'Login Failed',
-        description: error.message || 'Please check your credentials',
-        variant: 'error'
-      }));
     }
   };
 
   const handleChange = (e) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -145,12 +199,16 @@ export default function LoginPage() {
                 <Building2 className="h-8 w-8" />
               </div>
             </div>
-            
+
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Welcome Back
             </h1>
             <p className="text-gray-600">
-              Sign in to your <span className="font-semibold gradient-text">PG Manager Pro</span> account
+              Sign in to your{" "}
+              <span className="font-semibold gradient-text">
+                PG Manager Pro
+              </span>{" "}
+              account
             </p>
           </motion.div>
 
@@ -188,10 +246,16 @@ export default function LoginPage() {
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
                 <span className="text-gray-600">Remember me</span>
               </label>
-              <button type="button" className="text-primary-600 hover:text-primary-700 font-medium">
+              <button
+                type="button"
+                className="text-primary-600 hover:text-primary-700 font-medium"
+              >
                 Forgot password?
               </button>
             </div>
@@ -222,14 +286,20 @@ export default function LoginPage() {
           >
             <div className="flex items-center space-x-2 mb-2">
               <Sparkles className="h-4 w-4 text-purple-600" />
-              <span className="text-sm font-semibold text-purple-800">Demo Access</span>
+              <span className="text-sm font-semibold text-purple-800">
+                Demo Access
+              </span>
             </div>
             <p className="text-xs text-purple-700 mb-2">
               Use these credentials to explore the system:
             </p>
             <div className="text-xs text-purple-600 space-y-1">
-              <p><strong>Email:</strong> demo@pgmanager.com</p>
-              <p><strong>Password:</strong> demo123</p>
+              <p>
+                <strong>Email:</strong> demo@pgmanager.com
+              </p>
+              <p>
+                <strong>Password:</strong> demo123
+              </p>
             </div>
           </motion.div>
 
@@ -241,9 +311,9 @@ export default function LoginPage() {
             className="mt-6 text-center"
           >
             <p className="text-sm text-gray-600">
-              Don&apos;t have an account?{' '}
-              <button 
-                onClick={() => router.push('/signup')}
+              Don&apos;t have an account?{" "}
+              <button
+                onClick={() => router.push("/signup")}
                 className="font-semibold text-primary-600 hover:text-primary-700"
               >
                 Sign up for free
@@ -257,7 +327,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 text-white relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-hero-pattern opacity-10" />
-        
+
         <div className="relative flex flex-col justify-center p-12 w-full">
           {/* Header */}
           <motion.div
@@ -270,7 +340,8 @@ export default function LoginPage() {
               World-Class PG Management
             </h2>
             <p className="text-xl text-white/90">
-              Experience the future of property management with our enterprise-grade platform
+              Experience the future of property management with our
+              enterprise-grade platform
             </p>
           </motion.div>
 
@@ -316,16 +387,25 @@ export default function LoginPage() {
               transition={{ duration: 0.5 }}
             >
               <div className="flex items-center space-x-1 mb-3">
-                {[...Array(testimonials[currentTestimonial].rating)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
+                {[...Array(testimonials[currentTestimonial].rating)].map(
+                  (_, i) => (
+                    <Star
+                      key={i}
+                      className="h-4 w-4 fill-yellow-400 text-yellow-400"
+                    />
+                  )
+                )}
               </div>
               <blockquote className="text-white/90 mb-4">
                 &quot;{testimonials[currentTestimonial].content}&quot;
               </blockquote>
               <div>
-                <p className="font-semibold">{testimonials[currentTestimonial].name}</p>
-                <p className="text-sm text-white/70">{testimonials[currentTestimonial].role}</p>
+                <p className="font-semibold">
+                  {testimonials[currentTestimonial].name}
+                </p>
+                <p className="text-sm text-white/70">
+                  {testimonials[currentTestimonial].role}
+                </p>
               </div>
             </motion.div>
           </motion.div>
@@ -338,9 +418,9 @@ export default function LoginPage() {
             className="grid grid-cols-3 gap-6 mt-8"
           >
             {[
-              { label: 'Properties', value: '500+' },
-              { label: 'Happy Tenants', value: '10k+' },
-              { label: 'Success Rate', value: '99.9%' }
+              { label: "Properties", value: "500+" },
+              { label: "Happy Tenants", value: "10k+" },
+              { label: "Success Rate", value: "99.9%" },
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}

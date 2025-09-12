@@ -158,10 +158,24 @@ const authSlice = createSlice({
     initializeAuth: (state) => {
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('auth_token');
-        if (token) {
-          state.token = token;
-          state.isAuthenticated = true;
+        const userStr = localStorage.getItem('auth_user');
+        if (token && userStr) {
+          try {
+            state.token = token;
+            state.user = JSON.parse(userStr);
+            state.isAuthenticated = true;
+            state.isLoading = false;
+          } catch (error) {
+            // Clear invalid data
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            state.isLoading = false;
+          }
+        } else {
+          state.isLoading = false;
         }
+      } else {
+        state.isLoading = false;
       }
     },
   },

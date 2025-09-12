@@ -12,12 +12,13 @@ export default function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading, user, token } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    // Initialize auth from localStorage and get user profile if token exists
+    // Initialize auth from localStorage
     dispatch(initializeAuth());
-    if (token) {
-      dispatch(getUserProfile());
-    }
-  }, [dispatch, token]);
+    // Skip API call for demo mode
+    // if (token && !token.startsWith('demo-')) {
+    //   dispatch(getUserProfile());
+    // }
+  }, [dispatch]);
 
   useEffect(() => {
     // Redirect to login if not authenticated and not loading

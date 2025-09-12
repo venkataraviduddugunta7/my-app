@@ -416,23 +416,16 @@ export default function Dashboard() {
       }));
   };
 
-  if (!selectedProperty) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-center h-64"
-      >
-        <div className="text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white mx-auto mb-4 shadow-glow">
-            <Building2 className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Property Selected</h3>
-          <p className="text-gray-600">Please select a property to view the dashboard.</p>
-        </div>
-      </motion.div>
-    );
-  }
+  // Use demo property if no property is selected
+  const demoProperty = {
+    id: 'demo-property-1',
+    name: 'Sunrise PG',
+    address: '123 Main Street, City',
+    totalBeds: 24,
+    occupiedBeds: 21
+  };
+
+  const property = selectedProperty || demoProperty;
 
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
@@ -459,7 +452,7 @@ export default function Dashboard() {
               transition={{ delay: 0.4 }}
               className="text-xl text-white/90"
             >
-              Real-time management for <span className="font-semibold">{selectedProperty.name}</span>
+              Real-time management for <span className="font-semibold">{property.name}</span>
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}

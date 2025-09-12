@@ -13,15 +13,13 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle,
-  Button,
-  Input,
-  Dropdown,
-  Modal,
-  ModalFooter,
-  Drawer,
-  DrawerFooter
-} from '@/components/ui';
+  CardTitle
+} from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Dropdown } from '@/components/ui/Dropdown';
+import { Modal, ModalFooter } from '@/components/ui/Modal';
+import DataTable from '@/components/ui/DataTable';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   Users,

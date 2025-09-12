@@ -190,7 +190,8 @@ export function Sidebar() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-6 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white shadow-elegant text-gray-500 hover:text-gray-700 transition-colors"
+        className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white shadow-elegant text-gray-500 hover:text-gray-700 transition-colors"
+        style={{ zIndex: 100 }}
       >
         {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </motion.button>
@@ -327,7 +328,8 @@ export function Sidebar() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg shadow-lg z-50 whitespace-nowrap"
+                        className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg shadow-lg whitespace-nowrap"
+                        style={{ zIndex: 9999 }}
                       >
                         {item.label}
                         <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900" />
