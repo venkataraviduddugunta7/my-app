@@ -9,13 +9,12 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle,
-  Button,
-  Input,
-  Dropdown,
-  Modal,
-  ModalFooter
-} from '@/components/ui';
+  CardTitle
+} from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Modal, ModalFooter } from '@/components/ui/Modal';
+import { Dropdown } from '@/components/ui/Dropdown';
 import {
   Settings,
   User,

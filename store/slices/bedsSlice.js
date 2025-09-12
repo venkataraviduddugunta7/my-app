@@ -147,6 +147,39 @@ const bedsSlice = createSlice({
         state.beds[bedIndex].tenantId = null;
         state.beds[bedIndex].status = 'Available';
       }
+    },
+    // Real-time update actions
+    updateBedStatus: (state, action) => {
+      const { id, status, tenantId, tenant } = action.payload;
+      const bedIndex = state.beds.findIndex(bed => bed.id === id);
+      
+      if (bedIndex !== -1) {
+        state.beds[bedIndex] = {
+          ...state.beds[bedIndex],
+          status,
+          tenantId,
+          tenant
+        };
+      }
+    },
+    addBedRealtime: (state, action) => {
+      const existingIndex = state.beds.findIndex(bed => bed.id === action.payload.id);
+      if (existingIndex === -1) {
+        state.beds.push(action.payload);
+      }
+    },
+    removeBedRealtime: (state, action) => {
+      state.beds = state.beds.filter(bed => bed.id !== action.payload);
+    },
+    // Bulk status updates for performance
+    updateMultipleBeds: (state, action) => {
+      const updates = action.payload;
+      updates.forEach(update => {
+        const bedIndex = state.beds.findIndex(bed => bed.id === update.id);
+        if (bedIndex !== -1) {
+          state.beds[bedIndex] = { ...state.beds[bedIndex], ...update };
+        }
+      });
     }
   },
   extraReducers: (builder) => {
@@ -204,5 +237,14 @@ const bedsSlice = createSlice({
   },
 });
 
-export const { clearError, clearBeds, assignTenantToBed, vacateBed } = bedsSlice.actions;
+export const { 
+  clearError, 
+  clearBeds, 
+  assignTenantToBed, 
+  vacateBed, 
+  updateBedStatus, 
+  addBedRealtime, 
+  removeBedRealtime, 
+  updateMultipleBeds 
+} = bedsSlice.actions;
 export default bedsSlice.reducer; 

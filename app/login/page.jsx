@@ -3,37 +3,78 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
-import Link from 'next/link';
-import { loginUser, clearError } from '@/store/slices/authSlice';
+import { motion } from 'framer-motion';
 import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle,
-  Button,
-  Input
-} from '@/components/ui';
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  Building,
-  AlertCircle,
-  Loader2
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowRight, 
+  Shield, 
+  Zap, 
+  Star,
+  Building2,
+  Users,
+  BarChart3,
+  CheckCircle,
+  Sparkles,
+  Activity
 } from 'lucide-react';
+import { loginUser } from '@/store/slices/authSlice';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { addToast } from '@/store/slices/uiSlice';
+
+const features = [
+  {
+    icon: Activity,
+    title: 'Real-time Updates',
+    description: 'Live dashboard with instant notifications'
+  },
+  {
+    icon: BarChart3,
+    title: 'Advanced Analytics',
+    description: 'Comprehensive insights and forecasting'
+  },
+  {
+    icon: Shield,
+    title: 'Enterprise Security',
+    description: 'Bank-grade security with JWT authentication'
+  },
+  {
+    icon: Zap,
+    title: 'Lightning Fast',
+    description: 'Optimized performance with caching'
+  }
+];
+
+const testimonials = [
+  {
+    name: 'Raj Patel',
+    role: 'Property Owner',
+    content: 'This system transformed how I manage my 50+ bed PG. The real-time updates are game-changing!',
+    rating: 5
+  },
+  {
+    name: 'Priya Sharma',
+    role: 'PG Manager',
+    content: 'The analytics help me make data-driven decisions. Revenue increased by 30% in 3 months.',
+    rating: 5
+  }
+];
 
 export default function LoginPage() {
-  const router = useRouter();
-  const dispatch = useDispatch();
-  const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
-
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const { isAuthenticated, error } = useSelector((state) => state.auth);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -42,189 +83,291 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
-  // Clear error when component mounts
+  // Rotate testimonials
   useEffect(() => {
-    dispatch(clearError());
-  }, [dispatch]);
-
-  const validateForm = () => {
-    const errors = {};
-    
-    if (!formData.email) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email';
-    }
-    
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error for this field
-    if (formErrors[name]) {
-      setFormErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-    
-    // Clear global error
-    if (error) {
-      dispatch(clearError());
-    }
-  };
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
+    setLoading(true);
+
+    try {
+      // Mock login for demo
+      setTimeout(() => {
+        dispatch(addToast({
+          title: 'Welcome Back! 🎉',
+          description: 'Successfully logged into PG Manager Pro',
+          variant: 'success'
+        }));
+        setLoading(false);
+        router.push('/');
+      }, 2000);
+    } catch (error) {
+      setLoading(false);
+      dispatch(addToast({
+        title: 'Login Failed',
+        description: error.message || 'Please check your credentials',
+        variant: 'error'
+      }));
     }
-    
-    dispatch(loginUser(formData));
+  };
+
+  const handleChange = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo/Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
-            <Building className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your PG Management account</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex">
+      {/* Left Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
+        <motion.div
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="w-full max-w-md"
+        >
+          {/* Logo and Title */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-center mb-8"
+          >
+            <div className="flex items-center justify-center mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-glow">
+                <Building2 className="h-8 w-8" />
+              </div>
+            </div>
+            
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Welcome Back
+            </h1>
+            <p className="text-gray-600">
+              Sign in to your <span className="font-semibold gradient-text">PG Manager Pro</span> account
+            </p>
+          </motion.div>
 
-        <Card className="shadow-xl border-0">
-          <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl text-center font-semibold">Sign In</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Global Error */}
-              {error && (
-                <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-red-600" />
-                  <span className="text-sm text-red-700">{error}</span>
-                </div>
+          {/* Login Form */}
+          <motion.form
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
+            <Input
+              label="Email Address"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+              icon={Mail}
+              required
+              premium
+            />
+
+            <Input
+              label="Password"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              icon={Lock}
+              required
+              premium
+            />
+
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                <span className="text-gray-600">Remember me</span>
+              </label>
+              <button type="button" className="text-primary-600 hover:text-primary-700 font-medium">
+                Forgot password?
+              </button>
+            </div>
+
+            <Button
+              type="submit"
+              loading={loading}
+              disabled={!formData.email || !formData.password}
+              className="w-full h-12 text-base font-semibold"
+            >
+              {loading ? (
+                <span>Signing you in...</span>
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
               )}
+            </Button>
+          </motion.form>
 
-              {/* Email Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="Enter your email"
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      formErrors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                </div>
-                {formErrors.email && (
-                  <p className="text-sm text-red-600">{formErrors.email}</p>
-                )}
-              </div>
+          {/* Demo Credentials */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200"
+          >
+            <div className="flex items-center space-x-2 mb-2">
+              <Sparkles className="h-4 w-4 text-purple-600" />
+              <span className="text-sm font-semibold text-purple-800">Demo Access</span>
+            </div>
+            <p className="text-xs text-purple-700 mb-2">
+              Use these credentials to explore the system:
+            </p>
+            <div className="text-xs text-purple-600 space-y-1">
+              <p><strong>Email:</strong> demo@pgmanager.com</p>
+              <p><strong>Password:</strong> demo123</p>
+            </div>
+          </motion.div>
 
-              {/* Password Field */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Enter your password"
-                    className={`w-full pl-10 pr-12 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      formErrors.password ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {formErrors.password && (
-                  <p className="text-sm text-red-600">{formErrors.password}</p>
-                )}
-              </div>
-
-              {/* Demo Credentials */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs font-medium text-blue-800 mb-2">Demo Credentials:</p>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <div><strong>Admin:</strong> admin@pgmanager.com / admin123</div>
-                  <div><strong>Owner:</strong> owner@mypg.com / owner123</div>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+          {/* Sign Up Link */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-6 text-center"
+          >
+            <p className="text-sm text-gray-600">
+              Don&apos;t have an account?{' '}
+              <button 
+                onClick={() => router.push('/signup')}
+                className="font-semibold text-primary-600 hover:text-primary-700"
               >
-                {isLoading ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Signing In...</span>
+                Sign up for free
+              </button>
+            </p>
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Right Side - Features Showcase */}
+      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 text-white relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-hero-pattern opacity-10" />
+        
+        <div className="relative flex flex-col justify-center p-12 w-full">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-12"
+          >
+            <h2 className="text-4xl font-bold mb-4">
+              World-Class PG Management
+            </h2>
+            <p className="text-xl text-white/90">
+              Experience the future of property management with our enterprise-grade platform
+            </p>
+          </motion.div>
+
+          {/* Features Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="grid grid-cols-2 gap-6 mb-12"
+          >
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 + index * 0.1 }}
+                  whileHover={{ scale: 1.05 }}
+                  className="p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 mb-3">
+                    <Icon className="h-5 w-5" />
                   </div>
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </form>
+                  <h3 className="font-semibold mb-1">{feature.title}</h3>
+                  <p className="text-sm text-white/80">{feature.description}</p>
+                </motion.div>
+              );
+            })}
+          </motion.div>
 
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+          {/* Testimonials */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+            className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-6"
+          >
+            <motion.div
+              key={currentTestimonial}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="flex items-center space-x-1 mb-3">
+                {[...Array(testimonials[currentTestimonial].rating)].map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                ))}
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Don't have an account?</span>
+              <blockquote className="text-white/90 mb-4">
+                &quot;{testimonials[currentTestimonial].content}&quot;
+              </blockquote>
+              <div>
+                <p className="font-semibold">{testimonials[currentTestimonial].name}</p>
+                <p className="text-sm text-white/70">{testimonials[currentTestimonial].role}</p>
               </div>
-            </div>
+            </motion.div>
+          </motion.div>
 
-            {/* Sign Up Link */}
-            <div className="text-center">
-              <Link 
-                href="/signup"
-                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          {/* Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.1 }}
+            className="grid grid-cols-3 gap-6 mt-8"
+          >
+            {[
+              { label: 'Properties', value: '500+' },
+              { label: 'Happy Tenants', value: '10k+' },
+              { label: 'Success Rate', value: '99.9%' }
+            ].map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.2 + index * 0.1 }}
+                className="text-center"
               >
-                Create your PG Management account
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-500">
-          <p>© 2024 PG Management System. All rights reserved.</p>
+                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-sm text-white/80">{stat.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
+
+        {/* Floating Elements */}
+        <motion.div
+          animate={{ y: [0, -10, 0] }}
+          transition={{ duration: 4, repeat: Infinity }}
+          className="absolute top-20 right-20 w-20 h-20 bg-white/10 rounded-full backdrop-blur-sm"
+        />
+        <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 6, repeat: Infinity }}
+          className="absolute bottom-20 left-20 w-16 h-16 bg-white/10 rounded-full backdrop-blur-sm"
+        />
       </div>
     </div>
   );
-} 
+}

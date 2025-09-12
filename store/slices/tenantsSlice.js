@@ -191,6 +191,45 @@ const tenantsSlice = createSlice({
     },
     clearTenants: (state) => {
       state.tenants = [];
+    },
+    // Real-time update actions
+    updateTenantRealtime: (state, action) => {
+      const index = state.tenants.findIndex(tenant => tenant.id === action.payload.id);
+      if (index !== -1) {
+        state.tenants[index] = { ...state.tenants[index], ...action.payload };
+      }
+    },
+    addTenantRealtime: (state, action) => {
+      const existingIndex = state.tenants.findIndex(tenant => tenant.id === action.payload.id);
+      if (existingIndex === -1) {
+        state.tenants.unshift(action.payload); // Add to beginning for recent items first
+      }
+    },
+    removeTenantRealtime: (state, action) => {
+      state.tenants = state.tenants.filter(tenant => tenant.id !== action.payload);
+    },
+    updateTenantStatus: (state, action) => {
+      const { id, status, leavingDate } = action.payload;
+      const tenantIndex = state.tenants.findIndex(tenant => tenant.id === id);
+      
+      if (tenantIndex !== -1) {
+        state.tenants[tenantIndex] = {
+          ...state.tenants[tenantIndex],
+          status,
+          ...(leavingDate && { leavingDate }),
+          ...(status === 'VACATED' && { isActive: false })
+        };
+      }
+    },
+    // Bulk operations for performance
+    updateMultipleTenants: (state, action) => {
+      const updates = action.payload;
+      updates.forEach(update => {
+        const tenantIndex = state.tenants.findIndex(tenant => tenant.id === update.id);
+        if (tenantIndex !== -1) {
+          state.tenants[tenantIndex] = { ...state.tenants[tenantIndex], ...update };
+        }
+      });
     }
   },
   extraReducers: (builder) => {
@@ -279,5 +318,13 @@ const tenantsSlice = createSlice({
   },
 });
 
-export const { clearError, clearTenants } = tenantsSlice.actions;
+export const { 
+  clearError, 
+  clearTenants, 
+  updateTenantRealtime, 
+  addTenantRealtime, 
+  removeTenantRealtime, 
+  updateTenantStatus, 
+  updateMultipleTenants 
+} = tenantsSlice.actions;
 export default tenantsSlice.reducer; 

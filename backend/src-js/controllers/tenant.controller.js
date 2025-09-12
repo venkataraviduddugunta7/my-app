@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/error.middleware');
+const webSocketService = require('../services/websocket.service');
+const logger = require('../services/logger.service');
 
 const prisma = new PrismaClient();
 
@@ -279,7 +281,38 @@ const createTenant = asyncHandler(async (req, res) => {
         status: 'OCCUPIED'
       }
     });
+
+    // Broadcast real-time bed update
+    webSocketService.broadcastBedUpdate(propertyId, {
+      id: bedId,
+      status: 'OCCUPIED',
+      tenantId: tenant.id,
+      tenant: {
+        id: tenant.id,
+        fullName: tenant.fullName,
+        phone: tenant.phone
+      }
+    });
   }
+
+  // Log business event
+  logger.business('tenant_created', {
+    tenantId: tenant.id,
+    tenantCustomId: tenant.tenantId,
+    propertyId,
+    bedId,
+    createdBy: req.user.id
+  });
+
+  // Broadcast tenant creation
+  webSocketService.broadcastTenantUpdate(propertyId, tenant, 'create');
+
+  // Broadcast activity
+  webSocketService.broadcastActivity(propertyId, {
+    type: 'tenant_joined',
+    message: `New tenant ${tenant.fullName} joined`,
+    data: { tenantId: tenant.id, bedId }
+  });
 
   res.status(201).json({
     success: true,
@@ -355,6 +388,16 @@ const updateTenant = asyncHandler(async (req, res) => {
     }
   });
 
+  // Log business event
+  logger.business('tenant_updated', {
+    tenantId: id,
+    changes: Object.keys(req.body),
+    updatedBy: req.user.id
+  });
+
+  // Broadcast tenant update
+  webSocketService.broadcastTenantUpdate(updatedTenant.propertyId, updatedTenant, 'update');
+
   res.status(200).json({
     success: true,
     data: updatedTenant,
@@ -412,6 +455,27 @@ const deleteTenant = asyncHandler(async (req, res) => {
   await prisma.tenant.delete({
     where: { id }
   });
+
+  // Log business event
+  logger.business('tenant_deleted', {
+    tenantId: id,
+    tenantCustomId: tenant.tenantId,
+    propertyId: tenant.propertyId,
+    deletedBy: req.user.id
+  });
+
+  // Broadcast tenant deletion
+  webSocketService.broadcastTenantUpdate(tenant.propertyId, { id }, 'delete');
+
+  // If bed was freed, broadcast bed update
+  if (tenant.bed) {
+    webSocketService.broadcastBedUpdate(tenant.propertyId, {
+      id: tenant.bed.id,
+      status: 'AVAILABLE',
+      tenantId: null,
+      tenant: null
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -498,6 +562,40 @@ const assignBed = asyncHandler(async (req, res) => {
       }
     }
   });
+
+  // Log business event
+  logger.business('bed_assigned', {
+    tenantId: id,
+    bedId,
+    previousBedId: tenant.bed?.id,
+    assignedBy: req.user.id
+  });
+
+  // Broadcast bed updates
+  if (tenant.bed) {
+    // Previous bed is now available
+    webSocketService.broadcastBedUpdate(updatedTenant.propertyId, {
+      id: tenant.bed.id,
+      status: 'AVAILABLE',
+      tenantId: null,
+      tenant: null
+    });
+  }
+
+  // New bed is now occupied
+  webSocketService.broadcastBedUpdate(updatedTenant.propertyId, {
+    id: bedId,
+    status: 'OCCUPIED',
+    tenantId: id,
+    tenant: {
+      id: updatedTenant.id,
+      fullName: updatedTenant.fullName,
+      phone: updatedTenant.phone
+    }
+  });
+
+  // Broadcast tenant update
+  webSocketService.broadcastTenantUpdate(updatedTenant.propertyId, updatedTenant, 'update');
 
   res.status(200).json({
     success: true,
@@ -661,8 +759,41 @@ const vacateTenant = asyncHandler(async (req, res) => {
     console.log(`🏠 Bed ${tenant.bed.bedNumber} in Room ${tenant.bed.room.roomNumber} is now available`);
   }
 
-  // Create audit log
-  console.log(`👋 Tenant ${tenant.tenantId} (${tenant.fullName}) vacated on ${leavingDateObj.toDateString()}`);
+  // Log business event
+  logger.business('tenant_vacated', {
+    tenantId: id,
+    tenantCustomId: tenant.tenantId,
+    propertyId: tenant.propertyId,
+    leavingDate: leavingDateObj,
+    stayDuration: Math.ceil((leavingDateObj - new Date(tenant.joiningDate)) / (1000 * 60 * 60 * 24)),
+    pendingPayments: pendingPayments.length,
+    totalPendingAmount,
+    vacatedBy: req.user.id
+  });
+
+  // Broadcast tenant vacation
+  webSocketService.broadcastTenantUpdate(tenant.propertyId, vacatedTenant, 'vacate');
+
+  // If bed was freed, broadcast bed update
+  if (bedInfo) {
+    webSocketService.broadcastBedUpdate(tenant.propertyId, {
+      id: tenant.bed.id,
+      status: 'AVAILABLE',
+      tenantId: null,
+      tenant: null
+    });
+  }
+
+  // Broadcast activity
+  webSocketService.broadcastActivity(tenant.propertyId, {
+    type: 'tenant_vacated',
+    message: `${tenant.fullName} vacated ${bedInfo ? bedInfo.location : 'property'}`,
+    data: { 
+      tenantId: id,
+      bedId: bedInfo?.id,
+      stayDuration: Math.ceil((leavingDateObj - new Date(tenant.joiningDate)) / (1000 * 60 * 60 * 24)) + ' days'
+    }
+  });
 
   // Prepare response with warnings if there are pending payments
   const warnings = [];

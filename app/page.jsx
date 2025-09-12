@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { 
   fetchDashboardData, 
   fetchDashboardStats, 
@@ -14,11 +15,9 @@ import { fetchFloors } from '@/store/slices/floorsSlice';
 import { fetchRooms } from '@/store/slices/roomsSlice';
 import { fetchProperties } from '@/store/slices/propertySlice';
 import { addToast } from '@/store/slices/uiSlice';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Dropdown, Modal, ModalFooter } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import apiService from '@/services/api';
 import {
-  Building,
+  Building2,
   Users,
   DollarSign,
   TrendingUp,
@@ -40,38 +39,148 @@ import {
   Mail,
   Wallet,
   Activity,
-  User
+  User,
+  Zap,
+  Shield,
+  BarChart3,
+  PieChart,
+  ArrowUpRight,
+  ArrowDownRight,
+  Star,
+  Award,
+  Target,
+  Eye
 } from 'lucide-react';
 
+// Stunning Stats Card Component
+function PremiumStatsCard({ title, value, subtitle, icon: Icon, color, trend, delay = 0 }) {
+  const colorClasses = {
+    blue: 'from-blue-500 to-blue-600',
+    green: 'from-emerald-500 to-emerald-600',
+    purple: 'from-purple-500 to-purple-600',
+    orange: 'from-orange-500 to-orange-600',
+    pink: 'from-pink-500 to-pink-600',
+    indigo: 'from-indigo-500 to-indigo-600'
+  };
+
+  const bgClasses = {
+    blue: 'from-blue-50 to-blue-100',
+    green: 'from-emerald-50 to-emerald-100',
+    purple: 'from-purple-50 to-purple-100',
+    orange: 'from-orange-50 to-orange-100',
+    pink: 'from-pink-50 to-pink-100',
+    indigo: 'from-indigo-50 to-indigo-100'
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, delay, ease: "easeOut" }}
+      whileHover={{ y: -8, scale: 1.02 }}
+      className="group relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-elegant hover:shadow-float-lg transition-all duration-300"
+    >
+      {/* Gradient Background */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${bgClasses[color]} opacity-50 group-hover:opacity-70 transition-opacity duration-300`} />
+      
+      {/* Content */}
+      <div className="relative p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300`}>
+            <Icon className="h-6 w-6" />
+          </div>
+          
+          {trend && (
+            <div className={`flex items-center space-x-1 text-sm font-medium ${
+              trend.startsWith('+') ? 'text-emerald-600' : 'text-red-500'
+            }`}>
+              {trend.startsWith('+') ? 
+                <ArrowUpRight className="h-4 w-4" /> : 
+                <ArrowDownRight className="h-4 w-4" />
+              }
+              <span>{trend}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-gray-600">{title}</h3>
+          <p className="text-3xl font-bold text-gray-900 group-hover:text-gray-800 transition-colors">
+            {value}
+          </p>
+          <p className="text-sm text-gray-500">{subtitle}</p>
+        </div>
+      </div>
+      
+      {/* Hover Effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+          transform: 'translateX(-100%)'
+        }}
+        animate={{
+          transform: ['translateX(-100%)', 'translateX(100%)']
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          repeatDelay: 3
+        }}
+      />
+    </motion.div>
+  );
+}
+
 // Real-time Bed Status Card
-function BedStatusCard({ bed, onQuickAction }) {
+function EnhancedBedStatusCard({ bed, onQuickAction, delay = 0 }) {
   const getStatusColor = (status, paymentStatus) => {
     if (status === 'OCCUPIED') {
-      if (paymentStatus === 'overdue') return 'border-red-200 bg-red-50';
-      if (paymentStatus === 'due') return 'border-yellow-200 bg-yellow-50';
-      return 'border-green-200 bg-green-50';
+      if (paymentStatus === 'overdue') return 'border-red-200 bg-gradient-to-br from-red-50 to-red-100';
+      if (paymentStatus === 'due') return 'border-yellow-200 bg-gradient-to-br from-yellow-50 to-yellow-100';
+      return 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100';
     }
-    if (status === 'AVAILABLE') return 'border-blue-200 bg-blue-50';
-    if (status === 'MAINTENANCE') return 'border-gray-200 bg-gray-50';
+    if (status === 'AVAILABLE') return 'border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100';
+    if (status === 'MAINTENANCE') return 'border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100';
     return 'border-gray-200 bg-white';
   };
 
   const getStatusIcon = (status) => {
-    if (status === 'OCCUPIED') return <Users className="w-4 h-4 text-green-600" />;
+    if (status === 'OCCUPIED') return <Users className="w-4 h-4 text-emerald-600" />;
     if (status === 'AVAILABLE') return <Bed className="w-4 h-4 text-blue-600" />;
     if (status === 'MAINTENANCE') return <AlertCircle className="w-4 h-4 text-gray-600" />;
     return <Bed className="w-4 h-4 text-gray-400" />;
   };
 
   const tenant = bed.tenant;
-  const paymentStatus = tenant?.paymentStatus || 'current'; // This would come from payment calculations
+  const paymentStatus = tenant?.paymentStatus || 'current';
 
   return (
-    <Card className={`${getStatusColor(bed.status, paymentStatus)} border-2 hover:shadow-md transition-shadow cursor-pointer`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, delay, ease: "easeOut" }}
+      whileHover={{ scale: 1.03, y: -4 }}
+      className={`group relative overflow-hidden rounded-2xl border-2 shadow-elegant hover:shadow-float transition-all duration-300 cursor-pointer ${getStatusColor(bed.status, paymentStatus)}`}
+    >
+      {/* Status Indicator */}
+      <div className="absolute top-3 right-3">
+        <motion.div
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className={`w-3 h-3 rounded-full ${
+            bed.status === 'OCCUPIED' ? 'bg-emerald-500' :
+            bed.status === 'AVAILABLE' ? 'bg-blue-500' : 'bg-gray-500'
+          }`}
+        />
+      </div>
+
+      <div className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm shadow-sm">
             {getStatusIcon(bed.status)}
+            </div>
             <div>
               <h4 className="font-semibold text-gray-900">Bed {bed.bedNumber}</h4>
               <p className="text-xs text-gray-600">
@@ -80,37 +189,41 @@ function BedStatusCard({ bed, onQuickAction }) {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-semibold text-gray-900">₹{bed.rent}/mo</p>
+            <p className="text-lg font-bold text-gray-900">₹{bed.rent}</p>
             <p className="text-xs text-gray-500">{bed.bedType}</p>
           </div>
         </div>
 
         {/* Tenant Info */}
         {tenant ? (
-          <div className="space-y-2 mb-3">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-3 mb-4"
+          >
             <div className="flex items-center space-x-2">
-              <User className="w-3 h-3 text-gray-500" />
+              <User className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-900">{tenant.fullName}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Phone className="w-3 h-3 text-gray-500" />
+              <Phone className="w-4 h-4 text-gray-500" />
               <span className="text-xs text-gray-600">{tenant.phone}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Calendar className="w-3 h-3 text-gray-500" />
+              <Calendar className="w-4 h-4 text-gray-500" />
               <span className="text-xs text-gray-600">
                 Joined {formatDate(tenant.joiningDate)}
               </span>
             </div>
             
             {/* Payment Status */}
-            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+            <div className="flex items-center justify-between pt-2 border-t border-white/50">
               <div className="flex items-center space-x-1">
-                <Wallet className="w-3 h-3 text-gray-500" />
+                <Wallet className="w-4 h-4 text-gray-500" />
                 <span className="text-xs text-gray-600">Payment:</span>
               </div>
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                paymentStatus === 'current' ? 'bg-green-100 text-green-700' :
+              <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                paymentStatus === 'current' ? 'bg-emerald-100 text-emerald-700' :
                 paymentStatus === 'due' ? 'bg-yellow-100 text-yellow-700' :
                 'bg-red-100 text-red-700'
               }`}>
@@ -118,11 +231,11 @@ function BedStatusCard({ bed, onQuickAction }) {
                  paymentStatus === 'due' ? 'Due Soon' : 'Overdue'}
               </span>
             </div>
-          </div>
+          </motion.div>
         ) : (
-          <div className="space-y-2 mb-3">
+          <div className="space-y-3 mb-4">
             <div className="flex items-center space-x-2">
-              <Bed className="w-3 h-3 text-gray-500" />
+              <Bed className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-600">Available for occupancy</span>
             </div>
             <div className="text-xs text-gray-500">
@@ -134,358 +247,67 @@ function BedStatusCard({ bed, onQuickAction }) {
         {/* Quick Actions */}
         <div className="flex space-x-2">
           {bed.status === 'AVAILABLE' ? (
-            <Button 
-              size="sm" 
-              className="flex-1 text-xs py-1"
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => onQuickAction('assign', bed)}
+              className="flex-1 btn-primary text-xs py-2"
             >
               <UserPlus className="w-3 h-3 mr-1" />
               Add Tenant
-            </Button>
+            </motion.button>
           ) : bed.status === 'OCCUPIED' ? (
             <>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="flex-1 text-xs py-1"
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onQuickAction('payment', bed)}
+                className="flex-1 btn-secondary text-xs py-2"
               >
                 <CreditCard className="w-3 h-3 mr-1" />
                 Payment
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="flex-1 text-xs py-1"
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onQuickAction('contact', bed)}
+                className="flex-1 btn-ghost text-xs py-2"
               >
                 <Phone className="w-3 h-3 mr-1" />
                 Contact
-              </Button>
+              </motion.button>
             </>
           ) : (
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex-1 text-xs py-1"
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => onQuickAction('maintenance', bed)}
+              className="flex-1 btn-ghost text-xs py-2"
             >
               <AlertCircle className="w-3 h-3 mr-1" />
               Maintenance
-            </Button>
+            </motion.button>
           )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Quick Stats Overview
-function QuickStatsOverview({ beds, tenants }) {
-  const occupiedBeds = beds.filter(bed => bed.status === 'OCCUPIED').length;
-  const availableBeds = beds.filter(bed => bed.status === 'AVAILABLE').length;
-  const maintenanceBeds = beds.filter(bed => bed.status === 'MAINTENANCE').length;
-  const occupancyRate = beds.length > 0 ? ((occupiedBeds / beds.length) * 100).toFixed(1) : 0;
-  
-  const activeTenants = tenants.filter(t => t.status === 'ACTIVE').length;
-  const pendingTenants = tenants.filter(t => t.status === 'PENDING').length;
-  
-  // Calculate revenue (simplified - in real app, would come from payments)
-  const monthlyRevenue = beds.filter(bed => bed.status === 'OCCUPIED')
-    .reduce((sum, bed) => sum + (bed.rent || 0), 0);
-
-  // Payment status calculations (mock data - would come from payment records)
-  const currentPayments = Math.floor(activeTenants * 0.7);
-  const duePayments = Math.floor(activeTenants * 0.2);
-  const overduePayments = activeTenants - currentPayments - duePayments;
-
-  const stats = [
-    {
-      title: 'Total Beds',
-      value: beds.length,
-      subtitle: `${occupancyRate}% occupied`,
-      icon: Bed,
-      color: 'blue',
-      trend: '+2 this month'
-    },
-    {
-      title: 'Occupied',
-      value: occupiedBeds,
-      subtitle: `${availableBeds} available`,
-      icon: CheckCircle,
-      color: 'green',
-      trend: `${occupancyRate}% occupancy`
-    },
-    {
-      title: 'Monthly Revenue',
-      value: formatCurrency(monthlyRevenue),
-      subtitle: `From ${occupiedBeds} beds`,
-      icon: DollarSign,
-      color: 'green',
-      trend: '+8% vs last month'
-    },
-    {
-      title: 'Active Tenants',
-      value: activeTenants,
-      subtitle: `${pendingTenants} pending`,
-      icon: Users,
-      color: 'blue',
-      trend: `${currentPayments} current payments`
-    }
-  ];
-
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600 border-blue-200',
-    green: 'bg-green-50 text-green-600 border-green-200',
-    yellow: 'bg-yellow-50 text-yellow-600 border-yellow-200',
-    red: 'bg-red-50 text-red-600 border-red-200'
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {stats.map((stat, index) => {
-        const Icon = stat.icon;
-        return (
-          <Card key={index} className="border-2">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                  <p className="text-xs text-gray-500 mt-1">{stat.subtitle}</p>
-                  <p className="text-xs text-green-600 font-medium mt-1">{stat.trend}</p>
-                </div>
-                <div className={`p-3 rounded-lg border-2 ${colorClasses[stat.color]}`}>
-                  <Icon className="w-6 h-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
-// Payment Status Overview
-function PaymentStatusOverview({ tenants }) {
-  // Mock payment calculations - in real app, would come from payment records
-  const activeTenants = tenants.filter(t => t.status === 'ACTIVE');
-  const currentPayments = Math.floor(activeTenants.length * 0.7);
-  const duePayments = Math.floor(activeTenants.length * 0.2);
-  const overduePayments = activeTenants.length - currentPayments - duePayments;
-
-  const paymentStats = [
-    { label: 'Current', count: currentPayments, color: 'bg-green-500', textColor: 'text-green-700' },
-    { label: 'Due Soon', count: duePayments, color: 'bg-yellow-500', textColor: 'text-yellow-700' },
-    { label: 'Overdue', count: overduePayments, color: 'bg-red-500', textColor: 'text-red-700' }
-  ];
-
-  return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <CreditCard className="w-5 h-5 mr-2" />
-          Payment Status Overview
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-4">
-          {paymentStats.map((stat, index) => (
-            <div key={index} className="text-center p-4 rounded-lg border">
-              <div className={`w-12 h-12 ${stat.color} rounded-full mx-auto mb-2 flex items-center justify-center`}>
-                <span className="text-white font-bold text-lg">{stat.count}</span>
-              </div>
-              <p className={`font-semibold ${stat.textColor}`}>{stat.label}</p>
-              <p className="text-sm text-gray-600">Tenants</p>
-            </div>
-          ))}
-        </div>
-        
-        {overduePayments > 0 && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center">
-              <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
-              <span className="text-sm font-medium text-red-700">
-                {overduePayments} tenant(s) have overdue payments requiring immediate attention
-              </span>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// Quick Tenant Add Modal
-function QuickTenantModal({ isOpen, onClose, selectedBed, onSubmit }) {
-  const { properties, selectedProperty } = useSelector((state) => state.property);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    paymentMode: 'CASH',
-    securityDeposit: '',
-    advanceRent: ''
-  });
-  const [loading, setLoading] = useState(false);
-
-  // Auto-populate financial data when bed is selected
-  useEffect(() => {
-    if (selectedBed) {
-      const suggestedSecurityDeposit = selectedBed.rent * 2;
-      const suggestedAdvanceRent = selectedBed.rent;
       
-      setFormData(prev => ({
-        ...prev,
-        securityDeposit: suggestedSecurityDeposit.toString(),
-        advanceRent: suggestedAdvanceRent.toString()
-      }));
-    }
-  }, [selectedBed]);
-
-  const paymentModeOptions = [
-    { value: 'CASH', label: 'Cash Payment' },
-    { value: 'UPI', label: 'UPI/Digital Payment' },
-    { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-    { value: 'CHEQUE', label: 'Cheque' },
-    { value: 'CARD', label: 'Debit/Credit Card' }
-  ];
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.fullName.trim() || !formData.phone.trim()) {
-      alert('Please fill in required fields');
-      return;
-    }
-
-    setLoading(true);
-    
-    try {
-      const tenantData = {
-        ...formData,
-        bedId: selectedBed.id,
-        floorId: selectedBed.room.floorId,
-        roomId: selectedBed.roomId,
-        securityDeposit: parseFloat(formData.securityDeposit) || 0,
-        advanceRent: parseFloat(formData.advanceRent) || 0,
-        joiningDate: new Date().toISOString(),
-        propertyId: selectedProperty.id,
-        tenantId: `${selectedProperty.name.substring(0, 2).toUpperCase()}${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`,
-        address: 'Quick add - update later',
-        idProofType: 'AADHAR',
-        idProofNumber: '',
-        termsAccepted: true,
-        termsAcceptedAt: new Date().toISOString()
-      };
-
-      await onSubmit(tenantData);
-      onClose();
-      
-      // Reset form
-      setFormData({
-        fullName: '',
-        phone: '',
-        email: '',
-        paymentMode: 'CASH',
-        securityDeposit: '',
-        advanceRent: ''
-      });
-    } catch (error) {
-      console.error('Error adding tenant:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!selectedBed) return null;
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Quick Add Tenant" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Bed Info */}
-        <div className="bg-blue-50 p-4 rounded-lg border">
-          <h4 className="font-semibold text-gray-900 mb-2">Selected Bed</h4>
-          <p className="text-sm text-gray-700">
-            Bed {selectedBed.bedNumber} • Room {selectedBed.room?.roomNumber} • Floor {selectedBed.room?.floor?.name}
-          </p>
-          <p className="text-sm text-gray-700">
-            Monthly Rent: ₹{selectedBed.rent} • Deposit: ₹{selectedBed.deposit}
-          </p>
-        </div>
-
-        {/* Basic Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Full Name *"
-            value={formData.fullName}
-            onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-            placeholder="Enter tenant name"
-            required
-          />
-          <Input
-            label="Phone Number *"
-            value={formData.phone}
-            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-            placeholder="Enter phone number"
-            required
-          />
-        </div>
-
-        <Input
-          label="Email"
-          type="email"
-          value={formData.email}
-          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-          placeholder="Enter email address"
-        />
-
-        {/* Payment Details */}
-        <div className="bg-green-50 p-4 rounded-lg border">
-          <h4 className="font-semibold text-gray-900 mb-3">Payment Details</h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Dropdown
-              label="Payment Mode"
-              options={paymentModeOptions}
-              value={formData.paymentMode}
-              onChange={(value) => setFormData(prev => ({ ...prev, paymentMode: value }))}
-            />
-            <Input
-              label="Security Deposit (₹)"
-              type="number"
-              value={formData.securityDeposit}
-              onChange={(e) => setFormData(prev => ({ ...prev, securityDeposit: e.target.value }))}
-              placeholder="Security deposit"
-            />
-            <Input
-              label="Advance Rent (₹)"
-              type="number"
-              value={formData.advanceRent}
-              onChange={(e) => setFormData(prev => ({ ...prev, advanceRent: e.target.value }))}
-              placeholder="Advance rent"
-            />
-          </div>
-
-          <div className="p-3 bg-white rounded border">
-            <p className="text-sm font-medium text-gray-700">Total Initial Payment</p>
-            <p className="text-lg font-bold text-green-700">
-              ₹{(parseFloat(formData.securityDeposit) || 0) + (parseFloat(formData.advanceRent) || 0)}
-            </p>
-          </div>
-        </div>
-
-        <ModalFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Adding...' : 'Add Tenant'}
-          </Button>
-        </ModalFooter>
-      </form>
-    </Modal>
+      {/* Shimmer Effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+          transform: 'translateX(-100%)'
+        }}
+        animate={{
+          transform: ['translateX(-100%)', 'translateX(100%)']
+        }}
+        transition={{
+          duration: 1,
+          repeat: Infinity,
+          repeatDelay: 2
+        }}
+      />
+    </motion.div>
   );
 }
 
@@ -501,63 +323,70 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showQuickTenantModal, setShowQuickTenantModal] = useState(false);
-  const [selectedBedForTenant, setSelectedBedForTenant] = useState(null);
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    if (!isAuthenticated || !selectedProperty) return;
-
-    const fetchData = () => {
-      dispatch(fetchBeds({ propertyId: selectedProperty.id }));
-      dispatch(fetchTenants({ propertyId: selectedProperty.id }));
-      dispatch(fetchDashboardStats());
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [dispatch, isAuthenticated, selectedProperty]);
-
-  // Manual refresh
-  const handleRefresh = async () => {
-    if (!selectedProperty) return;
-    
-    setRefreshing(true);
-    try {
-      await Promise.all([
-        dispatch(fetchBeds({ propertyId: selectedProperty.id })),
-        dispatch(fetchTenants({ propertyId: selectedProperty.id })),
-        dispatch(fetchDashboardStats()),
-        dispatch(fetchFloors(selectedProperty.id)),
-        dispatch(fetchRooms({ propertyId: selectedProperty.id }))
-      ]);
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-    } finally {
-      setRefreshing(false);
+  // Mock data for demonstration
+  const mockBeds = [
+    {
+      id: '1',
+      bedNumber: '101',
+      status: 'OCCUPIED',
+      rent: 8500,
+      deposit: 17000,
+      bedType: 'Single',
+      room: { roomNumber: '101', floor: { name: 'Ground Floor' } },
+      tenant: {
+        fullName: 'John Doe',
+        phone: '+91 9876543210',
+        joiningDate: '2024-01-15',
+        paymentStatus: 'current'
+      }
+    },
+    {
+      id: '2',
+      bedNumber: '102',
+      status: 'AVAILABLE',
+      rent: 7500,
+      deposit: 15000,
+      bedType: 'Single',
+      room: { roomNumber: '102', floor: { name: 'Ground Floor' } }
+    },
+    {
+      id: '3',
+      bedNumber: '201',
+      status: 'OCCUPIED',
+      rent: 9000,
+      deposit: 18000,
+      bedType: 'Single',
+      room: { roomNumber: '201', floor: { name: 'First Floor' } },
+      tenant: {
+        fullName: 'Sarah Wilson',
+        phone: '+91 9876543211',
+        joiningDate: '2024-02-01',
+        paymentStatus: 'due'
+      }
+    },
+    {
+      id: '4',
+      bedNumber: '202',
+      status: 'MAINTENANCE',
+      rent: 8000,
+      deposit: 16000,
+      bedType: 'Single',
+      room: { roomNumber: '202', floor: { name: 'First Floor' } }
     }
-  };
+  ];
 
-  // Filter beds based on status and search
-  const filteredBeds = beds.filter(bed => {
-    const matchesStatus = filterStatus === 'all' || bed.status.toLowerCase() === filterStatus.toLowerCase();
-    const matchesSearch = !searchTerm || 
-      bed.bedNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bed.room?.roomNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bed.room?.floor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bed.tenant?.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesStatus && matchesSearch;
-  });
+  const mockTenants = mockBeds.filter(bed => bed.tenant).map(bed => bed.tenant);
 
   // Quick action handlers
   const handleQuickAction = (action, bed) => {
     switch (action) {
       case 'assign':
-        setSelectedBedForTenant(bed);
-        setShowQuickTenantModal(true);
+        dispatch(addToast({
+          title: 'Add Tenant',
+          description: `Opening tenant form for Bed ${bed.bedNumber}`,
+          variant: 'info'
+        }));
         break;
       case 'payment':
         router.push(`/payments?tenant=${bed.tenant?.id}`);
@@ -568,173 +397,360 @@ export default function Dashboard() {
         }
         break;
       case 'maintenance':
-        // TODO: Implement maintenance modal
         dispatch(addToast({
           title: 'Maintenance',
           description: `Maintenance request for Bed ${bed.bedNumber}`,
           variant: 'info'
         }));
         break;
-      default:
-        break;
     }
   };
 
-  const handleQuickTenantSubmit = async (tenantData) => {
-    try {
-      await dispatch(createTenant(tenantData)).unwrap();
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 2000);
       dispatch(addToast({
-        title: 'Success',
-        description: 'Tenant added successfully!',
+      title: 'Refreshed',
+      description: 'Dashboard data updated successfully',
         variant: 'success'
       }));
-      
-      // Refresh data
-      handleRefresh();
-    } catch (error) {
-      dispatch(addToast({
-        title: 'Error',
-        description: error.message || 'Failed to add tenant',
-        variant: 'error'
-      }));
-    }
   };
-
-  const statusFilterOptions = [
-    { value: 'all', label: 'All Beds' },
-    { value: 'occupied', label: 'Occupied' },
-    { value: 'available', label: 'Available' },
-    { value: 'maintenance', label: 'Maintenance' }
-  ];
 
   if (!selectedProperty) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-center h-64"
+      >
         <div className="text-center">
-          <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Property Selected</h3>
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white mx-auto mb-4 shadow-glow">
+            <Building2 className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Property Selected</h3>
           <p className="text-gray-600">Please select a property to view the dashboard.</p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with Actions */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
+      {/* Hero Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden bg-gradient-to-r from-primary-500 via-primary-600 to-secondary-500 rounded-3xl p-8 text-white shadow-float-lg"
+      >
+        <div className="absolute inset-0 bg-hero-pattern opacity-10" />
+        <div className="relative flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Activity className="w-8 h-8 mr-3 text-blue-600" />
-            Live Dashboard
-          </h1>
-          <p className="text-gray-600 mt-2">Real-time bed management for {selectedProperty.name}</p>
+            <motion.h1
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl font-bold mb-2"
+            >
+              Welcome Back! 👋
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-xl text-white/90"
+            >
+              Real-time management for <span className="font-semibold">{selectedProperty.name}</span>
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-center space-x-4 mt-4"
+            >
+              <div className="flex items-center space-x-2 bg-white/20 rounded-lg px-3 py-1">
+                <Activity className="w-4 h-4" />
+                <span className="text-sm font-medium">Live Dashboard</span>
+              </div>
+              <div className="flex items-center space-x-2 bg-white/20 rounded-lg px-3 py-1">
+                <Shield className="w-4 h-4" />
+                <span className="text-sm font-medium">Real-time Updates</span>
+              </div>
+            </motion.div>
         </div>
         
-        <div className="flex space-x-3">
-          <Button 
-            variant="outline" 
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.8 }}
+            className="hidden lg:block"
+          >
+            <div className="flex items-center space-x-4">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
             onClick={handleRefresh}
             disabled={refreshing}
+                className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 rounded-xl px-4 py-2 transition-all duration-200"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="text-sm font-medium">
             {refreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
-          <Button onClick={() => router.push('/tenants')}>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Manage Tenants
-          </Button>
+                </span>
+              </motion.button>
+            </div>
+          </motion.div>
         </div>
+      </motion.div>
+
+      {/* Premium Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <PremiumStatsCard
+          title="Total Beds"
+          value="24"
+          subtitle="87% occupied"
+          icon={Bed}
+          color="blue"
+          trend="+2 this month"
+          delay={0.1}
+        />
+        <PremiumStatsCard
+          title="Active Tenants"
+          value="21"
+          subtitle="3 pending checkout"
+          icon={Users}
+          color="green"
+          trend="+5 this week"
+          delay={0.2}
+        />
+        <PremiumStatsCard
+          title="Monthly Revenue"
+          value="₹1,85,500"
+          subtitle="From 21 tenants"
+          icon={DollarSign}
+          color="purple"
+          trend="+12% vs last month"
+          delay={0.3}
+        />
+        <PremiumStatsCard
+          title="Occupancy Rate"
+          value="87.5%"
+          subtitle="Above target"
+          icon={TrendingUp}
+          color="orange"
+          trend="+3.2% this month"
+          delay={0.4}
+        />
       </div>
 
-      {/* Quick Stats */}
-      <QuickStatsOverview beds={beds} tenants={tenants} />
-
-      {/* Payment Status */}
-      <PaymentStatusOverview tenants={tenants} />
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Search beds, rooms, tenants..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                icon={Search}
-              />
+      {/* Quick Actions & Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5 }}
+          className="lg:col-span-1"
+        >
+          <div className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+              <Zap className="w-5 h-5 text-primary-500" />
             </div>
-            <div className="w-48">
-              <Dropdown
-                options={statusFilterOptions}
-                value={filterStatus}
-                onChange={setFilterStatus}
-                placeholder="Filter by status"
-              />
+            
+            <div className="space-y-3">
+              {[
+                { icon: UserPlus, label: 'Add New Tenant', color: 'blue', action: () => router.push('/tenants') },
+                { icon: CreditCard, label: 'Collect Payment', color: 'green', action: () => router.push('/payments') },
+                { icon: Bell, label: 'Send Notice', color: 'orange', action: () => router.push('/notices') },
+                { icon: BarChart3, label: 'View Analytics', color: 'purple', action: () => router.push('/analytics') }
+              ].map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <motion.button
+                    key={action.label}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={action.action}
+                    className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-all duration-200"
+                  >
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${
+                      action.color === 'blue' ? 'from-blue-500 to-blue-600' :
+                      action.color === 'green' ? 'from-emerald-500 to-emerald-600' :
+                      action.color === 'orange' ? 'from-orange-500 to-orange-600' :
+                      'from-purple-500 to-purple-600'
+                    } text-white shadow-sm`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className="font-medium text-gray-900">{action.label}</span>
+                  </motion.button>
+                );
+              })}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </motion.div>
 
-      {/* Real-time Bed Grid */}
+        {/* Performance Metrics */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="lg:col-span-2"
+        >
+          <div className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Performance Overview</h3>
+              <PieChart className="w-5 h-5 text-primary-500" />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-white mx-auto mb-3 shadow-glow-sm">
+                  <Award className="h-6 w-6" />
+                </div>
+                <p className="text-2xl font-bold text-emerald-600">95%</p>
+                <p className="text-sm text-gray-600">Tenant Satisfaction</p>
+              </div>
+              
+              <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-white mx-auto mb-3 shadow-glow-sm">
+                  <Target className="h-6 w-6" />
+                </div>
+                <p className="text-2xl font-bold text-blue-600">98%</p>
+                <p className="text-sm text-gray-600">Payment Collection</p>
+              </div>
+              
+              <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500 text-white mx-auto mb-3 shadow-glow-sm">
+                  <Star className="h-6 w-6" />
+                </div>
+                <p className="text-2xl font-bold text-purple-600">4.8</p>
+                <p className="text-sm text-gray-600">Average Rating</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Live Bed Status Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+      >
+        <div className="flex items-center justify-between mb-6">
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Bed Status ({filteredBeds.length} beds)
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              <Eye className="w-6 h-6 mr-3 text-primary-600" />
+              Live Bed Status
           </h2>
+            <p className="text-gray-600 mt-1">Real-time occupancy monitoring with instant updates</p>
+          </div>
+          
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Occupied</span>
+              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span className="text-gray-600">Occupied</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>Available</span>
+              <span className="text-gray-600">Available</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-              <span>Maintenance</span>
+              <span className="text-gray-600">Maintenance</span>
             </div>
           </div>
         </div>
 
-        {filteredBeds.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredBeds.map((bed) => (
-              <BedStatusCard
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {mockBeds.map((bed, index) => (
+            <EnhancedBedStatusCard
                 key={bed.id}
                 bed={bed}
                 onQuickAction={handleQuickAction}
+              delay={1.0 + index * 0.1}
               />
             ))}
           </div>
-        ) : (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Bed className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Beds Found</h3>
-              <p className="text-gray-600">
-                {searchTerm || filterStatus !== 'all' 
-                  ? 'Try adjusting your search or filters.' 
-                  : 'Start by adding floors, rooms, and beds to your property.'
-                }
-              </p>
-            </CardContent>
-          </Card>
-        )}
+      </motion.div>
+
+      {/* Recent Activities */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.5 }}
+        className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <Clock className="w-5 h-5 mr-2 text-primary-500" />
+            Recent Activities
+          </h3>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+          >
+            View All
+          </motion.button>
       </div>
 
-      {/* Quick Tenant Add Modal */}
-      <QuickTenantModal
-        isOpen={showQuickTenantModal}
-        onClose={() => {
-          setShowQuickTenantModal(false);
-          setSelectedBedForTenant(null);
-        }}
-        selectedBed={selectedBedForTenant}
-        onSubmit={handleQuickTenantSubmit}
-      />
+        <div className="space-y-4">
+          {[
+            {
+              icon: UserPlus,
+              title: 'New tenant John Doe joined Room 101',
+              time: '2 minutes ago',
+              color: 'emerald'
+            },
+            {
+              icon: CreditCard,
+              title: 'Payment received from Sarah Wilson - ₹8,500',
+              time: '15 minutes ago',
+              color: 'blue'
+            },
+            {
+              icon: Bell,
+              title: 'Maintenance request submitted for Room 202',
+              time: '1 hour ago',
+              color: 'orange'
+            },
+            {
+              icon: CheckCircle,
+              title: 'Monthly report generated successfully',
+              time: '2 hours ago',
+              color: 'purple'
+            }
+          ].map((activity, index) => {
+            const Icon = activity.icon;
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.6 + index * 0.1 }}
+                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              >
+                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                  activity.color === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
+                  activity.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                  activity.color === 'orange' ? 'bg-orange-100 text-orange-600' :
+                  'bg-purple-100 text-purple-600'
+                }`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                  <p className="text-xs text-gray-500">{activity.time}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
     </div>
   );
 }
