@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addToast } from '@/store/slices/uiSlice';
 import { fetchFloors, createFloor, updateFloor, deleteFloor, clearFloors } from '@/store/slices/floorsSlice';
 import { fetchProperties, createProperty } from '@/store/slices/propertySlice';
+import propertyService from '@/services/propertyService';
 import { createRoom, updateRoom, deleteRoom, fetchRooms } from '@/store/slices/roomsSlice';
 import { addBed, updateBed, deleteBed, fetchBeds, assignTenantToBed, vacateBed } from '@/store/slices/bedsSlice';
 
@@ -1884,8 +1885,25 @@ export default function RoomsPage() {
 
   // Fetch data on component mount
   useEffect(() => {
+    const loadProperties = async () => {
+      try {
+        const response = await propertyService.getProperties();
+        if (response.success) {
+          // Dispatch to Redux store
+          dispatch(fetchProperties.fulfilled(response.data));
+        }
+      } catch (error) {
+        console.error('Error loading properties:', error);
+        dispatch(addToast({
+          title: 'Error',
+          description: 'Failed to load properties',
+          variant: 'error'
+        }));
+      }
+    };
+
     if (isAuthenticated) {
-      dispatch(fetchProperties());
+      loadProperties();
     }
   }, [dispatch, isAuthenticated]);
 
@@ -1985,19 +2003,24 @@ export default function RoomsPage() {
   // Property handlers
   const handleCreateProperty = async (propertyData) => {
     try {
-      const result = await dispatch(createProperty(propertyData));
-      if (result.type === 'property/createProperty/fulfilled') {
+      const response = await propertyService.createProperty(propertyData);
+      if (response.success) {
+        // Update Redux store
+        dispatch(createProperty.fulfilled(response.data));
         dispatch(addToast({
           title: 'Property Created',
           description: `${propertyData.name} has been created successfully.`,
           variant: 'success'
         }));
         setShowPropertyModal(false);
+      } else {
+        throw new Error(response.message || 'Failed to create property');
       }
     } catch (error) {
+      console.error('Error creating property:', error);
       dispatch(addToast({
         title: 'Error',
-        description: 'Failed to create property. Please try again.',
+        description: error.message || 'Failed to create property. Please try again.',
         variant: 'error'
       }));
     }

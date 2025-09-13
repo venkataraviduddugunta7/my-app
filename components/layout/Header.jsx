@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import propertyService from '@/services/propertyService';
 import { 
   Search, 
   Bell, 
@@ -33,6 +34,8 @@ export function Header() {
   const [showPropertyMenu, setShowPropertyMenu] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [properties, setProperties] = useState([]);
+  const [loadingProperties, setLoadingProperties] = useState(false);
   
   const profileMenuRef = useRef(null);
   const notificationRef = useRef(null);
@@ -41,6 +44,26 @@ export function Header() {
   const router = useRouter();
   const { user } = useSelector((state) => state.auth);
   const { selectedProperty } = useSelector((state) => state.property);
+
+  // Fetch properties when component mounts
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  // Listen for real-time property updates
+  useEffect(() => {
+    const handlePropertyUpdate = () => {
+      fetchProperties(); // Refresh the properties list
+    };
+
+    // Listen for property updates from WebSocket
+    if (typeof window !== 'undefined') {
+      window.addEventListener('property-update', handlePropertyUpdate);
+      return () => {
+        window.removeEventListener('property-update', handlePropertyUpdate);
+      };
+    }
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -59,6 +82,21 @@ export function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Fetch properties from API
+  const fetchProperties = async () => {
+    try {
+      setLoadingProperties(true);
+      const response = await propertyService.getProperties();
+      if (response.success) {
+        setProperties(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setLoadingProperties(false);
+    }
+  };
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -185,42 +223,63 @@ export function Header() {
                     </div>
                     <div className="border-t border-gray-100">
                       <div className="max-h-64 overflow-y-auto p-2">
-                        {/* Demo properties for now */}
-                        {[
-                          { id: 'prop-1', name: 'Sunrise PG', beds: 48, occupied: 42 },
-                          { id: 'prop-2', name: 'Green Valley PG', beds: 36, occupied: 30 },
-                          { id: 'prop-3', name: 'Blue Sky Residency', beds: 60, occupied: 55 },
-                        ].map((property) => (
-                          <button
-                            key={property.id}
-                            onClick={() => {
-                              dispatch(setSelectedProperty(property));
-                              dispatch(addToast({
-                                title: 'Property Switched',
-                                description: `Now viewing ${property.name}`,
-                                variant: 'success'
-                              }));
-                              setShowPropertyMenu(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                              selectedProperty?.id === property.id
-                                ? 'bg-primary-50 text-primary-700'
-                                : 'hover:bg-gray-50'
-                            }`}
-                          >
+                        {loadingProperties ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
+                            <span className="ml-2 text-sm text-gray-500">Loading properties...</span>
+                          </div>
+                        ) : properties.length > 0 ? (
+                          properties.map((property) => {
+                            const totalBeds = property.totalBeds || 0;
+                            const occupiedBeds = property.occupiedBeds || 0;
+                            
+                            return (
+                              <button
+                                key={property.id}
+                                onClick={() => {
+                                  dispatch(setSelectedProperty(property));
+                                  dispatch(addToast({
+                                    title: 'Property Switched',
+                                    description: `Now viewing ${property.name}`,
+                                    variant: 'success'
+                                  }));
+                                  setShowPropertyMenu(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                                  selectedProperty?.id === property.id
+                                    ? 'bg-primary-50 text-primary-700'
+                                    : 'hover:bg-gray-50'
+                                }`}
+                              >
       <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm font-medium">{property.name}</p>
-                                <p className="text-xs text-gray-500">
-                                  {property.occupied}/{property.beds} beds occupied
-                                </p>
-                              </div>
-                              {selectedProperty?.id === property.id && (
-                                <Check className="h-4 w-4 text-primary-600" />
-                              )}
-                            </div>
-                          </button>
-                        ))}
+                                  <div>
+                                    <p className="text-sm font-medium">{property.name}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {occupiedBeds}/{totalBeds} beds occupied
+                                    </p>
+                                  </div>
+                                  {selectedProperty?.id === property.id && (
+                                    <Check className="h-4 w-4 text-primary-600" />
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="text-center py-4">
+                            <Building2 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500">No properties found</p>
+                            <button
+                              onClick={() => {
+                                router.push('/properties');
+                                setShowPropertyMenu(false);
+                              }}
+                              className="text-xs text-primary-600 hover:text-primary-700 mt-1"
+                            >
+                              Add your first property
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>

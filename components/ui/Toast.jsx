@@ -225,9 +225,13 @@ export function ToastContainer() {
   );
 }
 
+// Generate unique ID for toasts
+let toastIdCounter = 0;
+const generateToastId = () => `toast-${Date.now()}-${++toastIdCounter}`;
+
 // Premium Toast Variants
 export const showSuccessToast = (title, description) => ({
-  id: Date.now() + Math.random(),
+  id: generateToastId(),
   title,
   description,
   variant: 'success',
@@ -235,7 +239,7 @@ export const showSuccessToast = (title, description) => ({
 });
 
 export const showErrorToast = (title, description) => ({
-  id: Date.now() + Math.random(),
+  id: generateToastId(),
   title,
   description,
   variant: 'error',
@@ -243,7 +247,7 @@ export const showErrorToast = (title, description) => ({
 });
 
 export const showPremiumToast = (title, description) => ({
-  id: Date.now() + Math.random(),
+  id: generateToastId(),
   title,
   description,
   variant: 'premium',

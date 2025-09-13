@@ -29,6 +29,9 @@ export default function WebSocketProvider({ children }) {
       webSocketService.connect(token);
       isInitialized.current = true;
 
+      // Subscribe to properties updates
+      webSocketService.subscribeToProperties();
+
       // Show connection status
       dispatch(addToast({
         title: 'Connecting',
@@ -41,6 +44,7 @@ export default function WebSocketProvider({ children }) {
     // Cleanup on logout
     if (!isAuthenticated && isInitialized.current) {
       console.log('🔌 Disconnecting WebSocket...');
+      webSocketService.unsubscribeFromProperties();
       webSocketService.disconnect();
       isInitialized.current = false;
       currentPropertyId.current = null;

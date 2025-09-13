@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
+import propertyService from "@/services/propertyService";
 import {
   Building2,
   Plus,
@@ -30,6 +31,7 @@ import {
   ChefHat,
   ShieldCheck,
   Sparkles,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -42,75 +44,25 @@ import {
 } from "@/store/slices/propertySlice";
 import { formatCurrency } from "@/lib/utils";
 
-// Demo properties data
-const DEMO_PROPERTIES = [
-  {
-    id: "prop-1",
-    name: "Sunrise PG",
-    address: "123 Main Street, Koramangala, Bangalore",
-    city: "Bangalore",
-    state: "Karnataka",
-    pincode: "560001",
-    totalFloors: 4,
-    totalRooms: 16,
-    totalBeds: 48,
-    occupiedBeds: 42,
-    availableBeds: 6,
-    monthlyRent: 8000,
-    securityDeposit: 16000,
-    amenities: ["WiFi", "AC", "Hot Water", "Laundry", "Kitchen", "Security"],
-    phone: "+91 9876543210",
-    email: "sunrise.pg@example.com",
-    website: "www.sunrisepg.com",
-    establishedYear: 2018,
-    type: "Men",
-    status: "ACTIVE",
-  },
-  {
-    id: "prop-2",
-    name: "Green Valley PG",
-    address: "456 Park Road, Indiranagar, Bangalore",
-    city: "Bangalore",
-    state: "Karnataka",
-    pincode: "560002",
-    totalFloors: 3,
-    totalRooms: 12,
-    totalBeds: 36,
-    occupiedBeds: 30,
-    availableBeds: 6,
-    monthlyRent: 9000,
-    securityDeposit: 18000,
-    amenities: ["WiFi", "AC", "Gym", "Parking", "CCTV", "Power Backup"],
-    phone: "+91 9876543211",
-    email: "greenvalley@example.com",
-    website: "www.greenvalleypg.com",
-    establishedYear: 2020,
-    type: "Women",
-    status: "ACTIVE",
-  },
-  {
-    id: "prop-3",
-    name: "Blue Sky Residency",
-    address: "789 Lake View, Whitefield, Bangalore",
-    city: "Bangalore",
-    state: "Karnataka",
-    pincode: "560003",
-    totalFloors: 5,
-    totalRooms: 20,
-    totalBeds: 60,
-    occupiedBeds: 55,
-    availableBeds: 5,
-    monthlyRent: 10000,
-    securityDeposit: 20000,
-    amenities: ["WiFi", "AC", "Gym", "Swimming Pool", "Cafeteria", "Library"],
-    phone: "+91 9876543212",
-    email: "bluesky@example.com",
-    website: "www.blueskyresidency.com",
-    establishedYear: 2019,
-    type: "Co-ed",
-    status: "ACTIVE",
-  },
-];
+// Default property structure for form initialization
+const DEFAULT_PROPERTY = {
+  name: "",
+  address: "",
+  city: "",
+  state: "",
+  pincode: "",
+  description: "",
+  totalFloors: "",
+  totalRooms: "",
+  totalBeds: "",
+  monthlyRent: "",
+  securityDeposit: "",
+  amenities: [],
+  phone: "",
+  email: "",
+  website: "",
+  type: "Co-ed",
+};
 
 const AMENITY_OPTIONS = [
   { value: "WiFi", label: "WiFi", icon: Wifi },
@@ -128,36 +80,72 @@ const AMENITY_OPTIONS = [
 export default function PropertiesPage() {
   const dispatch = useDispatch();
   const { selectedProperty } = useSelector((state) => state.property);
-  const [properties, setProperties] = useState(DEMO_PROPERTIES);
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [submitting, setSubmitting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState(null);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-    totalFloors: "",
-    totalRooms: "",
-    totalBeds: "",
-    monthlyRent: "",
-    securityDeposit: "",
-    amenities: [],
-    phone: "",
-    email: "",
-    website: "",
-    type: "Co-ed",
-  });
+  const [formData, setFormData] = useState(DEFAULT_PROPERTY);
 
+  // Fetch properties on component mount
   useEffect(() => {
-    // Set the first property as selected if none is selected
+    fetchProperties();
+  }, []);
+
+  // Listen for real-time property updates
+  useEffect(() => {
+    const handlePropertyUpdate = () => {
+      fetchProperties(); // Refresh the properties list
+    };
+
+    // Listen for property updates from WebSocket
+    if (typeof window !== 'undefined') {
+      window.addEventListener('property-update', handlePropertyUpdate);
+      return () => {
+        window.removeEventListener('property-update', handlePropertyUpdate);
+      };
+    }
+  }, []);
+
+  // Set the first property as selected if none is selected
+  useEffect(() => {
     if (!selectedProperty && properties.length > 0) {
       handleSelectProperty(properties[0]);
     }
   }, [selectedProperty, properties]);
+
+  // Fetch properties from API
+  const fetchProperties = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await propertyService.getProperties();
+      
+      if (response.success) {
+        setProperties(response.data || []);
+      } else {
+        throw new Error('Failed to fetch properties');
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      setError(error.message);
+      dispatch(
+        addToast({
+          title: "Error",
+          description: "Failed to load properties. Please try again.",
+          variant: "error",
+        })
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectProperty = (property) => {
     dispatch(setSelectedProperty(property));
@@ -172,62 +160,83 @@ export default function PropertiesPage() {
 
   const handleAddProperty = () => {
     setEditingProperty(null);
-    setFormData({
-      name: "",
-      address: "",
-      city: "",
-      state: "",
-      pincode: "",
-      totalFloors: "",
-      totalRooms: "",
-      totalBeds: "",
-      monthlyRent: "",
-      securityDeposit: "",
-      amenities: [],
-      phone: "",
-      email: "",
-      website: "",
-      type: "Co-ed",
-    });
+    setFormData(DEFAULT_PROPERTY);
     setShowModal(true);
   };
 
   const handleEditProperty = (property) => {
     setEditingProperty(property);
     setFormData({
-      name: property.name,
-      address: property.address,
-      city: property.city,
-      state: property.state,
-      pincode: property.pincode,
-      totalFloors: property.totalFloors,
-      totalRooms: property.totalRooms,
-      totalBeds: property.totalBeds,
-      monthlyRent: property.monthlyRent,
-      securityDeposit: property.securityDeposit,
+      name: property.name || "",
+      address: property.address || "",
+      city: property.city || "",
+      state: property.state || "",
+      pincode: property.pincode || "",
+      description: property.description || "",
+      totalFloors: property.totalFloors || "",
+      totalRooms: property.totalRooms || "",
+      totalBeds: property.totalBeds || "",
+      monthlyRent: property.monthlyRent || "",
+      securityDeposit: property.securityDeposit || "",
       amenities: property.amenities || [],
-      phone: property.phone,
-      email: property.email,
-      website: property.website,
-      type: property.type,
+      phone: property.phone || "",
+      email: property.email || "",
+      website: property.website || "",
+      type: property.type || "Co-ed",
     });
     setShowModal(true);
   };
 
   const handleDeleteProperty = (propertyId) => {
-    if (confirm("Are you sure you want to delete this property?")) {
-      setProperties(properties.filter((p) => p.id !== propertyId));
+    const property = properties.find(p => p.id === propertyId);
+    setPropertyToDelete(property);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteProperty = async () => {
+    if (!propertyToDelete) return;
+
+    try {
+      setSubmitting(true);
+      const response = await propertyService.deleteProperty(propertyToDelete.id);
+      
+      if (response.success) {
+        // Refresh properties list
+        await fetchProperties();
+        
+        // Clear selected property if it was deleted
+        if (selectedProperty?.id === propertyToDelete.id) {
+          dispatch(setSelectedProperty(null));
+        }
+        
+        dispatch(
+          addToast({
+            title: "Property Deleted",
+            description: response.message || "Property has been deleted successfully",
+            variant: "success",
+          })
+        );
+        
+        setShowDeleteModal(false);
+        setPropertyToDelete(null);
+      } else {
+        throw new Error(response.message || 'Failed to delete property');
+      }
+    } catch (error) {
+      console.error('Error deleting property:', error);
       dispatch(
         addToast({
-          title: "Property Deleted",
-          description: "Property has been deleted successfully",
-          variant: "success",
+          title: "Error",
+          description: error.message || "Failed to delete property. Please try again.",
+          variant: "error",
         })
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name || !formData.address || !formData.totalBeds) {
@@ -241,48 +250,46 @@ export default function PropertiesPage() {
       return;
     }
 
-    if (editingProperty) {
-      // Update existing property
-      setProperties(
-        properties.map((p) =>
-          p.id === editingProperty.id
-            ? {
-                ...editingProperty,
-                ...formData,
-                occupiedBeds: editingProperty.occupiedBeds || 0,
-                availableBeds: formData.totalBeds - (editingProperty.occupiedBeds || 0),
-              }
-            : p
-        )
-      );
-      dispatch(
-        addToast({
-          title: "Property Updated",
-          description: `${formData.name} has been updated successfully`,
-          variant: "success",
-        })
-      );
-    } else {
-      // Add new property
-      const newProperty = {
-        id: `prop-${Date.now()}`,
-        ...formData,
-        occupiedBeds: 0,
-        availableBeds: formData.totalBeds,
-        establishedYear: new Date().getFullYear(),
-        status: "ACTIVE",
-      };
-      setProperties([...properties, newProperty]);
-      dispatch(
-        addToast({
-          title: "Property Added",
-          description: `${formData.name} has been added successfully`,
-          variant: "success",
-        })
-      );
-    }
+    try {
+      setSubmitting(true);
+      let response;
 
-    setShowModal(false);
+      if (editingProperty) {
+        // Update existing property
+        response = await propertyService.updateProperty(editingProperty.id, formData);
+      } else {
+        // Add new property
+        response = await propertyService.createProperty(formData);
+      }
+
+      if (response.success) {
+        // Refresh properties list
+        await fetchProperties();
+        
+        dispatch(
+          addToast({
+            title: editingProperty ? "Property Updated" : "Property Added",
+            description: response.message || `${formData.name} has been ${editingProperty ? 'updated' : 'added'} successfully`,
+            variant: "success",
+          })
+        );
+        
+        setShowModal(false);
+      } else {
+        throw new Error(response.message || 'Failed to save property');
+      }
+    } catch (error) {
+      console.error('Error saving property:', error);
+      dispatch(
+        addToast({
+          title: "Error",
+          description: error.message || "Failed to save property. Please try again.",
+          variant: "error",
+        })
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const toggleAmenity = (amenity) => {
@@ -294,14 +301,14 @@ export default function PropertiesPage() {
     }));
   };
 
+  // Filter properties based on search and filter criteria
   const filteredProperties = properties.filter((property) => {
-    const matchesSearch =
-      property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      property.city.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = !searchTerm || 
+      property.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      property.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      property.city?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter =
-      filterType === "all" || property.type === filterType;
+    const matchesFilter = filterType === "all" || property.type === filterType;
 
     return matchesSearch && matchesFilter;
   });
@@ -311,6 +318,53 @@ export default function PropertiesPage() {
     if (occupancy >= 70) return "text-yellow-600 bg-yellow-100";
     return "text-red-600 bg-red-100";
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold gradient-text">Properties</h1>
+            <p className="text-gray-600 mt-1">
+              Manage all your PG properties in one place
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+          <span className="ml-2 text-gray-600">Loading properties...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold gradient-text">Properties</h1>
+            <p className="text-gray-600 mt-1">
+              Manage all your PG properties in one place
+            </p>
+          </div>
+        </div>
+        <div className="text-center py-12">
+          <div className="text-red-500 mb-4">
+            <Building2 className="h-12 w-12 mx-auto mb-2" />
+            <h3 className="text-lg font-semibold">Error Loading Properties</h3>
+            <p className="text-gray-600">{error}</p>
+          </div>
+          <Button onClick={fetchProperties} className="gap-2">
+            <Building2 className="h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -322,7 +376,11 @@ export default function PropertiesPage() {
             Manage all your PG properties in one place
           </p>
         </div>
-        <Button onClick={handleAddProperty} className="gap-2">
+        <Button 
+          onClick={handleAddProperty} 
+          className="gap-2"
+          disabled={submitting}
+        >
           <Plus className="h-4 w-4" />
           Add Property
         </Button>
@@ -357,9 +415,10 @@ export default function PropertiesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AnimatePresence>
           {filteredProperties.map((property, index) => {
-            const occupancyRate = property.totalBeds
-              ? (property.occupiedBeds / property.totalBeds) * 100
-              : 0;
+            // Calculate occupancy rate safely
+            const totalBeds = property.totalBeds || 0;
+            const occupiedBeds = property.occupiedBeds || 0;
+            const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0;
             const isSelected = selectedProperty?.id === property.id;
 
             return (
@@ -407,30 +466,30 @@ export default function PropertiesPage() {
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <MapPin className="h-4 w-4" />
-                        <span className="truncate">{property.address}</span>
+                        <span className="truncate">{property.address || 'No address'}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Phone className="h-4 w-4" />
-                        <span>{property.phone}</span>
-                      </div>
+                      {property.phone && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Phone className="h-4 w-4" />
+                          <span>{property.phone}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Stats */}
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <p className="text-xs text-gray-500">Total Beds</p>
-                        <p className="text-xl font-bold">{property.totalBeds}</p>
+                        <p className="text-xl font-bold">{totalBeds}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Occupied</p>
-                        <p className="text-xl font-bold">
-                          {property.occupiedBeds}
-                        </p>
+                        <p className="text-xl font-bold">{occupiedBeds}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Monthly Rent</p>
                         <p className="text-lg font-semibold">
-                          {formatCurrency(property.monthlyRent)}
+                          {property.monthlyRent ? formatCurrency(property.monthlyRent) : 'N/A'}
                         </p>
                       </div>
                       <div>
@@ -446,21 +505,23 @@ export default function PropertiesPage() {
                     </div>
 
                     {/* Amenities */}
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {property.amenities.slice(0, 3).map((amenity) => (
-                        <span
-                          key={amenity}
-                          className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded"
-                        >
-                          {amenity}
-                        </span>
-                      ))}
-                      {property.amenities.length > 3 && (
-                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
-                          +{property.amenities.length - 3} more
-                        </span>
-                      )}
-                    </div>
+                    {property.amenities && property.amenities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {property.amenities.slice(0, 3).map((amenity) => (
+                          <span
+                            key={amenity}
+                            className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded"
+                          >
+                            {amenity}
+                          </span>
+                        ))}
+                        {property.amenities.length > 3 && (
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                            +{property.amenities.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-2">
@@ -488,6 +549,7 @@ export default function PropertiesPage() {
                         size="sm"
                         onClick={() => handleDeleteProperty(property.id)}
                         className="text-red-600 hover:bg-red-50"
+                        disabled={submitting}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -544,18 +606,22 @@ export default function PropertiesPage() {
                 }
                 placeholder="e.g., Sunrise PG"
               />
-              <Input
-                label="Type"
-                value={formData.type}
-                onChange={(e) =>
-                  setFormData({ ...formData, type: e.target.value })
-                }
-                as="select"
-              >
-                <option value="Men">Men</option>
-                <option value="Women">Women</option>
-                <option value="Co-ed">Co-ed</option>
-              </Input>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
+                <select
+                  value={formData.type}
+                  onChange={(e) =>
+                    setFormData({ ...formData, type: e.target.value })
+                  }
+                  className="w-full border border-gray-200 rounded-lg bg-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                >
+                  <option value="Men">Men</option>
+                  <option value="Women">Women</option>
+                  <option value="Co-ed">Co-ed</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -748,11 +814,85 @@ export default function PropertiesPage() {
             >
               Cancel
             </Button>
-            <Button type="submit">
-              {editingProperty ? "Update Property" : "Add Property"}
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {editingProperty ? "Updating..." : "Adding..."}
+                </>
+              ) : (
+                editingProperty ? "Update Property" : "Add Property"
+              )}
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Property"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">
+                Delete Property
+              </h3>
+              <p className="text-sm text-gray-500">
+                This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          
+          {propertyToDelete && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <strong>Property:</strong> {propertyToDelete.name}
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Address:</strong> {propertyToDelete.address}
+              </p>
+              <p className="text-sm text-gray-700">
+                <strong>Type:</strong> {propertyToDelete.type}
+              </p>
+            </div>
+          )}
+          
+          <div className="flex justify-end space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmDeleteProperty}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Property
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

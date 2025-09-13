@@ -35,10 +35,24 @@ const DEMO_PROPERTIES = [
     address: '123 Main Street, Koramangala, Bangalore',
     city: 'Bangalore',
     state: 'Karnataka',
+    pincode: '560001',
+    description: 'A modern PG with all amenities in the heart of Koramangala',
+    totalFloors: 4,
+    totalRooms: 16,
     totalBeds: 48,
     occupiedBeds: 42,
+    availableBeds: 6,
     monthlyRent: 8000,
     securityDeposit: 16000,
+    amenities: ['WiFi', 'AC', 'Hot Water', 'Laundry', 'Kitchen', 'Security'],
+    phone: '+91 9876543210',
+    email: 'sunrise.pg@example.com',
+    website: 'www.sunrisepg.com',
+    type: 'Men',
+    status: 'ACTIVE',
+    isActive: true,
+    createdAt: new Date('2023-01-15').toISOString(),
+    updatedAt: new Date().toISOString(),
     paymentSettings: {
       rentDueDay: 5,
       lateFeeDays: 3,
@@ -51,10 +65,54 @@ const DEMO_PROPERTIES = [
     address: '456 Park Road, Indiranagar, Bangalore',
     city: 'Bangalore',
     state: 'Karnataka',
+    pincode: '560002',
+    description: 'Eco-friendly PG with garden and modern facilities',
+    totalFloors: 3,
+    totalRooms: 12,
     totalBeds: 36,
     occupiedBeds: 30,
+    availableBeds: 6,
     monthlyRent: 9000,
     securityDeposit: 18000,
+    amenities: ['WiFi', 'AC', 'Gym', 'Parking', 'CCTV', 'Power Backup'],
+    phone: '+91 9876543211',
+    email: 'greenvalley@example.com',
+    website: 'www.greenvalleypg.com',
+    type: 'Women',
+    status: 'ACTIVE',
+    isActive: true,
+    createdAt: new Date('2023-03-20').toISOString(),
+    updatedAt: new Date().toISOString(),
+    paymentSettings: {
+      rentDueDay: 5,
+      lateFeeDays: 3,
+      lateFeeAmount: 500
+    }
+  },
+  {
+    id: 'prop-3',
+    name: 'Blue Sky Residency',
+    address: '789 Lake View, Whitefield, Bangalore',
+    city: 'Bangalore',
+    state: 'Karnataka',
+    pincode: '560003',
+    description: 'Premium PG with lake view and luxury amenities',
+    totalFloors: 5,
+    totalRooms: 20,
+    totalBeds: 60,
+    occupiedBeds: 55,
+    availableBeds: 5,
+    monthlyRent: 10000,
+    securityDeposit: 20000,
+    amenities: ['WiFi', 'AC', 'Gym', 'Swimming Pool', 'Cafeteria', 'Library'],
+    phone: '+91 9876543212',
+    email: 'bluesky@example.com',
+    website: 'www.blueskyresidency.com',
+    type: 'Co-ed',
+    status: 'ACTIVE',
+    isActive: true,
+    createdAt: new Date('2023-02-10').toISOString(),
+    updatedAt: new Date().toISOString(),
     paymentSettings: {
       rentDueDay: 5,
       lateFeeDays: 3,
@@ -203,34 +261,80 @@ class DemoApiService {
     await this.delay();
     return {
       success: true,
-      data: DEMO_PROPERTIES
+      data: DEMO_PROPERTIES,
+      count: DEMO_PROPERTIES.length
     };
   }
 
-  async createProperty(property) {
+  async createProperty(propertyData) {
     await this.delay();
+    
+    const newProperty = {
+      id: `prop-${Date.now()}`,
+      ...propertyData,
+      occupiedBeds: 0,
+      availableBeds: propertyData.totalBeds || 0,
+      status: 'ACTIVE',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      paymentSettings: {
+        rentDueDay: 5,
+        lateFeeDays: 3,
+        lateFeeAmount: 500
+      }
+    };
+
+    // Add to demo properties array (in real app, this would be saved to database)
+    DEMO_PROPERTIES.push(newProperty);
+
     return {
       success: true,
-      data: {
-        id: `prop-${Date.now()}`,
-        ...property
-      }
+      data: newProperty,
+      message: 'Property created successfully'
     };
   }
 
-  async updateProperty(propertyId, property) {
+  async updateProperty(propertyId, propertyData) {
     await this.delay();
+    
+    const propertyIndex = DEMO_PROPERTIES.findIndex(p => p.id === propertyId);
+    if (propertyIndex === -1) {
+      return {
+        success: false,
+        message: 'Property not found'
+      };
+    }
+
+    const updatedProperty = {
+      ...DEMO_PROPERTIES[propertyIndex],
+      ...propertyData,
+      updatedAt: new Date().toISOString()
+    };
+
+    DEMO_PROPERTIES[propertyIndex] = updatedProperty;
+
     return {
       success: true,
-      data: {
-        id: propertyId,
-        ...property
-      }
+      data: updatedProperty,
+      message: 'Property updated successfully'
     };
   }
 
   async deleteProperty(propertyId) {
     await this.delay();
+    
+    const propertyIndex = DEMO_PROPERTIES.findIndex(p => p.id === propertyId);
+    if (propertyIndex === -1) {
+      return {
+        success: false,
+        message: 'Property not found'
+      };
+    }
+
+    // Remove from demo properties array
+    DEMO_PROPERTIES.splice(propertyIndex, 1);
+
     return {
       success: true,
       message: 'Property deleted successfully'

@@ -324,59 +324,9 @@ export default function Dashboard() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock data for demonstration
-  const mockBeds = [
-    {
-      id: '1',
-      bedNumber: '101',
-      status: 'OCCUPIED',
-      rent: 8500,
-      deposit: 17000,
-      bedType: 'Single',
-      room: { roomNumber: '101', floor: { name: 'Ground Floor' } },
-      tenant: {
-        fullName: 'John Doe',
-        phone: '+91 9876543210',
-        joiningDate: '2024-01-15',
-        paymentStatus: 'current'
-      }
-    },
-    {
-      id: '2',
-      bedNumber: '102',
-      status: 'AVAILABLE',
-      rent: 7500,
-      deposit: 15000,
-      bedType: 'Single',
-      room: { roomNumber: '102', floor: { name: 'Ground Floor' } }
-    },
-    {
-      id: '3',
-      bedNumber: '201',
-      status: 'OCCUPIED',
-      rent: 9000,
-      deposit: 18000,
-      bedType: 'Single',
-      room: { roomNumber: '201', floor: { name: 'First Floor' } },
-      tenant: {
-        fullName: 'Sarah Wilson',
-        phone: '+91 9876543211',
-        joiningDate: '2024-02-01',
-        paymentStatus: 'due'
-      }
-    },
-    {
-      id: '4',
-      bedNumber: '202',
-      status: 'MAINTENANCE',
-      rent: 8000,
-      deposit: 16000,
-      bedType: 'Single',
-      room: { roomNumber: '202', floor: { name: 'First Floor' } }
-    }
-  ];
-
-  const mockTenants = mockBeds.filter(bed => bed.tenant).map(bed => bed.tenant);
+  // Use real data from Redux store
+  const displayBeds = beds?.length > 0 ? beds : [];
+  const displayTenants = tenants?.length > 0 ? tenants : [];
 
   // Quick action handlers
   const handleQuickAction = (action, bed) => {
@@ -425,28 +375,29 @@ export default function Dashboard() {
     occupiedBeds: 21
   };
   
-  // Use demo data when no real data is available
+  // Use real stats or fallback to demo data
   const displayStats = stats || {
-    totalBeds: 24,
-    occupiedBeds: 21,
-    availableBeds: 3,
-    totalTenants: 21,
-    monthlyRevenue: 168000,
+    totalBeds: property.totalBeds || 24,
+    occupiedBeds: property.occupiedBeds || 21,
+    availableBeds: (property.totalBeds || 24) - (property.occupiedBeds || 21),
+    totalTenants: displayTenants.length || 21,
+    monthlyRevenue: (property.occupiedBeds || 21) * 8000,
     pendingPayments: 24000,
-    occupancyRate: 87.5,
+    occupancyRate: property.totalBeds ? ((property.occupiedBeds || 0) / property.totalBeds * 100) : 87.5,
     collectionRate: 85.7
   };
-  
-  const displayBeds = beds?.length > 0 ? beds : [
-    { id: 'bed-1', number: '101', status: 'OCCUPIED', tenant: 'John Doe' },
-    { id: 'bed-2', number: '102', status: 'OCCUPIED', tenant: 'Jane Smith' },
-    { id: 'bed-3', number: '103', status: 'AVAILABLE' },
-    { id: 'bed-4', number: '104', status: 'OCCUPIED', tenant: 'Bob Johnson' },
-    { id: 'bed-5', number: '201', status: 'OCCUPIED', tenant: 'Alice Brown' },
-    { id: 'bed-6', number: '202', status: 'MAINTENANCE' },
-    { id: 'bed-7', number: '203', status: 'OCCUPIED', tenant: 'Charlie Wilson' },
-    { id: 'bed-8', number: '204', status: 'AVAILABLE' },
-  ];
+
+  // Ensure all numeric values are properly defined and safe for calculations
+  const safeStats = {
+    totalBeds: Number(displayStats.totalBeds) || 0,
+    occupiedBeds: Number(displayStats.occupiedBeds) || 0,
+    availableBeds: Number(displayStats.availableBeds) || 0,
+    totalTenants: Number(displayStats.totalTenants) || 0,
+    monthlyRevenue: Number(displayStats.monthlyRevenue) || 0,
+    pendingPayments: Number(displayStats.pendingPayments) || 0,
+    occupancyRate: Number(displayStats.occupancyRate) || 0,
+    collectionRate: Number(displayStats.collectionRate) || 0
+  };
   
   const displayActivities = recentActivities?.length > 0 ? recentActivities : [
     { id: 1, type: 'payment', message: 'Payment received from John Doe - ₹8,000', time: '2 hours ago' },
@@ -526,8 +477,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <PremiumStatsCard
           title="Total Beds"
-          value="24"
-          subtitle="87% occupied"
+          value={safeStats.totalBeds}
+          subtitle={`${(safeStats.occupancyRate || 0).toFixed(1)}% occupied`}
           icon={Bed}
           color="blue"
           trend="+2 this month"
@@ -535,8 +486,8 @@ export default function Dashboard() {
         />
         <PremiumStatsCard
           title="Active Tenants"
-          value="21"
-          subtitle="3 pending checkout"
+          value={safeStats.totalTenants}
+          subtitle={`${safeStats.availableBeds} available`}
           icon={Users}
           color="green"
           trend="+5 this week"
@@ -544,8 +495,8 @@ export default function Dashboard() {
         />
         <PremiumStatsCard
           title="Monthly Revenue"
-          value="₹1,85,500"
-          subtitle="From 21 tenants"
+          value={formatCurrency(safeStats.monthlyRevenue) || '₹0'}
+          subtitle={`From ${safeStats.totalTenants} tenants`}
           icon={DollarSign}
           color="purple"
           trend="+12% vs last month"
@@ -553,7 +504,7 @@ export default function Dashboard() {
         />
         <PremiumStatsCard
           title="Occupancy Rate"
-          value="87.5%"
+          value={`${(safeStats.occupancyRate || 0).toFixed(1)}%`}
           subtitle="Above target"
           icon={TrendingUp}
           color="orange"
@@ -686,15 +637,29 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {mockBeds.map((bed, index) => (
-            <EnhancedBedStatusCard
+          {displayBeds.length > 0 ? (
+            displayBeds.map((bed, index) => (
+              <EnhancedBedStatusCard
                 key={bed.id}
                 bed={bed}
                 onQuickAction={handleQuickAction}
-              delay={1.0 + index * 0.1}
+                delay={1.0 + index * 0.1}
               />
-            ))}
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <Bed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Beds Found</h3>
+              <p className="text-gray-600 mb-4">No beds are available for this property yet.</p>
+              <button
+                onClick={() => router.push('/beds')}
+                className="btn-primary"
+              >
+                Manage Beds
+              </button>
           </div>
+          )}
+        </div>
       </motion.div>
 
       {/* Recent Activities */}

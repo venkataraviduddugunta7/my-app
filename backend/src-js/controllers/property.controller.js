@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/error.middleware');
+const webSocketService = require('../services/websocket.service');
 
 const prisma = new PrismaClient();
 
@@ -131,6 +132,12 @@ const createProperty = asyncHandler(async (req, res) => {
 
     console.log('✅ Property created successfully:', property.id);
 
+    // Broadcast property creation to all connected clients
+    webSocketService.broadcastToAll('property-update', {
+      type: 'create',
+      data: property
+    });
+
     res.status(201).json({
       success: true,
       data: property,
@@ -184,6 +191,12 @@ const updateProperty = asyncHandler(async (req, res) => {
   const property = await prisma.property.update({
     where: { id },
     data: updateData
+  });
+
+  // Broadcast property update to all connected clients
+  webSocketService.broadcastToAll('property-update', {
+    type: 'update',
+    data: property
   });
 
   res.status(200).json({
@@ -251,9 +264,18 @@ const deleteProperty = asyncHandler(async (req, res) => {
     });
   }
 
+  // Store property data before deletion for broadcasting
+  const propertyToDelete = existingProperty;
+
   // Delete property (cascade will handle floors, rooms, and beds)
   await prisma.property.delete({
     where: { id }
+  });
+
+  // Broadcast property deletion to all connected clients
+  webSocketService.broadcastToAll('property-update', {
+    type: 'delete',
+    data: propertyToDelete
   });
 
   res.status(200).json({

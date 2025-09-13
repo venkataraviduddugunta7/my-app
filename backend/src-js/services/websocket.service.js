@@ -116,6 +116,17 @@ class WebSocketService {
         console.log(`💰 User subscribed to payment updates for property ${propertyId}`);
       });
 
+      // Property subscription (for property list updates)
+      socket.on('subscribe-properties', () => {
+        socket.join('properties');
+        console.log(`🏠 User subscribed to property updates`);
+      });
+
+      socket.on('unsubscribe-properties', () => {
+        socket.leave('properties');
+        console.log(`🏠 User unsubscribed from property updates`);
+      });
+
       // Handle disconnection
       socket.on('disconnect', () => {
         console.log(`👋 User ${socket.user.fullName} disconnected`);
@@ -226,6 +237,26 @@ class WebSocketService {
       this.io.to(`property:${propertyId}`).emit('emergency-alert', {
         ...alert,
         priority: 'CRITICAL',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Broadcast to all users of a specific property
+  broadcastToProperty(propertyId, event, data) {
+    if (this.io) {
+      this.io.to(`property:${propertyId}`).emit(event, {
+        ...data,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Broadcast to all connected users
+  broadcastToAll(event, data) {
+    if (this.io) {
+      this.io.emit(event, {
+        ...data,
         timestamp: new Date().toISOString()
       });
     }

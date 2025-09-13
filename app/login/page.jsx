@@ -111,52 +111,86 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Demo login - accept any credentials for demonstration
-      const demoUser = {
-        user: {
-          id: "demo-user-" + Date.now(),
-          email: formData.email,
-          fullName: formData.email
-            .split("@")[0]
-            .replace(/[^a-zA-Z]/g, " ")
-            .replace(/\b\w/g, (l) => l.toUpperCase()),
-          role: "OWNER",
-        },
-        token: "demo-token-" + Date.now(),
-      };
+      // Check if demo mode is enabled
+      const isDemoMode = typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true';
+      
+      if (isDemoMode) {
+        // Demo login - accept any credentials for demonstration
+        const demoUser = {
+          user: {
+            id: "demo-user-" + Date.now(),
+            email: formData.email,
+            fullName: formData.email
+              .split("@")[0]
+              .replace(/[^a-zA-Z]/g, " ")
+              .replace(/\b\w/g, (l) => l.toUpperCase()),
+            role: "OWNER",
+          },
+          token: "demo-token-" + Date.now(),
+        };
 
-      // Store in localStorage for persistence
-      if (typeof window !== "undefined") {
-        localStorage.setItem("auth_token", demoUser.token);
-        localStorage.setItem("auth_user", JSON.stringify(demoUser.user));
+        // Store in localStorage for persistence
+        if (typeof window !== "undefined") {
+          localStorage.setItem("auth_token", demoUser.token);
+          localStorage.setItem("auth_user", JSON.stringify(demoUser.user));
+        }
+
+        // Update Redux state directly without API call
+        dispatch(setCredentials(demoUser));
+
+        dispatch(
+          addToast({
+            title: "Demo Mode Active! 🎉",
+            description: "Logged in with demo data for testing",
+            variant: "success",
+          })
+        );
+
+        // Small delay for better UX, then navigate
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
+      } else {
+        // Real API login
+        const response = await fetch('http://localhost:9000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Login failed');
+        }
+
+        // Store in localStorage for persistence
+        if (typeof window !== "undefined") {
+          localStorage.setItem("auth_token", data.token);
+          localStorage.setItem("auth_user", JSON.stringify(data.user));
+        }
+
+        // Update Redux state
+        dispatch(setCredentials(data));
+
+        dispatch(
+          addToast({
+            title: "Welcome Back! 🎉",
+            description: "Successfully logged into PG Manager Pro",
+            variant: "success",
+          })
+        );
+
+        // Small delay for better UX, then navigate
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
       }
-
-      // Update Redux state directly without API call
-      dispatch(setCredentials(demoUser));
-
-      // Set a demo property for the dashboard
-      const demoProperty = {
-        id: "demo-property-1",
-        name: "Sunrise PG",
-        address: "123 Main Street, City",
-        totalBeds: 24,
-        occupiedBeds: 21,
-      };
-
-      dispatch(setSelectedProperty(demoProperty));
-
-      dispatch(
-        addToast({
-          title: "Welcome Back! 🎉",
-          description: "Successfully logged into PG Manager Pro",
-          variant: "success",
-        })
-      );
-
-      // Small delay for better UX, then navigate
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
     } catch (error) {
       dispatch(
         addToast({
@@ -277,7 +311,7 @@ export default function LoginPage() {
             </Button>
           </motion.form>
 
-          {/* Demo Credentials */}
+          {/* Demo Mode Toggle */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -287,19 +321,33 @@ export default function LoginPage() {
             <div className="flex items-center space-x-2 mb-2">
               <Sparkles className="h-4 w-4 text-purple-600" />
               <span className="text-sm font-semibold text-purple-800">
-                Demo Access
+                Development Mode
               </span>
             </div>
             <p className="text-xs text-purple-700 mb-2">
-              Use these credentials to explore the system:
+              Toggle between real API and demo mode for testing:
             </p>
-            <div className="text-xs text-purple-600 space-y-1">
-              <p>
-                <strong>Email:</strong> demo@pgmanager.com
-              </p>
-              <p>
-                <strong>Password:</strong> demo123
-              </p>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  // Enable demo mode
+                  localStorage.setItem('demo_mode', 'true');
+                  window.location.reload();
+                }}
+                className="text-xs px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+              >
+                Enable Demo Mode
+              </button>
+              <button
+                onClick={() => {
+                  // Disable demo mode
+                  localStorage.removeItem('demo_mode');
+                  window.location.reload();
+                }}
+                className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+              >
+                Use Real API
+              </button>
             </div>
           </motion.div>
 

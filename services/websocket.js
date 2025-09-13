@@ -15,6 +15,9 @@ import {
   addTenantRealtime, 
   removeTenantRealtime 
 } from '@/store/slices/tenantsSlice';
+import { 
+  setSelectedProperty 
+} from '@/store/slices/propertySlice';
 
 class WebSocketService {
   constructor() {
@@ -80,6 +83,45 @@ class WebSocketService {
     // Property events
     this.socket.on('joined-property', (data) => {
       console.log(`🏠 Joined property: ${data.propertyName}`);
+    });
+
+    // Property updates
+    this.socket.on('property-update', (data) => {
+      console.log('🏠 Property update received:', data);
+      
+      // Dispatch custom event for components to listen to
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('property-update', { detail: data }));
+      }
+      
+      switch (data.type) {
+        case 'create':
+          store.dispatch(addToast({
+            title: 'New Property',
+            description: `${data.data.name} has been added`,
+            variant: 'success'
+          }));
+          break;
+        case 'update':
+          // Update selected property if it's the one being updated
+          const currentState = store.getState();
+          if (currentState.property.selectedProperty?.id === data.data.id) {
+            store.dispatch(setSelectedProperty(data.data));
+          }
+          store.dispatch(addToast({
+            title: 'Property Updated',
+            description: `${data.data.name} has been updated`,
+            variant: 'info'
+          }));
+          break;
+        case 'delete':
+          store.dispatch(addToast({
+            title: 'Property Deleted',
+            description: `${data.data.name} has been deleted`,
+            variant: 'info'
+          }));
+          break;
+      }
     });
 
     // Dashboard updates
@@ -244,6 +286,20 @@ class WebSocketService {
     if (this.socket?.connected && propertyId) {
       this.socket.emit('subscribe-payments', propertyId);
       this.subscriptions.add(`payments:${propertyId}`);
+    }
+  }
+
+  subscribeToProperties() {
+    if (this.socket?.connected) {
+      this.socket.emit('subscribe-properties');
+      this.subscriptions.add('properties');
+    }
+  }
+
+  unsubscribeFromProperties() {
+    if (this.socket?.connected) {
+      this.socket.emit('unsubscribe-properties');
+      this.subscriptions.delete('properties');
     }
   }
 
