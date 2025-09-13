@@ -17,20 +17,26 @@ import {
   ChevronDown,
   Zap,
   Shield,
-  Activity
+  Activity,
+  Building2,
+  Check
 } from 'lucide-react';
 import { logoutUser } from '@/store/slices/authSlice';
+import { setSelectedProperty } from '@/store/slices/propertySlice';
+import { addToast } from '@/store/slices/uiSlice';
 import RealtimeIndicator from '@/components/ui/RealtimeIndicator';
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showPropertyMenu, setShowPropertyMenu] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   const profileMenuRef = useRef(null);
   const notificationRef = useRef(null);
+  const propertyMenuRef = useRef(null);
   const dispatch = useDispatch();
   const router = useRouter();
   const { user } = useSelector((state) => state.auth);
@@ -44,6 +50,9 @@ export function Header() {
       }
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setShowNotifications(false);
+      }
+      if (propertyMenuRef.current && !propertyMenuRef.current.contains(event.target)) {
+        setShowPropertyMenu(false);
       }
     };
 
@@ -139,6 +148,85 @@ export function Header() {
                 )}
               </div>
             </motion.div>
+
+            {/* Property Selector */}
+            <div className="relative ml-4" ref={propertyMenuRef}>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowPropertyMenu(!showPropertyMenu)}
+                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-200 rounded-xl hover:shadow-md transition-all"
+              >
+                <Building2 className="h-4 w-4 text-primary-600" />
+                <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-[150px] truncate">
+                  {selectedProperty?.name || 'Select Property'}
+                </span>
+                <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${showPropertyMenu ? 'rotate-180' : ''}`} />
+              </motion.button>
+
+              <AnimatePresence>
+                {showPropertyMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50"
+                  >
+                    <div className="p-2">
+                      <button
+                        onClick={() => {
+                          router.push('/properties');
+                          setShowPropertyMenu(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
+                      >
+                        + Manage Properties
+                      </button>
+                    </div>
+                    <div className="border-t border-gray-100">
+                      <div className="max-h-64 overflow-y-auto p-2">
+                        {/* Demo properties for now */}
+                        {[
+                          { id: 'prop-1', name: 'Sunrise PG', beds: 48, occupied: 42 },
+                          { id: 'prop-2', name: 'Green Valley PG', beds: 36, occupied: 30 },
+                          { id: 'prop-3', name: 'Blue Sky Residency', beds: 60, occupied: 55 },
+                        ].map((property) => (
+                          <button
+                            key={property.id}
+                            onClick={() => {
+                              dispatch(setSelectedProperty(property));
+                              dispatch(addToast({
+                                title: 'Property Switched',
+                                description: `Now viewing ${property.name}`,
+                                variant: 'success'
+                              }));
+                              setShowPropertyMenu(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                              selectedProperty?.id === property.id
+                                ? 'bg-primary-50 text-primary-700'
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+      <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium">{property.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {property.occupied}/{property.beds} beds occupied
+                                </p>
+                              </div>
+                              {selectedProperty?.id === property.id && (
+                                <Check className="h-4 w-4 text-primary-600" />
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Enhanced Search Bar */}
@@ -152,11 +240,11 @@ export function Header() {
           >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors duration-200" />
-              <input
-                type="text"
+            <input
+              type="text"
                 placeholder="Search tenants, rooms, payments..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setIsSearchFocused(false)}
                 className={`
@@ -200,7 +288,7 @@ export function Header() {
                         <span className="text-sm text-gray-700">Sarah Wilson - Room 105</span>
                       </div>
                     </div>
-                  </div>
+          </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -302,7 +390,7 @@ export function Header() {
                   <div className="p-3 border-t border-gray-100">
                     <button className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium">
                       View all notifications
-                    </button>
+          </button>
                   </div>
                 </motion.div>
               )}
@@ -314,15 +402,15 @@ export function Header() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center space-x-3 rounded-lg p-2 hover:bg-gray-100 transition-all duration-200"
             >
               <div className="flex items-center space-x-3">
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-semibold text-gray-900">{user?.fullName || 'User'}</p>
                   <p className="text-xs text-gray-500 capitalize">{user?.role?.toLowerCase() || 'Member'}</p>
-                </div>
-                
+            </div>
+
                 <div className="relative">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white font-semibold text-sm shadow-elegant">
                     {getUserInitials(user?.fullName)}
@@ -385,15 +473,15 @@ export function Header() {
                   <div className="border-t border-gray-100 p-2">
                     <motion.button
                       whileHover={{ x: 4 }}
-                      onClick={handleLogout}
+                  onClick={handleLogout}
                       className="flex w-full items-center space-x-3 rounded-lg p-3 text-left text-sm text-error-700 hover:bg-error-50 transition-all duration-200"
-                    >
+                >
                       <LogOut className="h-4 w-4 text-error-500" />
-                      <span>Sign Out</span>
+                  <span>Sign Out</span>
                     </motion.button>
-                  </div>
+              </div>
                 </motion.div>
-              )}
+            )}
             </AnimatePresence>
           </div>
         </div>
@@ -423,4 +511,4 @@ export function Header() {
       </AnimatePresence>
     </motion.header>
   );
-}
+} 

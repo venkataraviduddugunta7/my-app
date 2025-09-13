@@ -44,7 +44,7 @@ const menuItems = [
     icon: Building2,
     href: '/properties',
     badge: null,
-    color: 'from-emerald-500 to-emerald-600'
+    color: 'from-indigo-500 to-indigo-600'
   },
   {
     id: 'tenants',

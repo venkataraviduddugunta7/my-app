@@ -1,4 +1,6 @@
 // API Service for PG Management System
+import demoApiService from './demo-api';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api';
 
 class ApiService {
@@ -33,10 +35,43 @@ class ApiService {
   async request(endpoint, options = {}) {
     const token = this.getToken();
     
-    // Skip API calls for demo mode
+    // Use demo API for demo mode
     if (token && token.startsWith('demo-')) {
-      console.log('🎭 Demo mode - skipping API call:', endpoint);
-      // Return mock success response for demo mode
+      console.log('🎭 Demo mode - using demo API for:', endpoint);
+      
+      // Route to appropriate demo API method
+      if (endpoint.includes('/settings/user')) {
+        if (options.method === 'PUT' || options.method === 'PATCH') {
+          return demoApiService.updateUserSettings(options.body);
+        }
+        return demoApiService.getUserSettings();
+      }
+      if (endpoint.includes('/settings/property')) {
+        const propertyId = endpoint.split('/').pop();
+        if (options.method === 'PUT' || options.method === 'PATCH') {
+          return demoApiService.updatePropertySettings(propertyId, options.body);
+        }
+        return demoApiService.getPropertySettings(propertyId);
+      }
+      if (endpoint.includes('/dashboard/stats')) {
+        return demoApiService.getDashboardStats();
+      }
+      if (endpoint.includes('/properties')) {
+        if (options.method === 'POST') {
+          return demoApiService.createProperty(options.body);
+        }
+        if (options.method === 'PUT' || options.method === 'PATCH') {
+          const propertyId = endpoint.split('/').pop();
+          return demoApiService.updateProperty(propertyId, options.body);
+        }
+        if (options.method === 'DELETE') {
+          const propertyId = endpoint.split('/').pop();
+          return demoApiService.deleteProperty(propertyId);
+        }
+        return demoApiService.getProperties();
+      }
+      
+      // Default demo response
       return {
         success: true,
         data: null,

@@ -417,15 +417,42 @@ export default function Dashboard() {
   };
 
   // Use demo property if no property is selected
-  const demoProperty = {
+  const property = selectedProperty || {
     id: 'demo-property-1',
     name: 'Sunrise PG',
     address: '123 Main Street, City',
     totalBeds: 24,
     occupiedBeds: 21
   };
-
-  const property = selectedProperty || demoProperty;
+  
+  // Use demo data when no real data is available
+  const displayStats = stats || {
+    totalBeds: 24,
+    occupiedBeds: 21,
+    availableBeds: 3,
+    totalTenants: 21,
+    monthlyRevenue: 168000,
+    pendingPayments: 24000,
+    occupancyRate: 87.5,
+    collectionRate: 85.7
+  };
+  
+  const displayBeds = beds?.length > 0 ? beds : [
+    { id: 'bed-1', number: '101', status: 'OCCUPIED', tenant: 'John Doe' },
+    { id: 'bed-2', number: '102', status: 'OCCUPIED', tenant: 'Jane Smith' },
+    { id: 'bed-3', number: '103', status: 'AVAILABLE' },
+    { id: 'bed-4', number: '104', status: 'OCCUPIED', tenant: 'Bob Johnson' },
+    { id: 'bed-5', number: '201', status: 'OCCUPIED', tenant: 'Alice Brown' },
+    { id: 'bed-6', number: '202', status: 'MAINTENANCE' },
+    { id: 'bed-7', number: '203', status: 'OCCUPIED', tenant: 'Charlie Wilson' },
+    { id: 'bed-8', number: '204', status: 'AVAILABLE' },
+  ];
+  
+  const displayActivities = recentActivities?.length > 0 ? recentActivities : [
+    { id: 1, type: 'payment', message: 'Payment received from John Doe - ₹8,000', time: '2 hours ago' },
+    { id: 2, type: 'tenant', message: 'New tenant moved in to Bed 203', time: '5 hours ago' },
+    { id: 3, type: 'maintenance', message: 'Maintenance request for Bed 202', time: '1 day ago' },
+  ];
 
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
