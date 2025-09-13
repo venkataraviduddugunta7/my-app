@@ -44,6 +44,7 @@ import {
   UserMinus,
   Search
 } from 'lucide-react';
+import { Drawer } from '@/components/ui';
 
 // Tenant Form Modal with Terms and Conditions
 function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBeds = [] }) {
