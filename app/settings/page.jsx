@@ -441,9 +441,12 @@ function TermsAndConditionsSettings() {
 
   // Fetch terms and conditions on component mount
   useEffect(() => {
-    // Always use property (which defaults to demo if none selected)
-    fetchTermsAndConditions(property.id);
-  }, [property]);
+    // Always use selectedProperty or fall back to the first available property
+    const propertyId = selectedProperty?.id || properties[0]?.id;
+    if (propertyId) {
+      fetchTermsAndConditions(propertyId);
+    }
+  }, [selectedProperty, properties]);
 
   const fetchTermsAndConditions = async (propertyId = selectedProperty?.id) => {
     if (!propertyId) return;
