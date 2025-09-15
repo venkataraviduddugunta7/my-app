@@ -97,7 +97,12 @@ const createProperty = asyncHandler(async (req, res) => {
     user: req.user ? { id: req.user.id, email: req.user.email } : 'NO USER'
   });
 
-  const { name, address, city, state, pincode, description } = req.body;
+  const { 
+    name, address, city, state, pincode, description,
+    type, phone, email, website, amenities,
+    monthlyRent, securityDeposit,
+    totalFloors, totalRooms, totalBeds
+  } = req.body;
   
   // Check if user is authenticated
   if (!req.user || !req.user.id) {
@@ -126,6 +131,16 @@ const createProperty = asyncHandler(async (req, res) => {
         state,
         pincode,
         description,
+        type: type ?? 'Co-ed',
+        phone,
+        email,
+        website,
+        amenities: Array.isArray(amenities) ? amenities : [],
+        monthlyRent: monthlyRent !== undefined ? Number(monthlyRent) : undefined,
+        securityDeposit: securityDeposit !== undefined ? Number(securityDeposit) : undefined,
+        totalFloors: totalFloors !== undefined ? Number(totalFloors) : undefined,
+        totalRooms: totalRooms !== undefined ? Number(totalRooms) : undefined,
+        totalBeds: totalBeds !== undefined ? Number(totalBeds) : undefined,
         ownerId: userId
       }
     });
@@ -155,7 +170,12 @@ const createProperty = asyncHandler(async (req, res) => {
 // PUT /api/properties/:id - Update property
 const updateProperty = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, address, city, state, pincode, description } = req.body;
+  const { 
+    name, address, city, state, pincode, description,
+    type, phone, email, website, amenities,
+    monthlyRent, securityDeposit,
+    totalFloors, totalRooms, totalBeds
+  } = req.body;
 
   // Check if user is authenticated
   if (!req.user || !req.user.id) {
@@ -187,6 +207,16 @@ const updateProperty = asyncHandler(async (req, res) => {
   if (state !== undefined) updateData.state = state;
   if (pincode !== undefined) updateData.pincode = pincode;
   if (description !== undefined) updateData.description = description;
+  if (type !== undefined) updateData.type = type;
+  if (phone !== undefined) updateData.phone = phone;
+  if (email !== undefined) updateData.email = email;
+  if (website !== undefined) updateData.website = website;
+  if (amenities !== undefined) updateData.amenities = Array.isArray(amenities) ? amenities : [];
+  if (monthlyRent !== undefined) updateData.monthlyRent = Number(monthlyRent);
+  if (securityDeposit !== undefined) updateData.securityDeposit = Number(securityDeposit);
+  if (totalFloors !== undefined) updateData.totalFloors = Number(totalFloors);
+  if (totalRooms !== undefined) updateData.totalRooms = Number(totalRooms);
+  if (totalBeds !== undefined) updateData.totalBeds = Number(totalBeds);
 
   const property = await prisma.property.update({
     where: { id },

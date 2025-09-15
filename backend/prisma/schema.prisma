@@ -103,6 +103,15 @@ model Property {
   state       String
   pincode     String
   description String?
+  // Additional property profile fields
+  type        String   @default("Co-ed")
+  phone       String?
+  email       String?
+  website     String?
+  amenities   String[] @default([])
+  // Base pricing (optional; detailed per-room/bed overrides exist)
+  monthlyRent     Float?
+  securityDeposit Float?
   totalFloors Int      @default(0)
   totalRooms  Int      @default(0)
   totalBeds   Int      @default(0)

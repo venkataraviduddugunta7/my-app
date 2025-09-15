@@ -18,8 +18,11 @@ export function Dropdown({
   premium = false,
   className = '',
   icon: Icon,
+  hint,
+  helpText,
   ...props
 }) {
+  const effectiveHint = hint ?? helpText;
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef(null);
@@ -100,7 +103,6 @@ export function Dropdown({
               'shadow-float': premium && isOpen,
             }
           )}
-          {...props}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 flex-1 min-w-0">
@@ -151,6 +153,11 @@ export function Dropdown({
             </motion.div>
           </div>
         </motion.button>
+
+        {/* Hint */}
+        {effectiveHint && !error && (
+          <p className="mt-1 text-xs text-gray-500">{effectiveHint}</p>
+        )}
 
         {/* Enhanced Dropdown Panel */}
         <AnimatePresence>

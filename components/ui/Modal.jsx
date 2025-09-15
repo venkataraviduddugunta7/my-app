@@ -90,8 +90,8 @@ const Modal = forwardRef(({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Overlay */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay fills the entire viewport, unaffected by padding */}
           <motion.div
             variants={overlayVariants}
             initial="hidden"
@@ -112,6 +112,7 @@ const Modal = forwardRef(({
             className={cn(
               'relative w-full bg-white rounded-2xl shadow-luxury border border-gray-200 overflow-hidden',
               sizeClasses[size],
+              'm-4',
               className
             )}
             {...props}
