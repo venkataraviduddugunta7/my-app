@@ -18,9 +18,16 @@ const uiSlice = createSlice({
       state.sidebarOpen = action.payload;
     },
     addToast: (state, action) => {
+      const providedId = action.payload && action.payload.id;
+      const generateId = () => {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+          return crypto.randomUUID();
+        }
+        return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      };
       const toast = {
-        id: Date.now(),
-        ...action.payload
+        ...action.payload,
+        id: providedId || generateId()
       };
       state.toasts.push(toast);
     },

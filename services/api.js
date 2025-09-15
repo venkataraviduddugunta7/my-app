@@ -294,6 +294,15 @@ class ApiService {
     getDashboardSettings: () => this.get('/settings/dashboard'),
     updateDashboardSettings: (data) => this.put('/settings/dashboard', data)
   };
+
+  // Analytics endpoints
+  analytics = {
+    getDashboard: (propertyId, period = '30d') => this.get(`/analytics/dashboard/${propertyId}?period=${period}`),
+    getOccupancy: (propertyId, startDate, endDate) => this.get(`/analytics/occupancy/${propertyId}?startDate=${startDate}&endDate=${endDate}`),
+    getRevenue: (propertyId, startDate, endDate) => this.get(`/analytics/revenue/${propertyId}?startDate=${startDate}&endDate=${endDate}`),
+    getTenants: (propertyId, startDate, endDate) => this.get(`/analytics/tenants/${propertyId}?startDate=${startDate}&endDate=${endDate}`),
+    getInsights: (propertyId, period = '30d') => this.get(`/analytics/insights/${propertyId}?period=${period}`)
+  };
 }
 
 // Create and export singleton instance
