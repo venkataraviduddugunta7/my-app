@@ -12,6 +12,7 @@ const Input = forwardRef(({
   error,
   success,
   hint,
+  helpText,
   icon: Icon,
   rightIcon: RightIcon,
   disabled = false,
@@ -28,6 +29,7 @@ const Input = forwardRef(({
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef(null);
   const combinedRef = ref || inputRef;
+  const effectiveHint = hint ?? helpText;
 
   const isPassword = type === 'password';
   const inputType = isPassword && showPassword ? 'text' : type;
@@ -140,8 +142,8 @@ const Input = forwardRef(({
             <span>{success}</span>
           </div>
         )}
-        {hint && !error && !success && (
-          <p className="text-xs text-gray-500">{hint}</p>
+        {effectiveHint && !error && !success && (
+          <p className="text-xs text-gray-500">{effectiveHint}</p>
         )}
       </div>
     );
@@ -214,8 +216,8 @@ const Input = forwardRef(({
             <span>{success}</span>
           </div>
         )}
-        {hint && !error && !success && (
-          <p className="text-xs text-gray-500">{hint}</p>
+        {effectiveHint && !error && !success && (
+          <p className="text-xs text-gray-500">{effectiveHint}</p>
         )}
       </div>
     );
@@ -283,8 +285,8 @@ const Input = forwardRef(({
           <span>{success}</span>
         </div>
       )}
-      {hint && !error && !success && (
-        <p className="text-xs text-gray-500">{hint}</p>
+      {effectiveHint && !error && !success && (
+        <p className="text-xs text-gray-500">{effectiveHint}</p>
       )}
     </div>
   );
