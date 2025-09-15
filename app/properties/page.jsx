@@ -588,9 +588,10 @@ export default function PropertiesPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingProperty ? "Edit Property" : "Add New Property"}
-        size="lg"
+        size="xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="max-h-[80vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
@@ -805,27 +806,28 @@ export default function PropertiesPage() {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {editingProperty ? "Updating..." : "Adding..."}
-                </>
-              ) : (
-                editingProperty ? "Update Property" : "Add Property"
-              )}
-            </Button>
-          </div>
-        </form>
+            {/* Actions */}
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {editingProperty ? "Updating..." : "Adding..."}
+                  </>
+                ) : (
+                  editingProperty ? "Update Property" : "Add Property"
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
       </Modal>
 
       {/* Delete Confirmation Modal */}
