@@ -1109,7 +1109,7 @@ export default function TenantsPage() {
   ];
 
   return (
-    <div className="relative">
+    <div className="relative space-y-6 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>

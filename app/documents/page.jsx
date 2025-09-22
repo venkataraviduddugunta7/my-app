@@ -325,7 +325,7 @@ function DocumentDetailsModal({ document, isOpen, onClose }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Document Details" size="lg">
-      <div className="space-y-6">
+      <div className="">
         {/* Header */}
         <div className={`p-4 rounded-lg border ${typeInfo.color}`}>
           <div className="flex items-center space-x-2">
@@ -804,7 +804,7 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>

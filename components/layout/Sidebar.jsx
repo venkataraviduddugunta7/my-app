@@ -183,7 +183,7 @@ export function Sidebar() {
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative flex h-screen flex-col border-r border-gray-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60"
+      className="relative z-40 flex h-screen flex-col border-r border-gray-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 overflow-y-auto"
     >
       {/* Toggle Button */}
       <motion.button
@@ -191,18 +191,18 @@ export function Sidebar() {
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white shadow-elegant text-gray-500 hover:text-gray-700 transition-colors"
-        style={{ zIndex: 100 }}
+        style={{ zIndex: 30 }}
       >
         {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </motion.button>
 
-      {/* Header Section */}
-      <div className="p-6">
+      {/* Header Section - Sticky */}
+      <div className="sticky top-0 z-10 p-6 flex-shrink-0 bg-white border-b border-gray-200/50">
         <motion.div 
-          className="flex items-center space-x-3"
+          className="flex items-center space-x-3 min-w-0"
           animate={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-glow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-glow-sm flex-shrink-0">
             <Activity className="h-5 w-5" />
           </div>
           
@@ -213,9 +213,10 @@ export function Sidebar() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
+                className="min-w-0 flex-1"
               >
-                <h1 className="text-xl font-bold gradient-text">PG Manager</h1>
-                <p className="text-xs text-gray-500 -mt-1">Professional Edition</p>
+                <h1 className="text-xl font-bold gradient-text truncate">PG Manager</h1>
+                <p className="text-xs text-gray-500 -mt-1 truncate">Professional Edition</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -228,10 +229,10 @@ export function Sidebar() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mt-4 p-3 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-xl border border-primary-100"
+              className="mt-4 p-3 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-xl border border-primary-100 min-w-0"
             >
-              <div className="flex items-center space-x-2">
-                <Home className="h-4 w-4 text-primary-600" />
+              <div className="flex items-center space-x-2 min-w-0">
+                <Home className="h-4 w-4 text-primary-600 flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-gray-900 truncate">
                     {selectedProperty.name}
@@ -329,7 +330,7 @@ export function Sidebar() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
                         className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg shadow-lg whitespace-nowrap"
-                        style={{ zIndex: 9999 }}
+                        style={{ zIndex: 20 }}
                       >
                         {item.label}
                         <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900" />

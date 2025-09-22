@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import propertyService from '@/services/propertyService';
 import { 
@@ -42,6 +42,7 @@ export function Header() {
   const propertyMenuRef = useRef(null);
   const dispatch = useDispatch();
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useSelector((state) => state.auth);
   const { selectedProperty } = useSelector((state) => state.property);
 
@@ -65,7 +66,7 @@ export function Header() {
     }
   }, []);
 
-  // Close dropdowns when clicking outside
+  // Close dropdowns when clicking outside and when pressing Escape
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
@@ -79,9 +80,28 @@ export function Header() {
       }
     };
 
+    const handleKeydown = (event) => {
+      if (event.key === 'Escape') {
+        setShowProfileMenu(false);
+        setShowNotifications(false);
+        setShowPropertyMenu(false);
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeydown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeydown);
+    };
   }, []);
+
+  // Close any open menus when route changes
+  useEffect(() => {
+    setShowProfileMenu(false);
+    setShowNotifications(false);
+    setShowPropertyMenu(false);
+  }, [pathname]);
 
   // Fetch properties from API
   const fetchProperties = async () => {
@@ -152,48 +172,31 @@ export function Header() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="sticky top-0 z-50 w-full border-b border-gray-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60"
+      className="w-full border-b border-gray-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60"
     >
       <div className="flex h-16 items-center justify-between px-6">
         {/* Left Section - Logo & Search */}
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center">
           {/* Mobile Menu Button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="lg:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
+            aria-label="Open sidebar"
           >
             <Menu className="h-5 w-5" />
           </motion.button>
 
-          {/* Logo & Property Info */}
-          <div className="flex items-center space-x-4">
-            <motion.div 
-              className="flex items-center space-x-3"
-              whileHover={{ scale: 1.02 }}
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-glow-sm">
-                <Activity className="h-4 w-4" />
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-gray-900 gradient-text">
-                  PG Manager Pro
-                </h1>
-                {selectedProperty && (
-                  <p className="text-xs text-gray-500 -mt-1">
-                    {selectedProperty.name}
-                  </p>
-                )}
-              </div>
-            </motion.div>
-
+          <div className="flex items-center gap-6">
             {/* Property Selector */}
-            <div className="relative ml-4" ref={propertyMenuRef}>
+            <div className="relative" ref={propertyMenuRef}>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowPropertyMenu(!showPropertyMenu)}
                 className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-200 rounded-xl hover:shadow-md transition-all"
+                aria-expanded={showPropertyMenu}
+                aria-haspopup="menu"
               >
                 <Building2 className="h-4 w-4 text-primary-600" />
                 <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-[150px] truncate">
@@ -208,7 +211,7 @@ export function Header() {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50"
+                    className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-[60]"
                   >
                     <div className="p-2">
                       <button
@@ -251,7 +254,7 @@ export function Header() {
                                     : 'hover:bg-gray-50'
                                 }`}
                               >
-      <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between">
                                   <div>
                                     <p className="text-sm font-medium">{property.name}</p>
                                     <p className="text-xs text-gray-500">
@@ -286,33 +289,32 @@ export function Header() {
                 )}
               </AnimatePresence>
             </div>
-          </div>
 
-          {/* Enhanced Search Bar */}
-          <motion.div 
-            className="relative hidden md:block"
-            animate={{ 
-              width: isSearchFocused ? 400 : 320,
-              scale: isSearchFocused ? 1.02 : 1
-            }}
-            transition={{ duration: 0.2 }}
-          >
+            {/* Enhanced Search Bar */}
+            <motion.div 
+              className="relative hidden md:block"
+              animate={{ 
+                width: isSearchFocused ? 320 : 320,
+                scale: isSearchFocused ? 1 : 1
+              }}
+              transition={{ duration: 0.2 }}
+            >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors duration-200" />
-            <input
-              type="text"
+              <input
+                type="text"
                 placeholder="Search tenants, rooms, payments..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setIsSearchFocused(false)}
                 className={`
                   w-full pl-10 pr-4 py-2.5 text-sm
                   bg-gray-50 border border-gray-200 rounded-xl
-                  focus:bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
                   placeholder:text-gray-500 transition-all duration-200
                   ${isSearchFocused ? 'shadow-elegant' : 'hover:bg-gray-100'}
                 `}
+                aria-label="Global search"
               />
               {searchQuery && (
                 <motion.button
@@ -320,6 +322,7 @@ export function Header() {
                   animate={{ opacity: 1, scale: 1 }}
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
                 >
                   <X className="h-4 w-4" />
                 </motion.button>
@@ -333,7 +336,7 @@ export function Header() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-float-lg z-50"
+                  className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-float-lg z-[60]"
                 >
                   <div className="p-3">
                     <p className="text-xs text-gray-500 mb-2">Quick Results</p>
@@ -347,28 +350,18 @@ export function Header() {
                         <span className="text-sm text-gray-700">Sarah Wilson - Room 105</span>
                       </div>
                     </div>
-          </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
+          </div>
         </div>
 
         {/* Right Section - Actions & Profile */}
         <div className="flex items-center space-x-3">
           {/* Real-time Status Indicator */}
-          <RealtimeIndicator />
-
-          {/* Dark Mode Toggle */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={toggleDarkMode}
-            className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
-          >
-            {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </motion.button>
-
+          <RealtimeIndicator  />
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
             <motion.button
@@ -376,6 +369,8 @@ export function Header() {
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
+              aria-expanded={showNotifications}
+              aria-haspopup="menu"
             >
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
@@ -396,7 +391,7 @@ export function Header() {
                   initial={{ opacity: 0, scale: 0.95, y: -10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-float-lg z-50"
+                  className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-float-lg z-[60]"
                 >
                   <div className="p-4 border-b border-gray-100">
                     <div className="flex items-center justify-between">
@@ -449,7 +444,7 @@ export function Header() {
                   <div className="p-3 border-t border-gray-100">
                     <button className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium">
                       View all notifications
-          </button>
+                    </button>
                   </div>
                 </motion.div>
               )}
@@ -461,14 +456,16 @@ export function Header() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center space-x-3 rounded-lg p-2 hover:bg-gray-100 transition-all duration-200"
+              aria-expanded={showProfileMenu}
+              aria-haspopup="menu"
             >
               <div className="flex items-center space-x-3">
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-semibold text-gray-900">{user?.fullName || 'User'}</p>
                   <p className="text-xs text-gray-500 capitalize">{user?.role?.toLowerCase() || 'Member'}</p>
-            </div>
+                </div>
 
                 <div className="relative">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white font-semibold text-sm shadow-elegant">
@@ -490,7 +487,7 @@ export function Header() {
                   initial={{ opacity: 0, scale: 0.95, y: -10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-float-lg z-50"
+                  className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-float-lg z-[60]"
                 >
                   {/* Profile Header */}
                   <div className="p-4 border-b border-gray-100">
@@ -532,15 +529,15 @@ export function Header() {
                   <div className="border-t border-gray-100 p-2">
                     <motion.button
                       whileHover={{ x: 4 }}
-                  onClick={handleLogout}
+                      onClick={handleLogout}
                       className="flex w-full items-center space-x-3 rounded-lg p-3 text-left text-sm text-error-700 hover:bg-error-50 transition-all duration-200"
-                >
+                    >
                       <LogOut className="h-4 w-4 text-error-500" />
-                  <span>Sign Out</span>
+                      <span>Sign Out</span>
                     </motion.button>
-              </div>
+                  </div>
                 </motion.div>
-            )}
+              )}
             </AnimatePresence>
           </div>
         </div>

@@ -29,7 +29,7 @@ export default function AnalyticsPage() {
   }, [selectedProperty]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
         <p className="text-gray-600 mt-2">Key performance metrics for your property</p>
