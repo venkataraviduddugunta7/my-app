@@ -92,7 +92,7 @@ const Modal = forwardRef(({
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center mt-[-24px] mb-[-24px]">
           {/* Overlay fills the entire viewport, unaffected by padding */}
-          <motion.divs
+          <motion.div
             variants={overlayVariants}
             initial="hidden"
             animate="visible"
