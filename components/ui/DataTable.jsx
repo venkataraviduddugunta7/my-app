@@ -26,7 +26,8 @@ import {
   AlertCircle,
   Building,
   Home,
-  Bed
+  Bed,
+  Clock
 } from 'lucide-react';
 import { Button } from './Button';
 import { Input } from './Input';
@@ -523,6 +524,25 @@ export const statusConfigs = {
       icon: AlertCircle,
       label: 'Inactive'
     }
+  },
+
+  // Tenant status
+  tenantStatus: {
+    ACTIVE: {
+      color: 'bg-gradient-to-r from-success-50 to-success-100 text-success-700 border border-success-200',
+      icon: CheckCircle,
+      label: 'Active'
+    },
+    VACATED: {
+      color: 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200',
+      icon: AlertCircle,
+      label: 'Vacated'
+    },
+    PENDING: {
+      color: 'bg-gradient-to-r from-warning-50 to-warning-100 text-warning-700 border border-warning-200',
+      icon: Clock,
+      label: 'Pending'
+    }
   }
 };
 
@@ -552,6 +572,15 @@ export const iconConfigs = {
       icon: Bed,
       color: 'text-accent-600',
       bgColor: 'bg-gradient-to-br from-accent-100 to-accent-200'
+    }
+  },
+
+  // Tenant icons
+  tenantIcons: {
+    default: {
+      icon: User,
+      color: 'text-primary-600',
+      bgColor: 'bg-gradient-to-br from-primary-100 to-primary-200'
     }
   }
 };

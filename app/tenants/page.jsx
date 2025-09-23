@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchTenants, createTenant, updateTenant, deleteTenant, assignTenantToBed, vacateTenant } from '@/store/slices/tenantsSlice';
 import { fetchFloors } from '@/store/slices/floorsSlice';
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { Modal, ModalFooter } from '@/components/ui/Modal';
-import DataTable from '@/components/ui/DataTable';
+import { TenantTable } from '@/components/tables/TenantTable';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   Users,
@@ -243,8 +243,31 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
       label: `Bed ${bed.bedNumber} - ${bed.bedType} (₹${bed.rent}/month)`
     })) : [];
 
-  // Get selected bed details
-  const selectedBed = availableBeds.find(bed => bed.id === formData.bedId);
+  // When editing, include the tenant's current bed in options if it's not already there
+  const allBedOptions = useMemo(() => {
+    if (tenant && tenant.bed && formData.roomId === tenant.bed.roomId) {
+      const currentBedOption = {
+        value: tenant.bed.id,
+        label: `Bed ${tenant.bed.bedNumber} - ${tenant.bed.bedType} (₹${tenant.bed.rent}/month) - Current`
+      };
+      
+      // Check if current bed is already in options
+      const isCurrentBedInOptions = bedOptions.some(option => option.value === tenant.bed.id);
+      
+      if (!isCurrentBedInOptions) {
+        return [currentBedOption, ...bedOptions];
+      }
+    }
+    return bedOptions;
+  }, [bedOptions, tenant, formData.roomId]);
+
+  // Get selected bed details - include tenant's current bed when editing
+  const selectedBed = useMemo(() => {
+    if (tenant && tenant.bed && formData.bedId === tenant.bed.id) {
+      return tenant.bed;
+    }
+    return availableBeds.find(bed => bed.id === formData.bedId);
+  }, [formData.bedId, availableBeds, tenant]);
 
   // ID Proof validation configurations
   const idProofConfigs = {
@@ -567,7 +590,7 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                 {formData.roomId && (
                   <Dropdown
                     label="Select Bed *"
-                    options={bedOptions}
+                    options={allBedOptions}
                     value={formData.bedId}
                     onChange={(value) => setFormData(prev => ({ ...prev, bedId: value }))}
                     placeholder="Choose a bed"
@@ -813,10 +836,8 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
   const stayDays = Math.ceil((leavingDateObj - joiningDate) / (1000 * 60 * 60 * 24));
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="Mark Tenant as Vacated" size="lg">
-      <div className="h-full flex flex-col">
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto">
+    <Drawer isOpen={isOpen} onClose={onClose} title="Mark Tenant as Vacated" size="default">
+      <form onSubmit={handleSubmit} className="space-y-6">
             {/* Tenant Info */}
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
               <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
@@ -941,13 +962,12 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
                     <li>This action can be reversed if needed</li>
                     <li>Tenant will be moved to "Vacated Tenants" list</li>
                   </ul>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Form Actions - Fixed at bottom */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 bg-white flex-shrink-0">
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
@@ -960,7 +980,6 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
             </Button>
           </div>
         </form>
-      </div>
     </Drawer>
   );
 }
@@ -1301,261 +1320,36 @@ export default function TenantsPage() {
       ) : filteredTenants.length > 0 ? (
         viewMode === 'table' ? (
           <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tenant
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Bed Assignment
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rent & Deposit
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTenants.map((tenant) => (
-                    <tr key={tenant.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {tenant.fullName}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {tenant.tenantId}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Joined: {new Date(tenant.joiningDate).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{tenant.phone}</div>
-                        {tenant.email && (
-                          <div className="text-sm text-gray-500">{tenant.email}</div>
-                        )}
-                        {tenant.alternatePhone && (
-                          <div className="text-sm text-gray-500">
-                            Alt: {tenant.alternatePhone}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {tenant.bed ? (
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              Bed {tenant.bed.bedNumber}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              Room {tenant.bed.room?.roomNumber} - Floor {tenant.bed.room?.floor?.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {tenant.bed.bedType} Bed
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-500 italic">
-                            No bed assigned
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {tenant.bed ? (
-                          <div>
-                            <div className="text-sm text-gray-900">
-                              ₹{tenant.bed.rent}/month
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              Deposit: ₹{tenant.bed.deposit}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              Security: ₹{tenant.securityDeposit || 0}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          tenant.status === 'ACTIVE' 
-                            ? 'bg-green-100 text-green-800'
-                            : tenant.status === 'VACATED'
-                            ? 'bg-gray-100 text-gray-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {tenant.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => handleEditTenant(tenant)}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Edit tenant"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          
-                          {!tenant.bed && (
-                            <button
-                              onClick={() => {
-                                const availableBeds = beds.filter(bed => !bed.tenant);
-                                if (availableBeds.length > 0) {
-                                  console.log('Available beds for assignment:', availableBeds);
-                                  // Could open bed assignment modal here
-                                }
-                              }}
-                              className="text-green-600 hover:text-green-900"
-                              title="Assign bed"
-                            >
-                              <UserPlus className="w-4 h-4" />
-                            </button>
-                          )}
-                          
-                          {tenant.status === 'ACTIVE' && (
-                            <button
-                              onClick={() => handleVacateTenant(tenant)}
-                              className="text-orange-600 hover:text-orange-900"
-                              title="Mark as vacated"
-                            >
-                              <UserMinus className="w-4 h-4" />
-                            </button>
-                          )}
-                          
-                          <button
-                            onClick={() => handleDeleteTenant(tenant)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete tenant"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CardContent className="p-0">
+              <TenantTable
+                tenants={filteredTenants}
+                onEdit={handleEditTenant}
+                onDelete={handleDeleteTenant}
+                onVacate={handleVacateTenant}
+                onAssignBed={(tenant) => {
+                  // Handle bed assignment - could open a modal or redirect
+                  console.log('Assign bed to tenant:', tenant);
+                  // For now, just log - you can implement bed assignment modal here
+                }}
+                viewMode={viewMode}
+                loading={loading}
+              />
+                </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTenants.map((tenant) => (
-              <Card key={tenant.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{tenant.fullName}</h3>
-                      <p className="text-sm text-gray-500">ID: {tenant.tenantId}</p>
-                    </div>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      tenant.status === 'ACTIVE' 
-                        ? 'bg-green-100 text-green-800'
-                        : tenant.status === 'VACATED'
-                        ? 'bg-gray-100 text-gray-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {tenant.status}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="w-4 h-4 mr-2" />
-                      {tenant.phone}
-                    </div>
-                    {tenant.email && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Mail className="w-4 h-4 mr-2" />
-                        {tenant.email}
-                      </div>
-                    )}
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Joined: {new Date(tenant.joiningDate).toLocaleDateString()}
-                    </div>
-                  </div>
-                  
-                  {tenant.bed ? (
-                    <div className="bg-blue-50 p-3 rounded-lg mb-4">
-                      <p className="text-sm font-medium text-gray-900">
-                        Bed {tenant.bed.bedNumber} - Room {tenant.bed.room?.roomNumber}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Floor: {tenant.bed.room?.floor?.name}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Rent: ₹{tenant.bed.rent}/month
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="bg-yellow-50 p-3 rounded-lg mb-4">
-                      <p className="text-sm text-yellow-800">No bed assigned</p>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEditTenant(tenant)}
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                    
-                    {tenant.status === 'ACTIVE' ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleVacateTenant(tenant)}
-                        className="text-orange-600 border-orange-300 hover:bg-orange-50"
-                      >
-                        <UserMinus className="w-4 h-4 mr-1" />
-                        Mark Vacated
-                      </Button>
-                    ) : tenant.status === 'PENDING' && !tenant.bed ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const availableBeds = beds.filter(bed => !bed.tenant);
-                          if (availableBeds.length > 0) {
-                            console.log('Available beds for assignment:', availableBeds);
-                          }
-                        }}
-                        className="text-green-600 border-green-300 hover:bg-green-50"
-                      >
-                        <UserPlus className="w-4 h-4 mr-1" />
-                        Assign
-                      </Button>
-                    ) : null}
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDeleteTenant(tenant)}
-                      className="text-red-600 border-red-300 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <TenantTable
+            tenants={filteredTenants}
+            onEdit={handleEditTenant}
+            onDelete={handleDeleteTenant}
+            onVacate={handleVacateTenant}
+            onAssignBed={(tenant) => {
+              // Handle bed assignment - could open a modal or redirect
+              console.log('Assign bed to tenant:', tenant);
+              // For now, just log - you can implement bed assignment modal here
+            }}
+            viewMode={viewMode}
+            loading={loading}
+          />
         )
       ) : (
         <Card>
