@@ -1,677 +1,559 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  flexRender,
+  createColumnHelper,
+} from '@tanstack/react-table';
 import { 
-  ChevronLeft, 
-  ChevronRight, 
   ChevronUp, 
   ChevronDown, 
+  ChevronLeft, 
+  ChevronRight,
   Search, 
   Filter,
-  Download,
-  RefreshCw,
-  MoreVertical,
-  Eye,
+  MoreHorizontal,
   Edit,
   Trash2,
-  ArrowUpDown,
-  SlidersHorizontal,
-  Grid3X3,
-  List,
-  Columns,
-  Star,
-  Zap,
-  TrendingUp,
-  Users
+  Eye,
+  User,
+  CheckCircle,
+  AlertCircle,
+  Building,
+  Home,
+  Bed
 } from 'lucide-react';
 import { Button } from './Button';
 import { Input } from './Input';
-import { Card } from './Card';
+import { Dropdown } from './Dropdown';
 
-export default function DataTable({
+// Reusable DataTable component
+export function DataTable({
   data = [],
   columns = [],
-  loading = false,
-  searchable = true,
   filterable = true,
-  sortable = true,
-  exportable = true,
-  refreshable = false,
-  onRefresh,
-  onRowClick,
-  onRowSelect,
-  selectedRows = [],
+  pagination = true,
   pageSize = 10,
-  className = '',
-  emptyMessage = 'No data available',
-  loadingMessage = 'Loading amazing data...',
-  title,
-  description,
-  premium = true
+  emptyMessage = "No data found",
+  emptyIcon: EmptyIcon = null,
+  onRowClick = null,
+  className = "",
+  headerClassName = "",
+  rowClassName = "",
+  loading = false,
+  actions = null, // Custom actions component
+  viewMode = 'table', // 'table' or 'cards'
+  cardComponent = null, // Custom card component for card view
+  ...props
 }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({});
-  const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('table'); // 'table', 'grid', 'list'
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [sorting, setSorting] = useState([]);
+  const [columnFilters, setColumnFilters] = useState([]);
+  const [paginationState, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: pageSize,
+  });
 
-  // Get filterable columns
-  const filterableColumns = useMemo(() => 
-    columns.filter(col => col.filterable), [columns]
-  );
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+      pagination: paginationState,
+    },
+    enableRowSelection: false,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    debugTable: false,
+  });
 
-  // Filter and search data
-  const filteredData = useMemo(() => {
-    let result = [...data];
-
-    // Apply search
-    if (searchTerm && searchable) {
-      result = result.filter(item =>
-        columns.some(col => {
-          const value = col.accessor ? item[col.accessor] : '';
-          return String(value).toLowerCase().includes(searchTerm.toLowerCase());
-        })
-      );
-    }
-
-    // Apply filters
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value && value !== 'all') {
-        result = result.filter(item => {
-          const itemValue = item[key];
-          if (Array.isArray(value)) {
-            return value.includes(itemValue);
-          }
-          return String(itemValue).toLowerCase().includes(String(value).toLowerCase());
-        });
-      }
-    });
-
-    return result;
-  }, [data, searchTerm, filters, columns, searchable]);
-
-  // Sort data
-  const sortedData = useMemo(() => {
-    if (!sortConfig.key || !sortable) return filteredData;
-
-    return [...filteredData].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-
-      if (aValue === null || aValue === undefined) return 1;
-      if (bValue === null || bValue === undefined) return -1;
-
-      if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-  }, [filteredData, sortConfig, sortable]);
-
-  // Paginate data
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return sortedData.slice(startIndex, startIndex + pageSize);
-  }, [sortedData, currentPage, pageSize]);
-
-  const totalPages = Math.ceil(sortedData.length / pageSize);
-
-  // Handle sorting
-  const handleSort = (key) => {
-    if (!sortable) return;
-    
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
-  // Handle filter change
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1); // Reset to first page
-  };
-
-  // Export data as CSV
-  const exportToCSV = () => {
-    if (!exportable) return;
-
-    const csvHeaders = columns.map(col => col.header).join(',');
-    const csvRows = sortedData.map(item =>
-      columns.map(col => {
-        const value = col.accessor ? item[col.accessor] : '';
-        return `"${String(value).replace(/"/g, '""')}"`;
-      }).join(',')
-    );
-
-    const csvContent = [csvHeaders, ...csvRows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title || 'data'}-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const SortIcon = ({ column }) => {
-    if (!sortable || !sortConfig.key || sortConfig.key !== column) {
-      return <ArrowUpDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />;
-    }
-    return sortConfig.direction === 'asc' 
-      ? <ChevronUp className="w-4 h-4 text-primary-600" />
-      : <ChevronDown className="w-4 h-4 text-primary-600" />;
-  };
-
-  // Loading skeleton
-  const LoadingSkeleton = () => (
-    <div className="space-y-4">
-      {[...Array(5)].map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: i * 0.1 }}
-          className="flex items-center space-x-4 p-4"
-        >
-          <div className="h-10 w-10 bg-gray-200 rounded-lg animate-pulse" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
-            <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
-          </div>
-          <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
-        </motion.div>
-      ))}
-    </div>
-  );
-
+  // Card view
+  if (viewMode === 'cards' && cardComponent) {
+    const CardComponent = cardComponent;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`bg-white rounded-2xl border border-gray-200 shadow-elegant overflow-hidden ${className}`}
-    >
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            {title && (
-              <motion.h2
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-xl font-bold text-gray-900 flex items-center"
-              >
-                <Grid3X3 className="w-5 h-5 mr-2 text-primary-600" />
-                {title}
-              </motion.h2>
-            )}
-            {description && (
-              <motion.p
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-sm text-gray-600 mt-1"
-              >
-                {description}
-              </motion.p>
-            )}
+    <div className={`space-y-6 ${className}`}>
+        {/* Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {table.getRowModel().rows.map((row, index) => (
+            <div
+              key={row.id}
+              className="transform transition-all duration-200 hover:scale-[1.02] hover:-translate-y-1"
+              style={{ animationDelay: `${index * 30}ms` }}
+            >
+              <CardComponent data={row.original} />
           </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-            {['table', 'grid', 'list'].map((mode) => {
-              const Icon = mode === 'table' ? Grid3X3 : mode === 'grid' ? Columns : List;
-              return (
-                <motion.button
-                  key={mode}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setViewMode(mode)}
-                  className={`p-2 rounded-md transition-all duration-200 ${
-                    viewMode === mode 
-                      ? 'bg-white text-primary-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                </motion.button>
-              );
-            })}
-          </div>
+          ))}
         </div>
 
-        {/* Controls Row */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center space-x-4">
-            {searchable && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="relative"
-              >
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  placeholder="Search data..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2.5 w-64 border border-gray-200 rounded-xl bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
-                />
-                {searchTerm && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                  >
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      ×
-                    </button>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-
-            {filterable && filterableColumns.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center space-x-2"
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                  <span>Filters</span>
-                  {Object.values(filters).some(v => v && v !== 'all') && (
-                    <span className="bg-primary-100 text-primary-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                      {Object.values(filters).filter(v => v && v !== 'all').length}
-                    </span>
-                  )}
-                </Button>
-              </motion.div>
-            )}
-
-            {/* Results Counter */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="flex items-center space-x-2 text-sm text-gray-600"
-            >
-              <Users className="w-4 h-4" />
-              <span>
-                <span className="font-semibold text-gray-900">{sortedData.length}</span> results
-                {searchTerm && ` for "${searchTerm}"`}
-              </span>
-            </motion.div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            {refreshable && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <Button
-                  variant="outline"
-                  onClick={onRefresh}
-                  disabled={loading}
-                  className="flex items-center space-x-2"
-                >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                  <span>Refresh</span>
-                </Button>
-              </motion.div>
-            )}
-
-            {exportable && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                <Button
-                  variant="outline"
-                  onClick={exportToCSV}
-                  className="flex items-center space-x-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Export</span>
-                </Button>
-              </motion.div>
-            )}
-          </div>
-        </div>
-
-        {/* Enhanced Filters Row */}
-        <AnimatePresence>
-          {showFilters && filterable && filterableColumns.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200"
-            >
-              {filterableColumns.map((column, index) => (
-                <motion.div
-                  key={column.accessor}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {column.header}
-                  </label>
-                  {column.filterOptions ? (
-                    <select
-                      value={filters[column.accessor] || 'all'}
-                      onChange={(e) => handleFilterChange(column.accessor, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
-                    >
-                      <option value="all">All</option>
-                      {column.filterOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      placeholder={`Filter by ${column.header.toLowerCase()}`}
-                      value={filters[column.accessor] || ''}
-                      onChange={(e) => handleFilterChange(column.accessor, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
-                    />
-                  )}
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Empty State */}
+        {table.getRowModel().rows.length === 0 && (
+          <div className="text-center py-16">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 border border-gray-200 shadow-elegant">
+              {EmptyIcon && (
+                <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-elegant">
+                  <EmptyIcon className="w-8 h-8 text-primary-600" />
+                </div>
+              )}
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">No data found</h3>
+              <p className="text-gray-600 max-w-md mx-auto">{emptyMessage}</p>
       </div>
-
-      {/* Table Content */}
-      <div className="relative">
-        {loading ? (
-          <div className="p-6">
-            <LoadingSkeleton />
           </div>
-        ) : sortedData.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="p-12 text-center"
-          >
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 mx-auto mb-4">
-              <Grid3X3 className="h-8 w-8 text-gray-400" />
+        )}
+
+        {/* Pagination */}
+        {pagination && table.getPageCount() > 1 && (
+          <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-200 shadow-elegant p-6">
+            <div className="text-sm text-gray-600 font-medium">
+              Showing <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
+              <span className="text-primary-600 font-semibold">
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                  table.getFilteredRowModel().rows.length
+                )}
+              </span>{' '}
+              of <span className="text-primary-600 font-semibold">{table.getFilteredRowModel().rows.length}</span> results
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Data Found</h3>
-            <p className="text-gray-600 max-w-sm mx-auto">
-              {searchTerm || Object.values(filters).some(v => v && v !== 'all') 
-                ? 'Try adjusting your search terms or filters to find what you\'re looking for.' 
-                : emptyMessage
-              }
-            </p>
-            {(searchTerm || Object.values(filters).some(v => v && v !== 'all')) && (
+            <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setSearchTerm('');
-                  setFilters({});
-                }}
-                className="mt-4"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
               >
-                Clear Filters
+                <ChevronLeft className="w-4 h-4" />
               </Button>
-            )}
-          </motion.div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              {/* Enhanced Table Header */}
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                <tr>
-                  {onRowSelect && (
-                    <th className="px-6 py-4 text-left w-12">
-                      <motion.input
-                        whileHover={{ scale: 1.1 }}
-                        type="checkbox"
-                        checked={selectedRows.length === paginatedData.length && paginatedData.length > 0}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            onRowSelect(paginatedData.map(item => item.id));
-                          } else {
-                            onRowSelect([]);
-                          }
-                        }}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 transition-all duration-200"
-                      />
-                    </th>
-                  )}
-                  
-                  {columns.map((column, index) => (
-                    <motion.th
-                      key={column.accessor || column.header}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider group ${
-                        sortable && column.sortable !== false ? 'cursor-pointer hover:bg-gray-200/50' : ''
-                      }`}
-                      onClick={() => column.sortable !== false && handleSort(column.accessor)}
+              <div className="flex items-center space-x-2 bg-gray-50 rounded-xl px-4 py-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Page <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex + 1}</span> of{' '}
+                  <span className="text-primary-600 font-semibold">{table.getPageCount()}</span>
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Table view
+  return (
+    <div className={`space-y-6 ${className}`}>
+      {/* Table Container */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-elegant overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200/50"
                     >
-                      <div className="flex items-center space-x-2">
-                        <span>{column.header}</span>
-                        {sortable && column.sortable !== false && (
-                          <SortIcon column={column.accessor} />
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={`flex items-center space-x-2 group ${
+                            header.column.getCanSort() ? 'cursor-pointer select-none hover:text-primary-600' : ''
+                          } transition-colors duration-200`}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <span className="font-medium">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
+                          {header.column.getCanSort() && (
+                            <div className="flex flex-col opacity-60 group-hover:opacity-100 transition-opacity duration-200">
+                              <ChevronUp 
+                                className={`w-3 h-3 transition-colors duration-200 ${
+                                  header.column.getIsSorted() === 'asc' ? 'text-primary-600' : 'text-gray-400'
+                                }`} 
+                              />
+                              <ChevronDown 
+                                className={`w-3 h-3 -mt-1 transition-colors duration-200 ${
+                                  header.column.getIsSorted() === 'desc' ? 'text-primary-600' : 'text-gray-400'
+                                }`} 
+                              />
+                            </div>
                         )}
                       </div>
-                    </motion.th>
+                      )}
+                    </th>
                   ))}
-
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider w-20">
-                    Actions
-                  </th>
                 </tr>
+              ))}
               </thead>
-
-              {/* Enhanced Table Body */}
-              <tbody className="bg-white divide-y divide-gray-100">
-                {paginatedData.map((item, index) => (
-                  <motion.tr
-                    key={item.id || index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    whileHover={{ backgroundColor: '#f9fafb', scale: 1.005 }}
-                    className={`group transition-all duration-200 ${onRowClick ? 'cursor-pointer' : ''}`}
-                    onClick={() => onRowClick && onRowClick(item)}
-                  >
-                    {onRowSelect && (
-                      <td className="px-6 py-4">
-                        <motion.input
-                          whileHover={{ scale: 1.1 }}
-                          type="checkbox"
-                          checked={selectedRows.includes(item.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              onRowSelect([...selectedRows, item.id]);
-                            } else {
-                              onRowSelect(selectedRows.filter(id => id !== item.id));
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 transition-all duration-200"
-                        />
-                      </td>
-                    )}
-
-                    {columns.map((column) => (
-                      <td key={column.accessor || column.header} className="px-6 py-4 whitespace-nowrap">
-                        {column.render ? column.render(item, index) : (
-                          <div className="flex items-center space-x-2">
-                            {column.icon && <column.icon className="w-4 h-4 text-gray-400" />}
-                            <span className="text-sm text-gray-900 font-medium">
-                              {column.accessor ? item[column.accessor] : ''}
-                            </span>
-                          </div>
-                        )}
-                      </td>
-                    ))}
-
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle view action
-                          }}
-                          className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all duration-200"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </motion.button>
-                        
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle edit action
-                          }}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </motion.button>
-                        
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle delete action
-                          }}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </motion.button>
-                      </div>
+            <tbody className="divide-y divide-gray-100">
+              {table.getRowModel().rows.map((row, index) => (
+                <tr
+                  key={row.id}
+                  className={`group hover:bg-gradient-to-r hover:from-primary-50/30 hover:to-transparent transition-all duration-300 ${
+                    onRowClick ? 'cursor-pointer' : ''
+                  } ${rowClassName} ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
+                  onClick={() => onRowClick && onRowClick(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-6 py-5 whitespace-nowrap">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
-                  </motion.tr>
+                  ))}
+                </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
       </div>
 
-      {/* Premium Pagination */}
-      {totalPages > 1 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="px-6 py-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center text-sm text-gray-700">
-              <span className="flex items-center space-x-2">
-                <TrendingUp className="w-4 h-4 text-primary-500" />
-                <span>
-                  Showing <span className="font-semibold">{Math.min((currentPage - 1) * pageSize + 1, sortedData.length)}</span> to{' '}
-                  <span className="font-semibold">{Math.min(currentPage * pageSize, sortedData.length)}</span> of{' '}
-                  <span className="font-semibold">{sortedData.length}</span> results
-                </span>
+      {/* Empty State */}
+      {table.getRowModel().rows.length === 0 && (
+        <div className="text-center py-16">
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 border border-gray-200 shadow-elegant">
+            {EmptyIcon && (
+              <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-elegant">
+                <EmptyIcon className="w-8 h-8 text-primary-600" />
+              </div>
+            )}
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">No data found</h3>
+            <p className="text-gray-600 max-w-md mx-auto">{emptyMessage}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination && table.getPageCount() > 1 && (
+        <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-200 shadow-elegant p-6">
+          <div className="text-sm text-gray-600 font-medium">
+            Showing <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
+            <span className="text-primary-600 font-semibold">
+              {Math.min(
+                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )}
+            </span>{' '}
+            of <span className="text-primary-600 font-semibold">{table.getFilteredRowModel().rows.length}</span> results
+          </div>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex items-center space-x-2 bg-gray-50 rounded-xl px-4 py-2">
+              <span className="text-sm font-medium text-gray-700">
+                Page <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex + 1}</span> of{' '}
+                <span className="text-primary-600 font-semibold">{table.getPageCount()}</span>
               </span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-            <div className="flex items-center space-x-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Previous</span>
-              </motion.button>
+// Column helper for type safety - re-export from TanStack Table
+export { createColumnHelper };
 
-              {/* Page Numbers */}
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                  let page;
-                  if (totalPages <= 7) {
-                    page = i + 1;
-                  } else {
-                    if (currentPage <= 4) {
-                      page = i + 1;
-                    } else if (currentPage >= totalPages - 3) {
-                      page = totalPages - 6 + i;
-                    } else {
-                      page = currentPage - 3 + i;
-                    }
-                  }
+// Common column types
+export const columnTypes = {
+  // Text column
+  text: (accessorKey, header, options = {}) => ({
+    accessorKey,
+    header,
+    cell: ({ getValue }) => (
+      <span className="text-sm font-medium text-gray-900">{getValue() || '-'}</span>
+    ),
+    ...options,
+  }),
 
+  // Number column
+  number: (accessorKey, header, options = {}) => ({
+    accessorKey,
+    header,
+    cell: ({ getValue }) => (
+      <span className="text-sm font-semibold text-gray-900">{getValue()?.toLocaleString() || '0'}</span>
+    ),
+    ...options,
+  }),
+
+  // Currency column
+  currency: (accessorKey, header, options = {}) => ({
+    accessorKey,
+    header,
+    cell: ({ getValue }) => (
+      <span className="text-sm font-semibold text-primary-600">
+        ₹{getValue()?.toLocaleString() || '0'}
+      </span>
+    ),
+    ...options,
+  }),
+
+  // Status column with colored badges
+  status: (accessorKey, header, statusConfig = {}, options = {}) => ({
+    accessorKey,
+    header,
+    cell: ({ getValue }) => {
+      const value = getValue();
+      const config = statusConfig[value] || {
+        color: 'bg-gray-100 text-gray-700 border border-gray-200',
+        icon: AlertCircle,
+        label: value
+      };
+      const IconComponent = config.icon;
+      
+      return (
+        <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${config.color}`}>
+          <IconComponent className="w-3 h-3 mr-1.5" />
+          {config.label}
+        </span>
+      );
+    },
+    ...options,
+  }),
+
+  // Badge column
+  badge: (accessorKey, header, badgeConfig = {}, options = {}) => ({
+    accessorKey,
+    header,
+    cell: ({ getValue }) => {
+      const value = getValue();
+      const config = badgeConfig[value] || {
+        color: 'bg-gray-100 text-gray-700 border border-gray-200',
+        label: value
+      };
+      
+      return (
+        <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${config.color}`}>
+          {config.label}
+        </span>
+      );
+    },
+    ...options,
+  }),
+
+  // Actions column
+  actions: (actions = [], options = {}) => ({
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row }) => (
+      <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+        {actions.map((action, index) => {
+          const IconComponent = action.icon;
                   return (
-                    <motion.button
-                      key={page}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg transition-all duration-200 ${
-                        currentPage === page
-                          ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow-sm'
-                          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-                      }`}
-                    >
-                      {page}
-                    </motion.button>
+            <Button
+              key={index}
+              variant={action.variant || 'outline'}
+              size="sm"
+              onClick={() => action.onClick(row.original)}
+              disabled={action.disabled?.(row.original)}
+              className={`rounded-xl border-2 transition-all duration-200 ${action.className || ''}`}
+              title={action.title}
+            >
+              <IconComponent className="w-4 h-4" />
+            </Button>
                   );
                 })}
               </div>
+    ),
+    ...options,
+  }),
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <span>Next</span>
-                <ChevronRight className="w-4 h-4" />
-              </motion.button>
+  // Icon column
+  icon: (accessorKey, header, iconConfig = {}, options = {}) => ({
+    accessorKey,
+    header,
+    cell: ({ getValue, row }) => {
+      const value = getValue();
+      const config = iconConfig[value] || iconConfig.default || {
+        icon: AlertCircle,
+        color: 'text-gray-500',
+        bgColor: 'bg-gradient-to-br from-gray-100 to-gray-200'
+      };
+      const IconComponent = config.icon;
+      
+      return (
+        <div className="flex items-center">
+          <div className={`w-10 h-10 ${config.bgColor} rounded-xl flex items-center justify-center mr-4 shadow-elegant`}>
+            <IconComponent className={`w-5 h-5 ${config.color}`} />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-gray-900">
+              {row.original[header.toLowerCase().replace(/\s+/g, '')] || value}
+            </div>
+            <div className="text-xs text-gray-500">
+              {row.original.description || 'No description'}
             </div>
           </div>
-        </motion.div>
-      )}
+        </div>
+      );
+    },
+    ...options,
+  }),
 
-      {/* Performance Indicator */}
-      {premium && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute top-4 right-4 flex items-center space-x-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-2 py-1 rounded-full text-xs font-medium"
-        >
-          <Zap className="w-3 h-3" />
-          <span>Live Data</span>
-        </motion.div>
-      )}
-    </motion.div>
-  );
-}
+  // Date column
+  date: (accessorKey, header, options = {}) => ({
+    accessorKey,
+    header,
+    cell: ({ getValue }) => {
+      const value = getValue();
+      if (!value) return <span className="text-sm text-gray-400">-</span>;
+      
+      const date = new Date(value);
+      return (
+        <div className="text-sm">
+          <div className="font-semibold text-gray-900">{date.toLocaleDateString()}</div>
+          <div className="text-xs text-gray-500">{date.toLocaleTimeString()}</div>
+        </div>
+      );
+    },
+    ...options,
+  }),
+
+  // Progress column
+  progress: (accessorKey, header, options = {}) => ({
+    accessorKey,
+    header,
+    cell: ({ getValue }) => {
+      const value = getValue();
+      const percentage = Math.min(Math.max(value || 0, 0), 100);
+      
+      return (
+        <div className="flex items-center space-x-3">
+          <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div 
+              className={`h-2 rounded-full transition-all duration-500 ${
+                percentage >= 100 ? 'bg-gradient-to-r from-error-500 to-error-600' :
+                percentage >= 80 ? 'bg-gradient-to-r from-warning-500 to-warning-600' : 
+                'bg-gradient-to-r from-success-500 to-success-600'
+              }`}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <span className="text-xs font-semibold text-gray-600 min-w-[3rem] text-right">{Math.round(percentage)}%</span>
+        </div>
+      );
+    },
+    ...options,
+  }),
+};
+
+// Common status configurations
+export const statusConfigs = {
+  // Bed status
+  bedStatus: {
+    Available: {
+      color: 'bg-gradient-to-r from-success-50 to-success-100 text-success-700 border border-success-200',
+      icon: CheckCircle,
+      label: 'Available'
+    },
+    Occupied: {
+      color: 'bg-gradient-to-r from-error-50 to-error-100 text-error-700 border border-error-200',
+      icon: User,
+      label: 'Occupied'
+    },
+    Maintenance: {
+      color: 'bg-gradient-to-r from-warning-50 to-warning-100 text-warning-700 border border-warning-200',
+      icon: AlertCircle,
+      label: 'Maintenance'
+    }
+  },
+
+  // Room status
+  roomStatus: {
+    available: {
+      color: 'bg-gradient-to-r from-success-50 to-success-100 text-success-700 border border-success-200',
+      icon: CheckCircle,
+      label: 'Available'
+    },
+    occupied: {
+      color: 'bg-gradient-to-r from-error-50 to-error-100 text-error-700 border border-error-200',
+      icon: User,
+      label: 'Occupied'
+    },
+    maintenance: {
+      color: 'bg-gradient-to-r from-warning-50 to-warning-100 text-warning-700 border border-warning-200',
+      icon: AlertCircle,
+      label: 'Maintenance'
+    }
+  },
+
+  // Floor status
+  floorStatus: {
+    active: {
+      color: 'bg-gradient-to-r from-success-50 to-success-100 text-success-700 border border-success-200',
+      icon: CheckCircle,
+      label: 'Active'
+    },
+    inactive: {
+      color: 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200',
+      icon: AlertCircle,
+      label: 'Inactive'
+    }
+  }
+};
+
+// Icon configurations
+export const iconConfigs = {
+  // Floor icons
+  floorIcons: {
+    default: {
+      icon: Building,
+      color: 'text-primary-600',
+      bgColor: 'bg-gradient-to-br from-primary-100 to-primary-200'
+    }
+  },
+
+  // Room icons
+  roomIcons: {
+    default: {
+      icon: Home,
+      color: 'text-secondary-600',
+      bgColor: 'bg-gradient-to-br from-secondary-100 to-secondary-200'
+    }
+  },
+
+  // Bed icons
+  bedIcons: {
+    default: {
+      icon: Bed,
+      color: 'text-accent-600',
+      bgColor: 'bg-gradient-to-br from-accent-100 to-accent-200'
+    }
+  }
+};
+
+export default DataTable;

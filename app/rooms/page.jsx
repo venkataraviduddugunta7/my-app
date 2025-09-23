@@ -22,6 +22,9 @@ import {
   Modal,
   ModalFooter
 } from '@/components/ui';
+import { FloorTable } from '@/components/tables/FloorTable';
+import { RoomTable } from '@/components/tables/RoomTable';
+import { BedTable } from '@/components/tables/BedTable';
 import {
   Building,
   Plus,
@@ -185,7 +188,7 @@ function FloorFormModal({ isOpen, onClose, floor = null, onSubmit, loading = fal
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={floor ? 'Edit Floor' : 'Add New Floor'}>
       <div className="max-h-[80vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Floor Name"
           value={formData.name}
@@ -223,7 +226,7 @@ function FloorFormModal({ isOpen, onClose, floor = null, onSubmit, loading = fal
             {loading ? 'Processing...' : (floor ? 'Update Floor' : 'Add Floor')}
           </Button>
         </ModalFooter>
-        </form>
+      </form>
       </div>
     </Modal>
   );
@@ -374,7 +377,7 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={room ? 'Edit Room' : 'Add New Room'} size="lg">
       <div className="max-h-[80vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Room Number"
@@ -518,7 +521,7 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
             {loading ? 'Processing...' : (room ? 'Update Room' : 'Create Room')}
           </Button>
         </ModalFooter>
-        </form>
+      </form>
       </div>
     </Modal>
   );
@@ -621,7 +624,7 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={bed ? 'Edit Bed' : 'Add New Bed'} size="lg">
       <div className="max-h-[80vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Bed Number/ID"
@@ -732,675 +735,23 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
             {loading ? 'Processing...' : (bed ? 'Update Bed' : 'Create Bed')}
           </Button>
         </ModalFooter>
-        </form>
+      </form>
       </div>
     </Modal>
   );
 }
 
-// Floor Card Component
-function FloorCard({ floor, onEdit, onDelete, onClick }) {
-  const { rooms } = useSelector((state) => state.rooms);
-  const roomsInFloor = rooms.filter(room => room.floorId === floor.id);
+// Floor Card Component - now handled by FloorTable component
 
-  return (
-    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onClick && onClick(floor.id)}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Building className="w-5 h-5 text-blue-600" />
-            <span>{floor.floorName}</span>
-          </CardTitle>
-          <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-            <Button variant="outline" size="sm" onClick={() => onEdit(floor)}>
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              onClick={() => onDelete(floor.id)}
-              disabled={roomsInFloor.length > 0}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <p className="text-sm text-gray-600">Floor Number: {floor.floorNumber}</p>
-          <p className="text-sm text-gray-600 flex items-center">
-            Rooms: {roomsInFloor.length}
-            {roomsInFloor.length > 0 && (
-              <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
-                Click to view rooms
-              </span>
-            )}
-          </p>
-          {floor.description && (
-            <p className="text-sm text-gray-500">{floor.description}</p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+// Floor Table Component - now handled by FloorTable component
 
-// Floor Table Component
-function FloorTable({ floors, onEdit, onDelete, onClick }) {
-  const { rooms } = useSelector((state) => state.rooms);
+// Room Table Component - now handled by RoomTable component
 
-  const getRoomCount = (floorId) => {
-    return rooms.filter(room => room.floorId === floorId).length;
-  };
+// Room Card Component - now handled by RoomTable component
 
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Floor Details
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Floor Number
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Rooms Count
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Description
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {floors.map((floor) => {
-            const roomCount = getRoomCount(floor.id);
-            return (
-              <tr key={floor.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onClick && onClick(floor.id)}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                      <Building className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {floor.floorName || floor.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Floor {floor.floorNumber}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {floor.floorNumber}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="text-sm text-gray-900">{roomCount} rooms</div>
-                    {roomCount > 0 && (
-                      <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
-                        Click to view
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {roomCount === 0 ? 'No rooms' : `${roomCount} room${roomCount !== 1 ? 's' : ''}`}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900 max-w-xs truncate">
-                    {floor.description || 'No description'}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(floor)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onDelete(floor.id)}
-                      disabled={roomCount > 0}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      
-      {floors.length === 0 && (
-        <div className="text-center py-12">
-          <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No floors found</h3>
-          <p className="text-gray-500">Add floors to start organizing your PG structure.</p>
-        </div>
-      )}
-    </div>
-  );
-}
+// Bed Card Component - now handled by BedTable component
 
-// Room Table Component
-function RoomTable({ rooms, onEdit, onDelete, onClick }) {
-  const { floors } = useSelector((state) => state.floors);
-  const { beds } = useSelector((state) => state.beds);
-
-  const getFloorName = (floorId) => {
-    console.log('🔧 Looking for floor with ID:', floorId);
-    console.log('🔧 Available floors:', floors);
-    
-    const floor = floors.find(f => f.id === floorId);
-    console.log('🔧 Found floor:', floor);
-    
-    if (floor) {
-      console.log('🔧 Floor properties:', Object.keys(floor));
-      console.log('🔧 Floor name options:', {
-        floorName: floor.floorName,
-        name: floor.name,
-        floorNumber: floor.floorNumber
-      });
-    }
-    
-    return floor?.floorName || floor?.name || `Floor ${floor?.floorNumber}` || 'Unknown';
-  };
-
-  const getRoomBedInfo = (roomId) => {
-    const roomBeds = beds.filter(bed => bed.roomId === roomId);
-    const occupiedBeds = roomBeds.filter(bed => bed.status === 'Occupied');
-    return { total: roomBeds.length, occupied: occupiedBeds.length };
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      available: 'text-green-600 bg-green-50',
-      occupied: 'text-red-600 bg-red-50',
-      maintenance: 'text-yellow-600 bg-yellow-50'
-    };
-    return colors[status] || 'text-gray-600 bg-gray-50';
-  };
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Room Details
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Floor
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type & Capacity
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Bed Occupancy
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Amenities
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {rooms.map((room) => {
-            const bedInfo = getRoomBedInfo(room.id);
-            const occupancyRate = bedInfo.total > 0 ? (bedInfo.occupied / bedInfo.total) * 100 : 0;
-            const availableSlots = room.capacity - bedInfo.total;
-            
-            return (
-              <tr key={room.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onClick && onClick(room.id)}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                      <Home className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        Room {room.roomNumber}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {room.name || 'No name set'}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-900">
-                    {getFloorName(room.floorId)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{room.type}</div>
-                  <div className="text-sm text-gray-500">Max: {room.capacity} beds</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-3">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {bedInfo.total}/{room.capacity} beds created
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {bedInfo.occupied} occupied, {bedInfo.total - bedInfo.occupied} vacant
-                      </div>
-                      {availableSlots > 0 && (
-                        <div className="text-xs text-green-600 font-medium">
-                          {availableSlots} slots available
-                        </div>
-                      )}
-                    </div>
-                    {bedInfo.total > 0 && (
-                      <div className="flex items-center">
-                        <div className="w-12 h-2 bg-gray-200 rounded-full mr-2">
-                          <div 
-                            className="h-2 bg-blue-600 rounded-full" 
-                            style={{ width: `${occupancyRate}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs text-gray-500">{Math.round(occupancyRate)}%</span>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {room.amenities?.slice(0, 3).map((amenity, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                      >
-                        {amenity}
-                      </span>
-                    ))}
-                    {room.amenities?.length > 3 && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        +{room.amenities.length - 3} more
-                      </span>
-                    )}
-                    {!room.amenities?.length && (
-                      <span className="text-xs text-gray-400 italic">No amenities listed</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(room)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onDelete(room.id)}
-                      disabled={bedInfo.total > 0}
-                      className="text-red-600 hover:text-red-900"
-                      title={bedInfo.total > 0 ? 'Cannot delete room with beds' : 'Delete room'}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      
-      {rooms.length === 0 && (
-        <div className="text-center py-12">
-          <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No rooms found</h3>
-          <p className="text-gray-500">Add rooms to your floors to start managing accommodations.</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Room Card Component
-function RoomCard({ room, onEdit, onDelete, onClick }) {
-  const { floors } = useSelector((state) => state.floors);
-  const { beds } = useSelector((state) => state.beds);
-  const floor = floors.find(f => f.id === room.floorId);
-  const roomBeds = beds.filter(bed => bed.roomId === room.id);
-  const occupiedBeds = roomBeds.filter(bed => bed.status === 'Occupied');
-
-  const statusColors = {
-    available: 'text-green-600 bg-green-50',
-    occupied: 'text-red-600 bg-red-50',
-    maintenance: 'text-yellow-600 bg-yellow-50'
-  };
-
-  return (
-    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => onClick && onClick(room.id)}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Home className="w-5 h-5 text-blue-600" />
-            <span>{room.roomNumber} - {room.name}</span>
-          </CardTitle>
-          <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-            <Button variant="outline" size="sm" onClick={() => onEdit(room)}>
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              onClick={() => onDelete(room.id)}
-              disabled={roomBeds.length > 0}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Floor:</span>
-            <span className="text-sm font-medium">{floor?.floorName || 'Unknown'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Type:</span>
-            <span className="text-sm font-medium">{room.type}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Beds:</span>
-            <div className="flex items-center">
-              <span className="text-sm font-medium">{occupiedBeds.length}/{roomBeds.length} occupied</span>
-              {roomBeds.length > 0 && (
-                <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
-                  Click to view beds
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Rent:</span>
-            <span className="text-sm font-medium">₹{room.rent}/month</span>
-          </div>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {room.amenities?.slice(0, 3).map((amenity, index) => (
-              <span key={index} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">
-                {amenity}
-              </span>
-            ))}
-            {room.amenities?.length > 3 && (
-              <span className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded">
-                +{room.amenities.length - 3} more
-              </span>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Bed Card Component
-function BedCard({ bed, onEdit, onDelete }) {
-  const { rooms } = useSelector((state) => state.rooms);
-  const { floors } = useSelector((state) => state.floors);
-  
-  const room = rooms.find(r => r.id === bed.roomId);
-  const floor = floors.find(f => f.id === room?.floorId);
-
-  const statusColors = {
-    Available: 'text-green-600 bg-green-50',
-    Occupied: 'text-red-600 bg-red-50',
-    Maintenance: 'text-yellow-600 bg-yellow-50'
-  };
-
-  const StatusIcon = bed.status === 'Available' ? CheckCircle : 
-                    bed.status === 'Occupied' ? User : AlertCircle;
-
-  return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Bed className="w-5 h-5 text-blue-600" />
-            <span>{bed.bedNumber}</span>
-          </CardTitle>
-          <div className="flex items-center space-x-2">
-            <div className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${statusColors[bed.status]}`}>
-              <StatusIcon className="w-3 h-3" />
-              <span>{bed.status}</span>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => onEdit(bed)}>
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              onClick={() => onDelete(bed.id)}
-              disabled={bed.status === 'Occupied'}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Room:</span>
-            <span className="text-sm font-medium">{room?.roomNumber || 'Unknown'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Floor:</span>
-            <span className="text-sm font-medium">{floor?.name || floor?.floorName || `Floor ${floor?.floorNumber}` || 'Unknown Floor'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Type:</span>
-            <span className="text-sm font-medium">{bed.bedType}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Rent:</span>
-            <span className="text-sm font-medium">₹{bed.rent}/month</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Bed Table Component
-function BedTable({ beds, onEdit, onDelete }) {
-  const { rooms } = useSelector((state) => state.rooms);
-  const { floors } = useSelector((state) => state.floors);
-
-  const getRoomInfo = (roomId) => {
-    return rooms.find(r => r.id === roomId);
-  };
-
-  const getFloorInfo = (floorId) => {
-    return floors.find(f => f.id === floorId);
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      Available: 'bg-green-100 text-green-800',
-      Occupied: 'bg-red-100 text-red-800',
-      Maintenance: 'bg-yellow-100 text-yellow-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const StatusIcon = ({ status }) => {
-    const icons = {
-      Available: CheckCircle,
-      Occupied: User,
-      Maintenance: AlertCircle
-    };
-    const IconComponent = icons[status] || AlertCircle;
-    return <IconComponent className="w-4 h-4" />;
-  };
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Bed Details
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Room & Floor
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type & Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Rent & Deposit
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Tenant
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {beds.map((bed) => {
-            const room = getRoomInfo(bed.roomId);
-            const floor = getFloorInfo(room?.floorId);
-            
-            return (
-              <tr key={bed.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                      <Bed className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        Bed {bed.bedNumber}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {bed.description || 'Standard bed'}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    Room {room?.roomNumber || 'Unknown'}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {floor?.name || floor?.floorName || `Floor ${floor?.floorNumber}` || 'Unknown Floor'}
-                  </div>
-                  {room?.amenities && room.amenities.length > 0 && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      {room.amenities.slice(0, 2).join(', ')}
-                      {room.amenities.length > 2 && ` +${room.amenities.length - 2} more`}
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900 mb-1">{bed.bedType} Bed</div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(bed.status)}`}>
-                    <StatusIcon status={bed.status} />
-                    <span className="ml-1">{bed.status}</span>
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    ₹{bed.rent?.toLocaleString() || '0'}/month
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    ₹{bed.deposit?.toLocaleString() || '0'} deposit
-                  </div>
-                  {bed.status === 'Available' && (
-                    <div className="text-xs text-green-600 font-medium mt-1">
-                      Available for rent
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {bed.tenant ? (
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {bed.tenant.fullName || bed.tenant.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {bed.tenant.phone || 'No phone'}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-400 italic">
-                      {bed.status === 'Available' ? 'No tenant' : 'Vacant'}
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(bed)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onDelete(bed.id)}
-                      disabled={bed.status === 'Occupied'}
-                      className="text-red-600 hover:text-red-900"
-                      title={bed.status === 'Occupied' ? 'Cannot delete occupied bed' : 'Delete bed'}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      
-      {beds.length === 0 && (
-        <div className="text-center py-12">
-          <Bed className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No beds found</h3>
-          <p className="text-gray-500 mb-4">
-            Add beds to your rooms to manage individual tenant assignments.
-          </p>
-          <Button onClick={() => setShowBedModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Bed
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
+// Bed Table Component - now handled by BedTable component
 
 // Tenant Form Modal
 function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBeds = [] }) {
@@ -2162,39 +1513,39 @@ export default function RoomsPage() {
 
     try {
       setFloorLoading(true);
-      
-      if (editingFloor) {
+
+    if (editingFloor) {
         await dispatch(updateFloor({ id: editingFloor.id, ...floorData })).unwrap();
-        dispatch(addToast({
-          title: 'Floor Updated',
-          description: 'Floor has been updated successfully.',
-          variant: 'success'
-        }));
-      } else {
-        const floorDataWithProperty = {
+      dispatch(addToast({
+        title: 'Floor Updated',
+        description: 'Floor has been updated successfully.',
+        variant: 'success'
+      }));
+    } else {
+      const floorDataWithProperty = {
           name: floorData.name.trim(),
           floorNumber: parseInt(floorData.floorNumber),
           description: floorData.description?.trim() || '',
-          propertyId: selectedProperty.id
-        };
-        
+        propertyId: selectedProperty.id
+      };
+      
         await dispatch(createFloor(floorDataWithProperty)).unwrap();
-        dispatch(addToast({
-          title: 'Floor Added',
-          description: 'New floor has been added successfully.',
-          variant: 'success'
-        }));
+          dispatch(addToast({
+            title: 'Floor Added',
+            description: 'New floor has been added successfully.',
+            variant: 'success'
+          }));
       }
 
       setEditingFloor(null);
-      setShowFloorModal(false);
+          setShowFloorModal(false);
     } catch (error) {
       console.error('Error with floor operation:', error);
-      dispatch(addToast({
+          dispatch(addToast({
         title: 'Error',
         description: error || 'Failed to process floor operation',
-        variant: 'error'
-      }));
+            variant: 'error'
+          }));
     } finally {
       setFloorLoading(false);
     }
@@ -2361,20 +1712,20 @@ export default function RoomsPage() {
     try {
       setRoomLoading(true);
       
-      if (editingRoom) {
+    if (editingRoom) {
         await dispatch(updateRoom({ id: editingRoom.id, ...roomData })).unwrap();
-        dispatch(addToast({
-          title: 'Room Updated',
-          description: 'Room has been updated successfully.',
-          variant: 'success'
-        }));
-      } else {
+      dispatch(addToast({
+        title: 'Room Updated',
+        description: 'Room has been updated successfully.',
+        variant: 'success'
+      }));
+    } else {
         await dispatch(createRoom(roomData)).unwrap();
-        dispatch(addToast({
-          title: 'Room Added',
-          description: 'New room has been added successfully.',
-          variant: 'success'
-        }));
+      dispatch(addToast({
+        title: 'Room Added',
+        description: 'New room has been added successfully.',
+        variant: 'success'
+      }));
       }
 
       setEditingRoom(null);
@@ -2467,20 +1818,20 @@ export default function RoomsPage() {
     try {
       setBedLoading(true);
       
-      if (editingBed) {
+    if (editingBed) {
         await dispatch(updateBed({ id: editingBed.id, ...bedData })).unwrap();
-        dispatch(addToast({
-          title: 'Bed Updated',
-          description: 'Bed has been updated successfully.',
-          variant: 'success'
-        }));
-      } else {
+      dispatch(addToast({
+        title: 'Bed Updated',
+        description: 'Bed has been updated successfully.',
+        variant: 'success'
+      }));
+    } else {
         await dispatch(addBed(bedData)).unwrap();
-        dispatch(addToast({
-          title: 'Bed Added',
-          description: 'New bed has been added successfully.',
-          variant: 'success'
-        }));
+      dispatch(addToast({
+        title: 'Bed Added',
+        description: 'New bed has been added successfully.',
+        variant: 'success'
+      }));
       }
 
       setEditingBed(null);
@@ -2578,11 +1929,11 @@ export default function RoomsPage() {
           <div className="flex items-center space-x-3">
             {selectedProperty ? (
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
-                  <Building className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">
-                    {selectedProperty.name}
-                  </span>
+              <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
+                <Building className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-800">
+                  {selectedProperty.name}
+                </span>
                 </div>
                 <CapacityIndicator 
                   property={{
@@ -2706,32 +2057,35 @@ export default function RoomsPage() {
                 </div>
                 
                 {floors.length > 0 && filteredFloors.length > 0 && (
-                  <div>
-                    {floorViewMode === 'table' ? (
+                  floorViewMode === 'table' ? (
                       <Card>
                         <CardContent className="p-0">
                           <FloorTable
-                            floors={filteredFloors}
+                          floors={filteredFloors.map(floor => ({
+                            ...floor,
+                            roomCount: rooms.filter(room => room.floorId === floor.id).length
+                          }))}
                             onEdit={handleEditFloor}
                             onDelete={handleDeleteFloor}
                             onClick={handleFloorClick}
+                          viewMode={floorViewMode}
+                          loading={floorLoading}
                           />
                         </CardContent>
                       </Card>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredFloors.map((floor) => (
-                          <FloorCard
-                            key={floor.id}
-                            floor={floor}
+                    <FloorTable
+                      floors={filteredFloors.map(floor => ({
+                        ...floor,
+                        roomCount: rooms.filter(room => room.floorId === floor.id).length
+                      }))}
                             onEdit={handleEditFloor}
                             onDelete={handleDeleteFloor}
                             onClick={handleFloorClick}
+                      viewMode={floorViewMode}
+                      loading={floorLoading}
                           />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  )
                 )}
 
                 {floors.length === 0 && (
@@ -2845,32 +2199,37 @@ export default function RoomsPage() {
                 )}
                 
                 {floors.length > 0 && rooms.length > 0 && filteredRooms.length > 0 && (
-                  <div>
-                    {roomViewMode === 'table' ? (
+                  roomViewMode === 'table' ? (
                       <Card>
                         <CardContent className="p-0">
                           <RoomTable
-                            rooms={filteredRooms}
+                          rooms={filteredRooms.map(room => ({
+                            ...room,
+                            beds: beds.filter(bed => bed.roomId === room.id)
+                          }))}
                             onEdit={handleEditRoom}
                             onDelete={handleDeleteRoom}
                             onClick={handleRoomClick}
+                          viewMode={roomViewMode}
+                          floors={floors}
+                          loading={roomLoading}
                           />
                         </CardContent>
                       </Card>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredRooms.map((room) => (
-                          <RoomCard
-                            key={room.id}
-                            room={room}
+                    <RoomTable
+                      rooms={filteredRooms.map(room => ({
+                        ...room,
+                        beds: beds.filter(bed => bed.roomId === room.id)
+                      }))}
                             onEdit={handleEditRoom}
                             onDelete={handleDeleteRoom}
                             onClick={handleRoomClick}
+                      viewMode={roomViewMode}
+                      floors={floors}
+                      loading={roomLoading}
                           />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  )
                 )}
 
                 {rooms.length === 0 && floors.length > 0 && (
@@ -2997,30 +2356,31 @@ export default function RoomsPage() {
                 )}
                 
                 {rooms.length > 0 && beds.length > 0 && filteredBeds.length > 0 && (
-                  <div>
-                    {bedViewMode === 'table' ? (
+                  bedViewMode === 'table' ? (
                       <Card>
                         <CardContent className="p-0">
                           <BedTable
                             beds={filteredBeds}
                             onEdit={handleEditBed}
                             onDelete={handleDeleteBed}
+                          viewMode={bedViewMode}
+                          rooms={rooms}
+                          floors={floors}
+                          loading={bedLoading}
                           />
                         </CardContent>
                       </Card>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredBeds.map((bed) => (
-                          <BedCard
-                            key={bed.id}
-                            bed={bed}
+                    <BedTable
+                      beds={filteredBeds}
                             onEdit={handleEditBed}
                             onDelete={handleDeleteBed}
+                      viewMode={bedViewMode}
+                      rooms={rooms}
+                      floors={floors}
+                      loading={bedLoading}
                           />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  )
                 )}
 
                 {beds.length === 0 && rooms.length > 0 && (
