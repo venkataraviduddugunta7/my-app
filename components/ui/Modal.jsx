@@ -90,15 +90,15 @@ const Modal = forwardRef(({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center mt-[-24px] mb-[-24px]">
           {/* Overlay fills the entire viewport, unaffected by padding */}
-          <motion.div
+          <motion.divs
             variants={overlayVariants}
             initial="hidden"
             animate="visible"
             exit="hidden"
             onClick={closeOnOverlayClick ? onClose : undefined}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm mt-[-24px] mb-[-24px]"
           />
 
           {/* Modal */}
@@ -112,14 +112,13 @@ const Modal = forwardRef(({
             className={cn(
               'relative w-full bg-white rounded-2xl shadow-luxury border border-gray-200 overflow-hidden',
               sizeClasses[size],
-              'm-4',
               className
             )}
             {...props}
           >
             {/* Header */}
             {(title || description || showCloseButton) && (
-              <div className="relative px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+              <div className="relative px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white m-0">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     {title && (
@@ -162,7 +161,7 @@ const Modal = forwardRef(({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="relative p-6"
+              className="relative p-6 m-0"
             >
               {children}
             </motion.div>
