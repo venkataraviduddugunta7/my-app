@@ -8,6 +8,8 @@ import { fetchProperties, createProperty } from '@/store/slices/propertySlice';
 import propertyService from '@/services/propertyService';
 import { createRoom, updateRoom, deleteRoom, fetchRooms } from '@/store/slices/roomsSlice';
 import { addBed, updateBed, deleteBed, fetchBeds, assignTenantToBed, vacateBed } from '@/store/slices/bedsSlice';
+import { validateCapacity, getCapacitySummary } from '@/utils/capacityValidation';
+import { CapacityIndicator } from '@/components/ui/CapacityIndicator';
 
 import { 
   Card, 
@@ -142,12 +144,18 @@ function PropertyFormModal({ isOpen, onClose, onSubmit }) {
 }
 
 // Floor Form Modal
-function FloorFormModal({ isOpen, onClose, floor = null, onSubmit }) {
+function FloorFormModal({ isOpen, onClose, floor = null, onSubmit, loading = false }) {
   const [formData, setFormData] = useState({
     name: '',
     floorNumber: 0,
     description: ''
   });
+
+  // Real-time validation
+  const isFormValid = formData.name && formData.name.trim() && 
+                     formData.floorNumber !== undefined && 
+                     formData.floorNumber !== null && 
+                     formData.floorNumber !== '';
 
   // Update form data when floor prop changes (for editing)
   useEffect(() => {
@@ -176,7 +184,8 @@ function FloorFormModal({ isOpen, onClose, floor = null, onSubmit }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={floor ? 'Edit Floor' : 'Add New Floor'}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Floor Name"
           value={formData.name}
@@ -187,8 +196,12 @@ function FloorFormModal({ isOpen, onClose, floor = null, onSubmit }) {
         <Input
           label="Floor Number"
           type="number"
-          value={formData.floorNumber}
-          onChange={(e) => setFormData(prev => ({ ...prev, floorNumber: parseInt(e.target.value) }))}
+          value={formData.floorNumber || ''}
+          onChange={(e) => {
+            const value = e.target.value;
+            const numValue = value === '' ? 0 : parseInt(value);
+            setFormData(prev => ({ ...prev, floorNumber: isNaN(numValue) ? 0 : numValue }));
+          }}
           placeholder="0, 1, 2..."
           required
         />
@@ -206,17 +219,18 @@ function FloorFormModal({ isOpen, onClose, floor = null, onSubmit }) {
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">
-            {floor ? 'Update Floor' : 'Add Floor'}
+          <Button type="submit" disabled={loading || !isFormValid}>
+            {loading ? 'Processing...' : (floor ? 'Update Floor' : 'Add Floor')}
           </Button>
         </ModalFooter>
-      </form>
+        </form>
+      </div>
     </Modal>
   );
 }
 
 // Room Form Modal
-function RoomFormModal({ isOpen, onClose, room = null, onSubmit }) {
+function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false }) {
   const dispatch = useDispatch();
   const { floors } = useSelector((state) => state.floors);
   const { selectedProperty } = useSelector((state) => state.property);
@@ -230,6 +244,13 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit }) {
     amenities: [],
     description: ''
   });
+
+  // Real-time validation
+  const isFormValid = formData.roomNumber && formData.roomNumber.trim() && 
+                     formData.floorId && 
+                     formData.capacity && 
+                     formData.capacity >= 1 && 
+                     formData.capacity <= 12;
 
   // Update form data when room prop changes (for editing)
   useEffect(() => {
@@ -326,7 +347,8 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit }) {
     e.preventDefault();
     
     // Validation
-    if (parseInt(formData.capacity) < 1 || parseInt(formData.capacity) > 12) {
+    const capacity = parseInt(formData.capacity);
+    if (isNaN(capacity) || capacity < 1 || capacity > 12) {
       alert('Room capacity must be between 1 and 12 beds');
       return;
     }
@@ -334,7 +356,7 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit }) {
     onSubmit({
       ...formData,
       floorId: formData.floorId,
-      capacity: parseInt(formData.capacity)
+      capacity: capacity
     });
     
     setFormData({
@@ -351,7 +373,8 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={room ? 'Edit Room' : 'Add New Room'} size="lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Room Number"
@@ -418,8 +441,12 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit }) {
             type="number"
             min="1"
             max="12"
-            value={formData.capacity}
-            onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
+            value={formData.capacity || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              const numValue = value === '' ? 1 : parseInt(value);
+              setFormData(prev => ({ ...prev, capacity: isNaN(numValue) ? 1 : numValue }));
+            }}
             placeholder="Maximum number of beds this room can have"
             required
             helpText={`Current type: ${formData.type} (recommended: ${
@@ -487,17 +514,18 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit }) {
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">
-            {room ? 'Update Room' : 'Create Room'}
+          <Button type="submit" disabled={loading || !isFormValid}>
+            {loading ? 'Processing...' : (room ? 'Update Room' : 'Create Room')}
           </Button>
         </ModalFooter>
-      </form>
+        </form>
+      </div>
     </Modal>
   );
 }
 
 // Bed Form Modal
-function BedFormModal({ isOpen, onClose, bed = null, onSubmit }) {
+function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }) {
   const { rooms } = useSelector((state) => state.rooms);
   const { floors } = useSelector((state) => state.floors);
   const { beds } = useSelector((state) => state.beds);
@@ -510,6 +538,14 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit }) {
     deposit: 10000,
     description: ''
   });
+
+  // Real-time validation
+  const isFormValid = formData.bedNumber && formData.bedNumber.trim() && 
+                     formData.roomId && 
+                     formData.rent && 
+                     formData.rent >= 1000 && 
+                     formData.deposit !== undefined && 
+                     formData.deposit >= 0;
 
   // Update form data when bed prop changes (for editing)
   useEffect(() => {
@@ -584,7 +620,8 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={bed ? 'Edit Bed' : 'Add New Bed'} size="lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Bed Number/ID"
@@ -633,8 +670,12 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit }) {
             label="Monthly Rent (₹)"
             type="number"
             min="1000"
-            value={formData.rent}
-            onChange={(e) => setFormData(prev => ({ ...prev, rent: e.target.value }))}
+            value={formData.rent || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              const numValue = value === '' ? 0 : parseFloat(value);
+              setFormData(prev => ({ ...prev, rent: isNaN(numValue) ? 0 : numValue }));
+            }}
             placeholder="e.g., 5000, 7500"
             required
             helpText="Amount tenant pays per month for this bed"
@@ -643,8 +684,12 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit }) {
             label="Security Deposit (₹)"
             type="number"
             min="0"
-            value={formData.deposit}
-            onChange={(e) => setFormData(prev => ({ ...prev, deposit: e.target.value }))}
+            value={formData.deposit || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              const numValue = value === '' ? 0 : parseFloat(value);
+              setFormData(prev => ({ ...prev, deposit: isNaN(numValue) ? 0 : numValue }));
+            }}
             placeholder="e.g., 10000, 15000"
             required
             helpText="One-time refundable deposit"
@@ -683,11 +728,12 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit }) {
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">
-            {bed ? 'Update Bed' : 'Create Bed'}
+          <Button type="submit" disabled={loading || !isFormValid}>
+            {loading ? 'Processing...' : (bed ? 'Update Bed' : 'Create Bed')}
           </Button>
         </ModalFooter>
-      </form>
+        </form>
+      </div>
     </Modal>
   );
 }
@@ -1651,8 +1697,12 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                 label="Monthly Income (₹)"
                 type="number"
                 min="0"
-                value={formData.monthlyIncome}
-                onChange={(e) => setFormData(prev => ({ ...prev, monthlyIncome: e.target.value }))}
+                value={formData.monthlyIncome || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : parseFloat(value);
+                  setFormData(prev => ({ ...prev, monthlyIncome: isNaN(numValue) ? 0 : numValue }));
+                }}
                 placeholder="Enter monthly income"
               />
             </div>
@@ -1743,8 +1793,12 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                     label="Security Deposit (₹) *"
                     type="number"
                     min="0"
-                    value={formData.securityDeposit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, securityDeposit: e.target.value }))}
+                    value={formData.securityDeposit || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const numValue = value === '' ? 0 : parseFloat(value);
+                      setFormData(prev => ({ ...prev, securityDeposit: isNaN(numValue) ? 0 : numValue }));
+                    }}
                     placeholder="Security deposit amount"
                     helpText={`Suggested: ₹${selectedBed.rent * 2} (2 months rent)`}
                     required
@@ -1753,8 +1807,12 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                     label="Advance Rent (₹) *"
                     type="number"
                     min="0"
-                    value={formData.advanceRent}
-                    onChange={(e) => setFormData(prev => ({ ...prev, advanceRent: e.target.value }))}
+                    value={formData.advanceRent || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const numValue = value === '' ? 0 : parseFloat(value);
+                      setFormData(prev => ({ ...prev, advanceRent: isNaN(numValue) ? 0 : numValue }));
+                    }}
                     placeholder="Advance rent paid"
                     helpText={`Suggested: ₹${selectedBed.rent} (1 month rent)`}
                     required
@@ -1936,6 +1994,11 @@ export default function RoomsPage() {
   const [editingRoom, setEditingRoom] = useState(null);
   const [editingBed, setEditingBed] = useState(null);
   
+  // Loading states
+  const [floorLoading, setFloorLoading] = useState(false);
+  const [roomLoading, setRoomLoading] = useState(false);
+  const [bedLoading, setBedLoading] = useState(false);
+  
   // View modes for each tab
   const [floorViewMode, setFloorViewMode] = useState('table');
   const [roomViewMode, setRoomViewMode] = useState('table');
@@ -2048,7 +2111,7 @@ export default function RoomsPage() {
     setShowFloorModal(true);
   };
 
-  const handleFloorSubmit = (floorData) => {
+  const handleFloorSubmit = async (floorData) => {
     // Check if user has a property selected
     if (!selectedProperty?.id) {
       dispatch(addToast({
@@ -2056,46 +2119,84 @@ export default function RoomsPage() {
         description: 'Please create a property first before adding floors.',
         variant: 'error'
       }));
-      setShowPropertyModal(true); // Show property creation modal
+      setShowPropertyModal(true);
       return;
     }
 
-    if (editingFloor) {
-      dispatch(updateFloor({ id: editingFloor.id, ...floorData }));
+    // Validate required fields (this should not happen due to button disabled state, but keeping as safety)
+    if (!floorData.name || !floorData.name.trim()) {
       dispatch(addToast({
-        title: 'Floor Updated',
-        description: 'Floor has been updated successfully.',
-        variant: 'success'
+        title: 'Validation Error',
+        description: 'Floor name is required.',
+        variant: 'error'
       }));
-    } else {
-      // Add propertyId to floor data and ensure field names match backend
-      const floorDataWithProperty = {
-        name: floorData.name, // Use 'name' instead of 'floorName'
-        floorNumber: floorData.floorNumber,
-        description: floorData.description,
-        propertyId: selectedProperty.id
+      return;
+    }
+
+    if (floorData.floorNumber === undefined || floorData.floorNumber === null || floorData.floorNumber === '') {
+      dispatch(addToast({
+        title: 'Validation Error',
+        description: 'Floor number is required.',
+        variant: 'error'
+      }));
+      return;
+    }
+
+    // Validate capacity for new floor
+    if (!editingFloor) {
+      const propertyWithCurrentData = {
+        ...selectedProperty,
+        floors: floors
       };
       
-      console.log('🏢 Creating floor with data:', floorDataWithProperty);
+      const capacityValidation = validateCapacity(propertyWithCurrentData, floorData, 'floor');
+      if (!capacityValidation.isValid) {
+        dispatch(addToast({
+          title: 'Capacity Limit Reached',
+          description: capacityValidation.errors.join(', '),
+          variant: 'error'
+        }));
+        return;
+      }
+    }
+
+    try {
+      setFloorLoading(true);
       
-      dispatch(createFloor(floorDataWithProperty))
-        .unwrap()
-        .then(() => {
-          dispatch(addToast({
-            title: 'Floor Added',
-            description: 'New floor has been added successfully.',
-            variant: 'success'
-          }));
-          setShowFloorModal(false);
-        })
-        .catch((error) => {
-          console.error('❌ Floor creation failed:', error);
-          dispatch(addToast({
-            title: 'Floor Creation Failed',
-            description: error || 'Failed to create floor. Please try again.',
-            variant: 'error'
-          }));
-        });
+      if (editingFloor) {
+        await dispatch(updateFloor({ id: editingFloor.id, ...floorData })).unwrap();
+        dispatch(addToast({
+          title: 'Floor Updated',
+          description: 'Floor has been updated successfully.',
+          variant: 'success'
+        }));
+      } else {
+        const floorDataWithProperty = {
+          name: floorData.name.trim(),
+          floorNumber: parseInt(floorData.floorNumber),
+          description: floorData.description?.trim() || '',
+          propertyId: selectedProperty.id
+        };
+        
+        await dispatch(createFloor(floorDataWithProperty)).unwrap();
+        dispatch(addToast({
+          title: 'Floor Added',
+          description: 'New floor has been added successfully.',
+          variant: 'success'
+        }));
+      }
+
+      setEditingFloor(null);
+      setShowFloorModal(false);
+    } catch (error) {
+      console.error('Error with floor operation:', error);
+      dispatch(addToast({
+        title: 'Error',
+        description: error || 'Failed to process floor operation',
+        variant: 'error'
+      }));
+    } finally {
+      setFloorLoading(false);
     }
   };
 
@@ -2207,21 +2308,86 @@ export default function RoomsPage() {
     setShowRoomModal(true);
   };
 
-  const handleRoomSubmit = (roomData) => {
-    if (editingRoom) {
-      dispatch(updateRoom({ id: editingRoom.id, ...roomData }));
+  const handleRoomSubmit = async (roomData) => {
+    // Validate required fields (this should not happen due to button disabled state, but keeping as safety)
+    if (!roomData.roomNumber || !roomData.roomNumber.trim()) {
       dispatch(addToast({
-        title: 'Room Updated',
-        description: 'Room has been updated successfully.',
-        variant: 'success'
+        title: 'Validation Error',
+        description: 'Room number is required.',
+        variant: 'error'
       }));
-    } else {
-      dispatch(createRoom(roomData));
+      return;
+    }
+
+    if (!roomData.floorId) {
       dispatch(addToast({
-        title: 'Room Added',
-        description: 'New room has been added successfully.',
-        variant: 'success'
+        title: 'Validation Error',
+        description: 'Please select a floor for this room.',
+        variant: 'error'
       }));
+      return;
+    }
+
+    if (!roomData.capacity || roomData.capacity < 1 || roomData.capacity > 12) {
+      dispatch(addToast({
+        title: 'Validation Error',
+        description: 'Room capacity must be between 1 and 12 beds.',
+        variant: 'error'
+      }));
+      return;
+    }
+
+    // Validate capacity for new room
+    if (!editingRoom && selectedProperty) {
+      const propertyWithCurrentData = {
+        ...selectedProperty,
+        floors: floors.map(floor => ({
+          ...floor,
+          rooms: rooms.filter(room => room.floorId === floor.id)
+        }))
+      };
+      
+      const capacityValidation = validateCapacity(propertyWithCurrentData, roomData, 'room');
+      if (!capacityValidation.isValid) {
+        dispatch(addToast({
+          title: 'Capacity Limit Reached',
+          description: capacityValidation.errors.join(', '),
+          variant: 'error'
+        }));
+        return;
+      }
+    }
+
+    try {
+      setRoomLoading(true);
+      
+      if (editingRoom) {
+        await dispatch(updateRoom({ id: editingRoom.id, ...roomData })).unwrap();
+        dispatch(addToast({
+          title: 'Room Updated',
+          description: 'Room has been updated successfully.',
+          variant: 'success'
+        }));
+      } else {
+        await dispatch(createRoom(roomData)).unwrap();
+        dispatch(addToast({
+          title: 'Room Added',
+          description: 'New room has been added successfully.',
+          variant: 'success'
+        }));
+      }
+
+      setEditingRoom(null);
+      setShowRoomModal(false);
+    } catch (error) {
+      console.error('Error with room operation:', error);
+      dispatch(addToast({
+        title: 'Error',
+        description: error || 'Failed to process room operation',
+        variant: 'error'
+      }));
+    } finally {
+      setRoomLoading(false);
     }
   };
 
@@ -2236,21 +2402,98 @@ export default function RoomsPage() {
     setShowBedModal(true);
   };
 
-  const handleBedSubmit = (bedData) => {
-    if (editingBed) {
-      dispatch(updateBed({ id: editingBed.id, ...bedData }));
+  const handleBedSubmit = async (bedData) => {
+    // Validate required fields (this should not happen due to button disabled state, but keeping as safety)
+    if (!bedData.bedNumber || !bedData.bedNumber.trim()) {
       dispatch(addToast({
-        title: 'Bed Updated',
-        description: 'Bed has been updated successfully.',
-        variant: 'success'
+        title: 'Validation Error',
+        description: 'Bed number is required.',
+        variant: 'error'
       }));
-    } else {
-      dispatch(addBed(bedData));
+      return;
+    }
+
+    if (!bedData.roomId) {
       dispatch(addToast({
-        title: 'Bed Added',
-        description: 'New bed has been added successfully.',
-        variant: 'success'
+        title: 'Validation Error',
+        description: 'Please select a room for this bed.',
+        variant: 'error'
       }));
+      return;
+    }
+
+    if (!bedData.rent || bedData.rent < 1000) {
+      dispatch(addToast({
+        title: 'Validation Error',
+        description: 'Monthly rent must be at least ₹1,000.',
+        variant: 'error'
+      }));
+      return;
+    }
+
+    if (!bedData.deposit || bedData.deposit < 0) {
+      dispatch(addToast({
+        title: 'Validation Error',
+        description: 'Security deposit cannot be negative.',
+        variant: 'error'
+      }));
+      return;
+    }
+
+    // Validate capacity for new bed
+    if (!editingBed && selectedProperty) {
+      const propertyWithCurrentData = {
+        ...selectedProperty,
+        floors: floors.map(floor => ({
+          ...floor,
+          rooms: rooms.filter(room => room.floorId === floor.id).map(room => ({
+            ...room,
+            beds: beds.filter(bed => bed.roomId === room.id)
+          }))
+        }))
+      };
+      
+      const capacityValidation = validateCapacity(propertyWithCurrentData, bedData, 'bed');
+      if (!capacityValidation.isValid) {
+        dispatch(addToast({
+          title: 'Capacity Limit Reached',
+          description: capacityValidation.errors.join(', '),
+          variant: 'error'
+        }));
+        return;
+      }
+    }
+
+    try {
+      setBedLoading(true);
+      
+      if (editingBed) {
+        await dispatch(updateBed({ id: editingBed.id, ...bedData })).unwrap();
+        dispatch(addToast({
+          title: 'Bed Updated',
+          description: 'Bed has been updated successfully.',
+          variant: 'success'
+        }));
+      } else {
+        await dispatch(addBed(bedData)).unwrap();
+        dispatch(addToast({
+          title: 'Bed Added',
+          description: 'New bed has been added successfully.',
+          variant: 'success'
+        }));
+      }
+
+      setEditingBed(null);
+      setShowBedModal(false);
+    } catch (error) {
+      console.error('Error with bed operation:', error);
+      dispatch(addToast({
+        title: 'Error',
+        description: error || 'Failed to process bed operation',
+        variant: 'error'
+      }));
+    } finally {
+      setBedLoading(false);
     }
   };
 
@@ -2334,11 +2577,26 @@ export default function RoomsPage() {
           {/* Property Selection Info */}
           <div className="flex items-center space-x-3">
             {selectedProperty ? (
-              <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
-                <Building className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-800">
-                  {selectedProperty.name}
-                </span>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
+                  <Building className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">
+                    {selectedProperty.name}
+                  </span>
+                </div>
+                <CapacityIndicator 
+                  property={{
+                    ...selectedProperty,
+                    floors: floors.map(floor => ({
+                      ...floor,
+                      rooms: rooms.filter(room => room.floorId === floor.id).map(room => ({
+                        ...room,
+                        beds: beds.filter(bed => bed.roomId === room.id)
+                      }))
+                    }))
+                  }} 
+                  showDetails={false} 
+                />
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -2819,6 +3077,7 @@ export default function RoomsPage() {
         }}
         floor={editingFloor}
         onSubmit={handleFloorSubmit}
+        loading={floorLoading}
       />
 
       <RoomFormModal
@@ -2829,6 +3088,7 @@ export default function RoomsPage() {
         }}
         room={editingRoom}
         onSubmit={handleRoomSubmit}
+        loading={roomLoading}
       />
 
       <BedFormModal
@@ -2839,6 +3099,7 @@ export default function RoomsPage() {
         }}
         bed={editingBed}
         onSubmit={handleBedSubmit}
+        loading={bedLoading}
       />
 
       <TenantFormModal

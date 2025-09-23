@@ -238,7 +238,7 @@ const Input = forwardRef(({
           ref={combinedRef}
           type={inputType}
           disabled={disabled}
-          value={value}
+          value={inputType === 'number' ? (isNaN(value) ? '' : value) : value}
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}

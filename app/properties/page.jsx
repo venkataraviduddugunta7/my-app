@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import propertyService from "@/services/propertyService";
+import { fetchFloors } from "@/store/slices/floorsSlice";
+import { fetchRooms } from "@/store/slices/roomsSlice";
+import { fetchBeds } from "@/store/slices/bedsSlice";
+import { validateCapacityUpdate, getCapacitySummary } from '@/utils/capacityValidation';
+import { CapacityIndicator } from '@/components/ui/CapacityIndicator';
 import {
   Building2,
   Plus,
@@ -80,6 +85,9 @@ const AMENITY_OPTIONS = [
 export default function PropertiesPage() {
   const dispatch = useDispatch();
   const { selectedProperty } = useSelector((state) => state.property);
+  const { floors } = useSelector((state) => state.floors);
+  const { rooms } = useSelector((state) => state.rooms);
+  const { beds } = useSelector((state) => state.beds);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -96,6 +104,7 @@ export default function PropertiesPage() {
   // Fetch properties on component mount
   useEffect(() => {
     fetchProperties();
+    fetchAllPropertyData();
   }, []);
 
   // Listen for real-time property updates
@@ -144,6 +153,20 @@ export default function PropertiesPage() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch floors, rooms, and beds data for all properties
+  const fetchAllPropertyData = async () => {
+    try {
+      // Fetch all floors, rooms, and beds
+      await Promise.all([
+        dispatch(fetchFloors()),
+        dispatch(fetchRooms({ propertyId: null })), // Fetch all rooms
+        dispatch(fetchBeds({ propertyId: null }))   // Fetch all beds
+      ]);
+    } catch (error) {
+      console.error('Error fetching property data:', error);
     }
   };
 
@@ -248,6 +271,19 @@ export default function PropertiesPage() {
         })
       );
       return;
+    }
+
+    // Validate capacity update if editing
+    if (editingProperty) {
+      const capacityValidation = validateCapacityUpdate(editingProperty, formData);
+      if (!capacityValidation.isValid) {
+        dispatch(addToast({
+          title: 'Capacity Validation Failed',
+          description: capacityValidation.errors.join(', '),
+          variant: 'error'
+        }));
+        return;
+      }
     }
 
     try {
@@ -554,6 +590,23 @@ export default function PropertiesPage() {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+
+                    {/* Capacity Indicator */}
+                    <div className="mb-4">
+                      <CapacityIndicator 
+                        property={{
+                          ...property,
+                          floors: floors.filter(floor => floor.propertyId === property.id).map(floor => ({
+                            ...floor,
+                            rooms: rooms.filter(room => room.floorId === floor.id).map(room => ({
+                              ...room,
+                              beds: beds.filter(bed => bed.roomId === room.id)
+                            }))
+                          }))
+                        }} 
+                        showDetails={false} 
+                      />
+                    </div>
                   </div>
                 </Card>
               </motion.div>
@@ -680,29 +733,35 @@ export default function PropertiesPage() {
               <Input
                 label="Total Floors"
                 type="number"
-                value={formData.totalFloors}
-                onChange={(e) =>
-                  setFormData({ ...formData, totalFloors: e.target.value })
-                }
+                value={formData.totalFloors || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : parseInt(value);
+                  setFormData({ ...formData, totalFloors: isNaN(numValue) ? 0 : numValue });
+                }}
                 placeholder="e.g., 4"
               />
               <Input
                 label="Total Rooms"
                 type="number"
-                value={formData.totalRooms}
-                onChange={(e) =>
-                  setFormData({ ...formData, totalRooms: e.target.value })
-                }
+                value={formData.totalRooms || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : parseInt(value);
+                  setFormData({ ...formData, totalRooms: isNaN(numValue) ? 0 : numValue });
+                }}
                 placeholder="e.g., 16"
               />
               <Input
                 label="Total Beds"
                 type="number"
                 required
-                value={formData.totalBeds}
-                onChange={(e) =>
-                  setFormData({ ...formData, totalBeds: e.target.value })
-                }
+                value={formData.totalBeds || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : parseInt(value);
+                  setFormData({ ...formData, totalBeds: isNaN(numValue) ? 0 : numValue });
+                }}
                 placeholder="e.g., 48"
               />
             </div>
@@ -718,19 +777,23 @@ export default function PropertiesPage() {
                 label="Monthly Rent (₹)"
                 type="number"
                 required
-                value={formData.monthlyRent}
-                onChange={(e) =>
-                  setFormData({ ...formData, monthlyRent: e.target.value })
-                }
+                value={formData.monthlyRent || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : parseFloat(value);
+                  setFormData({ ...formData, monthlyRent: isNaN(numValue) ? 0 : numValue });
+                }}
                 placeholder="e.g., 8000"
               />
               <Input
                 label="Security Deposit (₹)"
                 type="number"
-                value={formData.securityDeposit}
-                onChange={(e) =>
-                  setFormData({ ...formData, securityDeposit: e.target.value })
-                }
+                value={formData.securityDeposit || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : parseFloat(value);
+                  setFormData({ ...formData, securityDeposit: isNaN(numValue) ? 0 : numValue });
+                }}
                 placeholder="e.g., 16000"
               />
             </div>
