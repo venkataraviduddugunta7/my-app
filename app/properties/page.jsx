@@ -455,7 +455,7 @@ export default function PropertiesPage() {
       </div>
 
       {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
         <AnimatePresence>
           {filteredProperties.map((property, index) => {
             // Calculate occupancy rate safely
@@ -473,8 +473,8 @@ export default function PropertiesPage() {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card
-                  className={`relative overflow-hidden hover:shadow-lg transition-all duration-300 ${
-                    isSelected ? "ring-2 ring-primary-500 shadow-glow" : ""
+                  className={`relative overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col ${
+                    isSelected ? "ring-2 ring-primary-500 shadow-glow" : "hover:ring-2 hover:ring-primary-200"
                   }`}
                 >
                   {/* Selected Badge */}
@@ -488,17 +488,17 @@ export default function PropertiesPage() {
                   )}
 
                   {/* Card Header */}
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white shadow-glow-sm">
-                          <Building2 className="h-6 w-6" />
+                  <div className="p-6 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-shadow duration-300">
+                          <Building2 className="h-7 w-7" />
                         </div>
                         <div className="flex flex-col justify-center">
-                          <h3 className="font-semibold text-lg">
+                          <h3 className="font-bold text-xl text-gray-900 hover:text-primary-600 transition-colors duration-300">
                             {property.name}
                           </h3>
-                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full w-fit">
+                          <span className="text-sm px-3 py-1 bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 rounded-full w-fit font-medium">
                             {property.type}
                           </span>
                         </div>
@@ -506,39 +506,47 @@ export default function PropertiesPage() {
                     </div>
 
                     {/* Property Info */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <MapPin className="h-4 w-4" />
-                        <span className="truncate">{property.address || 'No address'}</span>
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <MapPin className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <span className="text-sm text-gray-700 font-medium truncate" title={property.address || 'No address'}>
+                          {property.address || 'No address'}
+                        </span>
                       </div>
                       {property.phone && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Phone className="h-4 w-4" />
-                          <span>{property.phone}</span>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="h-8 w-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <Phone className="h-4 w-4 text-green-600" />
+                          </div>
+                          <span className="text-sm text-gray-700 font-medium truncate" title={property.phone}>
+                            {property.phone}
+                          </span>
                         </div>
                       )}
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Total Beds</p>
-                        <p className="text-xl font-bold">{totalBeds}</p>
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                        <p className="text-xs text-blue-600 font-medium mb-1">Total Beds</p>
+                        <p className="text-2xl font-bold text-blue-700">{totalBeds}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Occupied</p>
-                        <p className="text-xl font-bold">{occupiedBeds}</p>
+                      <div className="text-center p-3 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg">
+                        <p className="text-xs text-emerald-600 font-medium mb-1">Occupied</p>
+                        <p className="text-2xl font-bold text-emerald-700">{occupiedBeds}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Monthly Rent</p>
-                        <p className="text-lg font-semibold">
+                      <div className="text-center p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
+                        <p className="text-xs text-yellow-600 font-medium mb-1">Monthly Rent</p>
+                        <p className="text-lg font-bold text-yellow-700">
                           {property.monthlyRent ? formatCurrency(property.monthlyRent) : 'N/A'}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Occupancy</p>
+                      <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                        <p className="text-xs text-purple-600 font-medium mb-1">Occupancy</p>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ${getOccupancyColor(
+                          className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getOccupancyColor(
                             occupancyRate
                           )}`}
                         >
@@ -549,70 +557,130 @@ export default function PropertiesPage() {
 
                     {/* Amenities */}
                     {property.amenities && property.amenities.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {property.amenities.slice(0, 3).map((amenity) => (
-                          <span
-                            key={amenity}
-                            className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded"
-                          >
-                            {amenity}
-                          </span>
-                        ))}
-                        {property.amenities.length > 3 && (
-                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
-                            +{property.amenities.length - 3} more
-                          </span>
-                        )}
+                      <div className="mb-4">
+                        <div className="flex flex-wrap gap-1">
+                          {property.amenities.slice(0, 4).map((amenity) => (
+                            <span
+                              key={amenity}
+                              className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-md"
+                            >
+                              {amenity}
+                            </span>
+                          ))}
+                          {property.amenities.length > 3 && (
+                            <div className="relative group">
+                              <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-md cursor-help hover:bg-gray-200 transition-colors">
+                                +{property.amenities.length - 3} more
+                              </span>
+                              
+                              {/* Hover Tooltip */}
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 w-64">
+                                <div className="font-semibold mb-2 text-white">All Amenities:</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {property.amenities.map((amenity, index) => (
+                                    <span key={index} className="bg-gray-700 px-2 py-1 rounded text-xs">
+                                      {amenity}
+                                    </span>
+                                  ))}
+                                </div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-3 mt-auto pt-4 border-t border-gray-100">
                       {!isSelected && (
                         <Button
                           variant="primary"
-                          size="sm"
-                          className="flex-1"
+                          size="md"
+                          className="flex-1 min-w-0 font-semibold"
                           onClick={() => handleSelectProperty(property)}
                         >
-                          <Check className="h-4 w-4 mr-1" />
-                          Select
+                          <Check className="h-4 w-4 mr-2" />
+                          <span className="truncate">Select Property</span>
                         </Button>
                       )}
                       <Button
                         variant="outline"
-                        size="sm"
-                        className={isSelected ? "flex-1" : ""}
+                        size="md"
+                        className={`${isSelected ? "flex-1 min-w-0" : ""} flex-shrink-0 font-medium`}
                         onClick={() => handleEditProperty(property)}
+                        title="Edit Property"
                       >
                         <Edit2 className="h-4 w-4" />
+                        {isSelected && <span className="ml-2 truncate">Edit Property</span>}
                       </Button>
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="md"
                         onClick={() => handleDeleteProperty(property.id)}
-                        className="text-red-600 hover:bg-red-50"
+                        className="text-red-600 hover:bg-red-50 hover:border-red-300 flex-shrink-0 font-medium"
                         disabled={submitting}
+                        title="Delete Property"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
 
-                    {/* Capacity Indicator */}
-                    <div className="mb-4">
-                      <CapacityIndicator 
-                        property={{
-                          ...property,
-                          floors: floors.filter(floor => floor.propertyId === property.id).map(floor => ({
-                            ...floor,
-                            rooms: rooms.filter(room => room.floorId === floor.id).map(room => ({
-                              ...room,
-                              beds: beds.filter(bed => bed.roomId === room.id)
-                            }))
-                          }))
-                        }} 
-                        showDetails={false} 
-                      />
+                    {/* Capacity Overview */}
+                    <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                          <Home className="h-4 w-4 text-primary-600" />
+                          Capacity Overview
+                        </h4>
+                        <div className="text-xs text-gray-500">
+                          {property.amenities?.length || 0} amenities
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Floors */}
+                        <div className="text-center p-2 bg-white rounded-lg border border-gray-200">
+                          <div className="text-lg font-bold text-primary-600">
+                            {property.totalFloors || 0}
+                          </div>
+                          <div className="text-xs text-gray-600">Floors</div>
+                        </div>
+                        
+                        {/* Rooms */}
+                        <div className="text-center p-2 bg-white rounded-lg border border-gray-200">
+                          <div className="text-lg font-bold text-emerald-600">
+                            {property.totalRooms || 0}
+                          </div>
+                          <div className="text-xs text-gray-600">Rooms</div>
+                        </div>
+                        
+                        {/* Beds */}
+                        <div className="text-center p-2 bg-white rounded-lg border border-gray-200">
+                          <div className="text-lg font-bold text-blue-600">
+                            {totalBeds}
+                          </div>
+                          <div className="text-xs text-gray-600">Beds</div>
+                        </div>
+                      </div>
+                      
+                      {/* Occupancy Bar */}
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs text-gray-600 mb-1">
+                          <span>Occupancy</span>
+                          <span>{occupancyRate.toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              occupancyRate >= 90 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                              occupancyRate >= 70 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                              'bg-gradient-to-r from-green-500 to-green-600'
+                            }`}
+                            style={{ width: `${Math.min(occupancyRate, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Card>
