@@ -1245,8 +1245,8 @@ export default function TenantsPage() {
       )}
 
       {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-4">
+      <div className="flex flex-col gap-4 border border-gray-200 rounded-xl p-1">
+        <div className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -1295,32 +1295,32 @@ export default function TenantsPage() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
       <div className="my-6" />
 
       {/* Content */}
       {!selectedProperty ? (
-        <Card>
-          <CardContent className="text-center py-12">
+        <div className="border border-gray-200 rounded-xl p-1">
+          <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Property Selected</h3>
             <p className="text-gray-500">
               Please select a property to view and manage tenants.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : loading ? (
-        <Card>
-          <CardContent className="text-center py-12">
+        <div>
+          <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-500">Loading tenants...</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : filteredTenants.length > 0 ? (
         viewMode === 'table' ? (
-          <Card>
-            <CardContent className="p-0">
+          <div>
+            <div className="p-0">
               <TenantTable
                 tenants={filteredTenants}
                 onEdit={handleEditTenant}
@@ -1334,8 +1334,8 @@ export default function TenantsPage() {
                 viewMode={viewMode}
                 loading={loading}
               />
-                </CardContent>
-          </Card>
+                </div>
+          </div>
         ) : (
           <TenantTable
             tenants={filteredTenants}
@@ -1352,8 +1352,8 @@ export default function TenantsPage() {
           />
         )
       ) : (
-        <Card>
-          <CardContent className="text-center py-12">
+        <div>
+          <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {searchTerm || statusFilter !== 'all' ? 'No Tenants Match Your Filters' : 'No Tenants Found'}
@@ -1373,8 +1373,8 @@ export default function TenantsPage() {
                 Add First Tenant
               </Button>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Tenant Form Modal */}

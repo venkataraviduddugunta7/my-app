@@ -123,7 +123,6 @@ export const createTenantColumns = (onEdit, onDelete, onVacate) => [
       onClick: onDelete,
       title: 'Delete tenant',
       className: 'text-red-600 hover:text-red-900',
-      variant: 'destructive'
     }
   ])
 ];
