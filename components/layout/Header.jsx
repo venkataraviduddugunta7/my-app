@@ -191,10 +191,8 @@ export function Header() {
             {/* Property Selector */}
             <div className="relative" ref={propertyMenuRef}>
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
                 onClick={() => setShowPropertyMenu(!showPropertyMenu)}
-                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-200 rounded-xl hover:shadow-md transition-all"
+                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-200 rounded-xl transition-all"
                 aria-expanded={showPropertyMenu}
                 aria-haspopup="menu"
               >
@@ -484,9 +482,9 @@ export function Header() {
             <AnimatePresence>
               {showProfileMenu && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  initial={{ opacity: 0, scale: 1, y: 0 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  exit={{ opacity: 0, scale: 1, y: 0 }}
                   className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-float-lg z-[60]"
                 >
                   {/* Profile Header */}

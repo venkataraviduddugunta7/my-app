@@ -77,7 +77,7 @@ function PremiumStatsCard({ title, value, subtitle, icon: Icon, color, trend, de
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
-      whileHover={{ y: -8, scale: 1.02 }}
+      whileHover={{ y: 0, scale: 1 }}
       className="group relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-elegant hover:shadow-float-lg transition-all duration-300"
     >
       {/* Gradient Background */}
@@ -160,7 +160,6 @@ function EnhancedBedStatusCard({ bed, onQuickAction, delay = 0 }) {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay, ease: "easeOut" }}
-      whileHover={{ scale: 1.03, y: -4 }}
       className={`group relative overflow-hidden rounded-2xl border-2 shadow-elegant hover:shadow-float transition-all duration-300 cursor-pointer ${getStatusColor(bed.status, paymentStatus)}`}
     >
       {/* Status Indicator */}
@@ -415,7 +414,7 @@ export default function Dashboard() {
       >
         <div className="absolute inset-0 bg-hero-pattern opacity-10" />
         <div className="relative flex items-center justify-between">
-        <div>
+          <div>
             <motion.h1
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -430,7 +429,8 @@ export default function Dashboard() {
               transition={{ delay: 0.4 }}
               className="text-xl text-white/90"
             >
-              Real-time management for <span className="font-semibold">{property.name}</span>
+              Real-time management for{" "}
+              <span className="font-semibold">{property.name}</span>
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -447,8 +447,8 @@ export default function Dashboard() {
                 <span className="text-sm font-medium">Real-time Updates</span>
               </div>
             </motion.div>
-        </div>
-        
+          </div>
+
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -459,13 +459,15 @@ export default function Dashboard() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-            onClick={handleRefresh}
-            disabled={refreshing}
+                onClick={handleRefresh}
+                disabled={refreshing}
                 className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 rounded-xl px-4 py-2 transition-all duration-200"
-          >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+                />
                 <span className="text-sm font-medium">
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+                  {refreshing ? "Refreshing..." : "Refresh"}
                 </span>
               </motion.button>
             </div>
@@ -495,7 +497,7 @@ export default function Dashboard() {
         />
         <PremiumStatsCard
           title="Monthly Revenue"
-          value={formatCurrency(safeStats.monthlyRevenue) || '₹0'}
+          value={formatCurrency(safeStats.monthlyRevenue) || "₹0"}
           subtitle={`From ${safeStats.totalTenants} tenants`}
           icon={DollarSign}
           color="purple"
@@ -514,26 +516,48 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions & Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Quick Actions */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5 }}
-          className="lg:col-span-1"
+          className="lg:col-span-1 h-full"
         >
-          <div className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6 h-full">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Quick Actions
+              </h3>
               <Zap className="w-5 h-5 text-primary-500" />
             </div>
-            
-            <div className="space-y-3">
+
+            <div className="space-y-1">
               {[
-                { icon: UserPlus, label: 'Add New Tenant', color: 'blue', action: () => router.push('/tenants') },
-                { icon: CreditCard, label: 'Collect Payment', color: 'green', action: () => router.push('/payments') },
-                { icon: Bell, label: 'Send Notice', color: 'orange', action: () => router.push('/notices') },
-                { icon: BarChart3, label: 'View Analytics', color: 'purple', action: () => router.push('/analytics') }
+                {
+                  icon: UserPlus,
+                  label: "Add New Tenant",
+                  color: "blue",
+                  action: () => router.push("/tenants"),
+                },
+                // {
+                //   icon: CreditCard,
+                //   label: "Collect Payment",
+                //   color: "green",
+                //   action: () => router.push("/payments"),
+                // },
+                {
+                  icon: Bell,
+                  label: "Send Notice",
+                  color: "orange",
+                  action: () => router.push("/notices"),
+                },
+                // {
+                //   icon: BarChart3,
+                //   label: "View Analytics",
+                //   color: "purple",
+                //   action: () => router.push("/analytics"),
+                // },
               ].map((action, index) => {
                 const Icon = action.icon;
                 return (
@@ -547,15 +571,22 @@ export default function Dashboard() {
                     onClick={action.action}
                     className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-all duration-200"
                   >
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${
-                      action.color === 'blue' ? 'from-blue-500 to-blue-600' :
-                      action.color === 'green' ? 'from-emerald-500 to-emerald-600' :
-                      action.color === 'orange' ? 'from-orange-500 to-orange-600' :
-                      'from-purple-500 to-purple-600'
-                    } text-white shadow-sm`}>
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${
+                        action.color === "blue"
+                          ? "from-blue-500 to-blue-600"
+                          : action.color === "green"
+                          ? "from-emerald-500 to-emerald-600"
+                          : action.color === "orange"
+                          ? "from-orange-500 to-orange-600"
+                          : "from-purple-500 to-purple-600"
+                      } text-white shadow-sm`}
+                    >
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span className="font-medium text-gray-900">{action.label}</span>
+                    <span className="font-medium text-gray-900">
+                      {action.label}
+                    </span>
                   </motion.button>
                 );
               })}
@@ -568,14 +599,16 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="lg:col-span-2"
+          className="lg:col-span-2 h-full"
         >
-          <div className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6 h-full">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Performance Overview</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Performance Overview
+              </h3>
               <PieChart className="w-5 h-5 text-primary-500" />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-white mx-auto mb-3 shadow-glow-sm">
@@ -584,7 +617,7 @@ export default function Dashboard() {
                 <p className="text-2xl font-bold text-emerald-600">95%</p>
                 <p className="text-sm text-gray-600">Tenant Satisfaction</p>
               </div>
-              
+
               <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-white mx-auto mb-3 shadow-glow-sm">
                   <Target className="h-6 w-6" />
@@ -592,7 +625,7 @@ export default function Dashboard() {
                 <p className="text-2xl font-bold text-blue-600">98%</p>
                 <p className="text-sm text-gray-600">Payment Collection</p>
               </div>
-              
+
               <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500 text-white mx-auto mb-3 shadow-glow-sm">
                   <Star className="h-6 w-6" />
@@ -612,14 +645,16 @@ export default function Dashboard() {
         transition={{ delay: 0.9 }}
       >
         <div className="flex items-center justify-between mb-6">
-      <div>
+          <div>
             <h2 className="text-2xl font-bold text-gray-900 flex items-center">
               <Eye className="w-6 h-6 mr-3 text-primary-600" />
               Live Bed Status
-          </h2>
-            <p className="text-gray-600 mt-1">Real-time occupancy monitoring with instant updates</p>
+            </h2>
+            <p className="text-gray-600 mt-1">
+              Real-time occupancy monitoring with instant updates
+            </p>
           </div>
-          
+
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -649,15 +684,19 @@ export default function Dashboard() {
           ) : (
             <div className="col-span-full text-center py-12">
               <Bed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Beds Found</h3>
-              <p className="text-gray-600 mb-4">No beds are available for this property yet.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No Beds Found
+              </h3>
+              <p className="text-gray-600 mb-4">
+                No beds are available for this property yet.
+              </p>
               <button
-                onClick={() => router.push('/beds')}
+                onClick={() => router.push("/beds")}
                 className="btn-primary"
               >
                 Manage Beds
               </button>
-          </div>
+            </div>
           )}
         </div>
       </motion.div>
@@ -681,34 +720,34 @@ export default function Dashboard() {
           >
             View All
           </motion.button>
-      </div>
+        </div>
 
         <div className="space-y-4">
           {[
             {
               icon: UserPlus,
-              title: 'New tenant John Doe joined Room 101',
-              time: '2 minutes ago',
-              color: 'emerald'
+              title: "New tenant John Doe joined Room 101",
+              time: "2 minutes ago",
+              color: "emerald",
             },
             {
               icon: CreditCard,
-              title: 'Payment received from Sarah Wilson - ₹8,500',
-              time: '15 minutes ago',
-              color: 'blue'
+              title: "Payment received from Sarah Wilson - ₹8,500",
+              time: "15 minutes ago",
+              color: "blue",
             },
             {
               icon: Bell,
-              title: 'Maintenance request submitted for Room 202',
-              time: '1 hour ago',
-              color: 'orange'
+              title: "Maintenance request submitted for Room 202",
+              time: "1 hour ago",
+              color: "orange",
             },
             {
               icon: CheckCircle,
-              title: 'Monthly report generated successfully',
-              time: '2 hours ago',
-              color: 'purple'
-            }
+              title: "Monthly report generated successfully",
+              time: "2 hours ago",
+              color: "purple",
+            },
           ].map((activity, index) => {
             const Icon = activity.icon;
             return (
@@ -719,16 +758,23 @@ export default function Dashboard() {
                 transition={{ delay: 1.6 + index * 0.1 }}
                 className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200"
               >
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                  activity.color === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
-                  activity.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                  activity.color === 'orange' ? 'bg-orange-100 text-orange-600' :
-                  'bg-purple-100 text-purple-600'
-                }`}>
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                    activity.color === "emerald"
+                      ? "bg-emerald-100 text-emerald-600"
+                      : activity.color === "blue"
+                      ? "bg-blue-100 text-blue-600"
+                      : activity.color === "orange"
+                      ? "bg-orange-100 text-orange-600"
+                      : "bg-purple-100 text-purple-600"
+                  }`}
+                >
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {activity.title}
+                  </p>
                   <p className="text-xs text-gray-500">{activity.time}</p>
                 </div>
               </motion.div>

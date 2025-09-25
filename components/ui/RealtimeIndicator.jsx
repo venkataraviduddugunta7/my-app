@@ -92,14 +92,13 @@ export default function RealtimeIndicator() {
   return (
     <div className="relative">
       <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        // whileHover={{ scale: 1.05 }}
+        // whileTap={{ scale: 0.95 }}
         onClick={() => setShowDetails(!showDetails)}
         className={`
           flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold 
           transition-all duration-300 border
           ${config.bgColor} ${config.textColor} ${config.borderColor}
-          hover:shadow-elegant
           ${pulseAnimation ? 'animate-pulse-glow' : ''}
         `}
       >
