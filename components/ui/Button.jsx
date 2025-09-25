@@ -57,9 +57,9 @@ const Button = forwardRef(({
     <motion.button
       ref={ref}
       type={type}
-      whileHover={!isDisabled ? { scale: 1.02 } : {}}
-      whileTap={!isDisabled ? { scale: 0.98 } : {}}
-      transition={{ duration: 0.1 }}
+      whileHover={!isDisabled ? { scale: 1.01 } : {}}
+      whileTap={!isDisabled ? { scale: 0.99 } : {}}
+      transition={{ duration: 0.2 }}
       className={cn(
         // Base styles
         'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',

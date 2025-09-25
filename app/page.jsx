@@ -247,8 +247,8 @@ function EnhancedBedStatusCard({ bed, onQuickAction, delay = 0 }) {
         <div className="flex space-x-2">
           {bed.status === 'AVAILABLE' ? (
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onQuickAction('assign', bed)}
               className="flex-1 btn-primary text-xs py-2"
             >
@@ -258,8 +258,8 @@ function EnhancedBedStatusCard({ bed, onQuickAction, delay = 0 }) {
           ) : bed.status === 'OCCUPIED' ? (
             <>
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => onQuickAction('payment', bed)}
                 className="flex-1 btn-secondary text-xs py-2"
               >
@@ -267,8 +267,8 @@ function EnhancedBedStatusCard({ bed, onQuickAction, delay = 0 }) {
                 Payment
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => onQuickAction('contact', bed)}
                 className="flex-1 btn-ghost text-xs py-2"
               >
@@ -278,8 +278,8 @@ function EnhancedBedStatusCard({ bed, onQuickAction, delay = 0 }) {
             </>
           ) : (
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onQuickAction('maintenance', bed)}
               className="flex-1 btn-ghost text-xs py-2"
             >
@@ -457,11 +457,11 @@ export default function Dashboard() {
           >
             <div className="flex items-center space-x-4">
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 rounded-xl px-4 py-2 transition-all duration-200"
+                className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 rounded-xl px-4 py-2 transition-all duration-300"
               >
                 <RefreshCw
                   className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -566,10 +566,10 @@ export default function Dashboard() {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.6 + index * 0.1 }}
-                    whileHover={{ scale: 1.02, x: 4 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: 1.01, x: 2 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={action.action}
-                    className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-all duration-200"
+                    className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-all duration-300"
                   >
                     <div
                       className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${
@@ -714,8 +714,8 @@ export default function Dashboard() {
             Recent Activities
           </h3>
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             className="text-primary-600 hover:text-primary-700 text-sm font-medium"
           >
             View All
@@ -756,7 +756,7 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.6 + index * 0.1 }}
-                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-300"
               >
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-lg ${

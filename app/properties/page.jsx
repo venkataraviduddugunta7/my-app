@@ -42,6 +42,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { addToast } from "@/store/slices/uiSlice";
 import {
   selectProperty,
@@ -80,6 +81,12 @@ const AMENITY_OPTIONS = [
   { value: "Security", label: "24/7 Security", icon: ShieldCheck },
   { value: "Laundry", label: "Laundry", icon: Coffee },
   { value: "CCTV", label: "CCTV Surveillance", icon: Shield },
+];
+
+const PROPERTY_TYPE_OPTIONS = [
+  { value: "Men", label: "Men Only", icon: Users },
+  { value: "Women", label: "Women Only", icon: Users },
+  { value: "Co-ed", label: "Co-ed (Mixed)", icon: Users },
 ];
 
 export default function PropertiesPage() {
@@ -466,7 +473,7 @@ export default function PropertiesPage() {
                 transition={{ delay: index * 0.1 }}
               >
                 <Card
-                  className={`relative overflow-hidden hover:shadow-xl transition-all duration-300 ${
+                  className={`relative overflow-hidden hover:shadow-lg transition-all duration-300 ${
                     isSelected ? "ring-2 ring-primary-500 shadow-glow" : ""
                   }`}
                 >
@@ -482,16 +489,16 @@ export default function PropertiesPage() {
 
                   {/* Card Header */}
                   <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white shadow-glow-sm">
                           <Building2 className="h-6 w-6" />
                         </div>
-                        <div>
+                        <div className="flex flex-col justify-center">
                           <h3 className="font-semibold text-lg">
                             {property.name}
                           </h3>
-                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full w-fit">
                             {property.type}
                           </span>
                         </div>
@@ -643,10 +650,10 @@ export default function PropertiesPage() {
         title={editingProperty ? "Edit Property" : "Add New Property"}
         size="xl"
       >
-        <div className="max-h-[80vh] overflow-y-auto">
+        <div className="max-h-[80vh] overflow-y-auto p-1">
           <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
-          <div>
+          <div className="p-1">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
               Basic Information
             </h3>
@@ -660,27 +667,19 @@ export default function PropertiesPage() {
                 }
                 placeholder="e.g., Sunrise PG"
               />
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, type: e.target.value })
-                  }
-                  className="w-full border border-gray-200 rounded-lg bg-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                >
-                  <option value="Men">Men</option>
-                  <option value="Women">Women</option>
-                  <option value="Co-ed">Co-ed</option>
-                </select>
-              </div>
+              <Dropdown
+                label="Property Type"
+                options={PROPERTY_TYPE_OPTIONS}
+                value={formData.type}
+                onChange={(value) => setFormData({ ...formData, type: value })}
+                placeholder="Select property type..."
+                premium
+              />
             </div>
           </div>
 
           {/* Address */}
-          <div>
+          <div className="p-1">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
               Address
             </h3>
@@ -725,7 +724,7 @@ export default function PropertiesPage() {
           </div>
 
           {/* Property Details */}
-          <div>
+          <div className="p-1">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
               Property Details
             </h3>
@@ -768,7 +767,7 @@ export default function PropertiesPage() {
           </div>
 
           {/* Pricing */}
-          <div>
+          <div className="p-1">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
               Pricing
             </h3>
@@ -800,7 +799,7 @@ export default function PropertiesPage() {
           </div>
 
           {/* Contact */}
-          <div>
+          <div className="p-1">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
               Contact Information
             </h3>
@@ -838,7 +837,7 @@ export default function PropertiesPage() {
           </div>
 
           {/* Amenities */}
-          <div>
+          <div className="p-1">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
               Amenities
             </h3>
@@ -870,7 +869,7 @@ export default function PropertiesPage() {
           </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 p-1">
               <Button
                 type="button"
                 variant="outline"

@@ -80,7 +80,7 @@ export function Dropdown({
         <motion.label
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-gray-700 mb-1"
         >
           {label}
         </motion.label>
@@ -88,18 +88,18 @@ export function Dropdown({
 
       <div ref={dropdownRef} className="relative">
         <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
+          // whileHover={{ scale: 1.01 }}
+          // whileTap={{ scale: 0.99 }}
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
           className={cn(
-            'relative w-full cursor-pointer rounded-xl border bg-white px-3 py-3 text-left shadow-elegant transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2',
+            'relative w-full cursor-pointer rounded-lg border bg-white px-3 py-2 text-left  transition-all duration-200',
             {
               'border-gray-200 focus:border-primary-500 focus:ring-primary-500': !error,
               'border-error-500 focus:border-error-500 focus:ring-error-500': error,
               'opacity-50 cursor-not-allowed': disabled,
-              'border-primary-500 ring-2 ring-primary-500/20': isOpen,
+              'border-primary-500 ring-1 ring-primary-500/20': isOpen,
               'shadow-float': premium && isOpen,
             }
           )}
