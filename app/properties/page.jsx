@@ -650,13 +650,19 @@ export default function PropertiesPage() {
         title={editingProperty ? "Edit Property" : "Add New Property"}
         size="xl"
       >
-        <div className="max-h-[80vh] overflow-y-auto p-1">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="max-h-[80vh] flex flex-col">
+          <div className="flex-1 overflow-y-auto p-1">
+            <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
-          <div className="p-1">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Basic Information
-            </h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                <Building2 className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Basic Information
+              </h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Property Name"
@@ -679,10 +685,15 @@ export default function PropertiesPage() {
           </div>
 
           {/* Address */}
-          <div className="p-1">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Address
-            </h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <MapPin className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Address
+              </h3>
+            </div>
             <div className="space-y-4">
               <Input
                 label="Street Address"
@@ -724,10 +735,15 @@ export default function PropertiesPage() {
           </div>
 
           {/* Property Details */}
-          <div className="p-1">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Property Details
-            </h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                <Home className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Property Details
+              </h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 label="Total Floors"
@@ -767,10 +783,15 @@ export default function PropertiesPage() {
           </div>
 
           {/* Pricing */}
-          <div className="p-1">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Pricing
-            </h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Pricing
+              </h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Monthly Rent (₹)"
@@ -799,10 +820,15 @@ export default function PropertiesPage() {
           </div>
 
           {/* Contact */}
-          <div className="p-1">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Contact Information
-            </h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                <Phone className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Contact Information
+              </h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 label="Phone"
@@ -837,10 +863,15 @@ export default function PropertiesPage() {
           </div>
 
           {/* Amenities */}
-          <div className="p-1">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Amenities
-            </h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Amenities
+              </h3>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {AMENITY_OPTIONS.map((amenity) => {
                 const Icon = amenity.icon;
@@ -850,10 +881,10 @@ export default function PropertiesPage() {
                     key={amenity.value}
                     type="button"
                     onClick={() => toggleAmenity(amenity.value)}
-                    className={`p-3 rounded-lg border-2 transition-all ${
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                       isSelected
-                        ? "border-primary-500 bg-primary-50 text-primary-700"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-primary-500 bg-primary-50 text-primary-700 shadow-sm"
+                        : "border-gray-200 hover:border-primary-300 hover:bg-gray-50"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -869,7 +900,8 @@ export default function PropertiesPage() {
           </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 p-1">
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 ">
+              <div className="flex justify-end gap-3">
               <Button
                 type="button"
                 variant="outline"
@@ -887,8 +919,10 @@ export default function PropertiesPage() {
                   editingProperty ? "Update Property" : "Add Property"
                 )}
               </Button>
+              </div>
             </div>
           </form>
+          </div>
         </div>
       </Modal>
 
