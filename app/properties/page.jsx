@@ -467,15 +467,13 @@ export default function PropertiesPage() {
             return (
               <motion.div
                 key={property.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.1 }}
               >
                 <Card
-                  className={`relative overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col ${
-                    isSelected ? "ring-2 ring-primary-500 shadow-glow" : "hover:ring-2 hover:ring-primary-200"
+                  className={`relative overflow-hidden h-full flex flex-col ${
+                    isSelected ? "ring-2 ring-primary-500 shadow-glow" : ""
                   }`}
+                  hover={true}
+                  glow={isSelected}
                 >
                   {/* Selected Badge */}
                   {isSelected && (
@@ -491,11 +489,11 @@ export default function PropertiesPage() {
                   <div className="p-6 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white shadow-lg">
                           <Building2 className="h-7 w-7" />
                         </div>
                         <div className="flex flex-col justify-center">
-                          <h3 className="font-bold text-xl text-gray-900 hover:text-primary-600 transition-colors duration-300">
+                          <h3 className="font-bold text-xl text-gray-900">
                             {property.name}
                           </h3>
                           <span className="text-sm px-3 py-1 bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 rounded-full w-fit font-medium">

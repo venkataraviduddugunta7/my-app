@@ -19,7 +19,7 @@ const Card = forwardRef(({
     transition={{ duration: 0.3 }}
     whileHover={hover ? { y: -2, scale: 1.01 } : {}}
     className={cn(
-      'rounded-2xl border border-gray-200 bg-white text-gray-950 shadow-elegant transition-all duration-300',
+      'rounded-2xl border border-gray-200 bg-white text-gray-950 transition-all duration-300',
       {
         'hover:shadow-float': hover,
         'shadow-glow': glow,
@@ -107,10 +107,10 @@ const PremiumCard = forwardRef(({
       ref={ref}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ scale: 1.02, y: -4 }}
+      whileHover={{ scale: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'rounded-2xl border text-gray-950 shadow-elegant transition-all duration-300 hover:shadow-float-lg',
+        'rounded-2xl border text-gray-950 transition-all duration-300 hover:shadow-float-lg',
         variants[variant],
         className
       )}
