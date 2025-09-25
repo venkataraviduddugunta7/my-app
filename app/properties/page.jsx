@@ -480,7 +480,6 @@ export default function PropertiesPage() {
                     <div className="absolute top-2 right-2 z-10">
                       <span className="px-2 py-1 bg-primary-500 text-white text-xs font-semibold rounded-full flex items-center gap-1">
                         <Check className="h-3 w-3" />
-                        Active
                       </span>
                     </div>
                   )}
