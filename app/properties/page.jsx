@@ -468,13 +468,14 @@ export default function PropertiesPage() {
               <motion.div
                 key={property.id}
               >
-                <Card
-                  className={`relative overflow-hidden h-full flex flex-col ${
-                    isSelected ? "ring-2 ring-primary-500 shadow-glow" : ""
-                  }`}
-                  hover={true}
-                  glow={isSelected}
-                >
+                <div className="relative group">
+                  <Card
+                    className={`overflow-hidden h-full flex flex-col ${
+                      isSelected ? "ring-2 ring-primary-500 shadow-glow" : ""
+                    }`}
+                    hover={true}
+                    glow={isSelected}
+                  >
                   {/* Selected Badge */}
                   {isSelected && (
                     <div className="absolute top-2 right-2 z-10">
@@ -564,26 +565,26 @@ export default function PropertiesPage() {
                               {amenity}
                             </span>
                           ))}
-                          {property.amenities.length > 3 && (
-                            <div className="relative group">
-                              <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-md cursor-help hover:bg-gray-200 transition-colors">
-                                +{property.amenities.length - 3} more
-                              </span>
-                              
-                              {/* Hover Tooltip */}
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 w-64">
-                                <div className="font-semibold mb-2 text-white">All Amenities:</div>
-                                <div className="flex flex-wrap gap-1">
-                                  {property.amenities.map((amenity, index) => (
-                                    <span key={index} className="bg-gray-700 px-2 py-1 rounded text-xs">
-                                      {amenity}
-                                    </span>
-                                  ))}
-                                </div>
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
+                           {property.amenities.length > 3 && (
+                             <div className="relative group/more">
+                               <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-md cursor-help hover:bg-gray-200 transition-colors">
+                                 +{property.amenities.length - 3} more
+                               </span>
+                               
+                               {/* Tooltip for +X more button */}
+                               <div className="absolute bottom-full right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-2xl opacity-0 group-hover/more:opacity-100 transition-all duration-300 pointer-events-none z-[9999] w-64">
+                                 <div className="font-semibold mb-2 text-white">All Amenities:</div>
+                                 <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                                   {property.amenities.map((amenity, index) => (
+                                     <span key={index} className="bg-gray-700 px-2 py-1 rounded text-xs whitespace-nowrap">
+                                       {amenity}
+                                     </span>
+                                   ))}
+                                 </div>
+                                 <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                               </div>
+                             </div>
+                           )}
                         </div>
                       </div>
                     )}
@@ -680,7 +681,9 @@ export default function PropertiesPage() {
                       </div>
                     </div>
                   </div>
-                </Card>
+                  </Card>
+                  
+                </div>
               </motion.div>
             );
           })}
