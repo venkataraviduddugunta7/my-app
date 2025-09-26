@@ -206,38 +206,51 @@ export function Sidebar() {
       </motion.button>
 
       {/* Header Section - Sticky */}
-      <div className="sticky top-0 z-10 p-6 flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
-        <motion.div 
-          className="flex items-center min-w-0"
-          animate={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}
-        >
-          <Logo 
-            size={isCollapsed ? 'default' : 'default'} 
-            showText={!isCollapsed}
-            className={isCollapsed ? 'justify-center' : ''}
-          />
-        </motion.div>
-
-        {/* Property Selector */}
+      <div className="sticky top-0 z-10 p-4 flex-shrink-0 bg-white shadow-sm">
         <AnimatePresence>
-          {!isCollapsed && selectedProperty && (
+          {!isCollapsed ? (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mt-4 p-3 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-xl border border-primary-100 min-w-0"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200/50 p-4 shadow-sm"
             >
-              <div className="flex items-center space-x-2 min-w-0">
-                <Home className="h-4 w-4 text-primary-600 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {selectedProperty.name}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {selectedProperty.address}
-                  </p>
-                </div>
+              <div className="flex items-center justify-center mb-4">
+                <Logo 
+                  size="default" 
+                  showText={true} 
+                />
               </div>
+
+              {/* Selected Property */}
+              {selectedProperty && (
+                <div>
+                  <div className="flex items-center space-x-2 p-3 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-lg border border-gray-200/50 shadow-sm">
+                    <Home className="h-4 w-4 text-primary-500 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {selectedProperty.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {selectedProperty.address}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            // Collapsed header - just logo
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center"
+            >
+              <Logo 
+                size="default" 
+                showText={false} 
+              />
             </motion.div>
           )}
         </AnimatePresence>
