@@ -508,22 +508,20 @@ export default function PaymentsPage() {
 
       {/* Controls Section */}
       {mockPayments.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
+        <div className="p-1 border border-gray-200 rounded-2xl">
+          <div className="p-4">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
               {/* Search and Filter */}
               <div className="flex flex-col sm:flex-row gap-3 flex-1">
                 <div className="w-full sm:w-80">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      placeholder="Search by tenant name or room..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
+                  <Input
+                    type="text"
+                    placeholder="Search by tenant name or room..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    icon={Search}
+                    className="w-full"
+                  />
                 </div>
                 <div className="w-full sm:w-48">
                   <Dropdown
@@ -576,23 +574,23 @@ export default function PaymentsPage() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Payments Display */}
       {filteredPayments.length > 0 && (
         <>
           {viewMode === 'table' ? (
-            <Card>
-              <CardContent className="p-0">
+            <div>
+              <div className="p-0">
                 <PaymentTable
                   payments={filteredPayments}
                   onView={handleView}
                   onMarkPaid={handleMarkPaid}
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPayments.map((payment) => (
