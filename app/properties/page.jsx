@@ -572,7 +572,7 @@ export default function PropertiesPage() {
                                </span>
                                
                                {/* Tooltip for +X more button */}
-                               <div className="absolute bottom-full right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-2xl opacity-0 group-hover/more:opacity-100 transition-all duration-300 pointer-events-none z-[9999] w-64">
+                               <div className="absolute bottom-full right-0 mb-2 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-2xl opacity-0 group-hover/more:opacity-100 transition-all duration-300 pointer-events-none z-[9999] w-64" style={{ background: 'linear-gradient(135deg, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.95))' }}>
                                  <div className="font-semibold mb-2 text-white">All Amenities:</div>
                                  <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
                                    {property.amenities.map((amenity, index) => (
