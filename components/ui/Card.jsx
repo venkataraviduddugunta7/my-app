@@ -14,10 +14,10 @@ const Card = forwardRef(({
 }, ref) => (
   <motion.div
     ref={ref}
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 0, y: 0 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
-    whileHover={hover ? { y: -2, scale: 1.01 } : {}}
+    whileHover={hover ? { y: 0, scale: 1 } : {}}
     className={cn(
       'rounded-2xl border border-gray-200 bg-white text-gray-950 transition-all duration-300',
       {

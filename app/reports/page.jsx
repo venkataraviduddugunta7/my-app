@@ -235,8 +235,8 @@ export default function ReportsPage() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
+      <div className="p-1 border border-gray-200 rounded-2xl">
+        <div className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <Dropdown
@@ -259,8 +259,8 @@ export default function ReportsPage() {
               Advanced Filters
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Quick Stats */}
       <QuickStats />
