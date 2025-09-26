@@ -245,13 +245,26 @@ export function Sidebar() {
 
       {/* Navigation Menu */}
       <nav className="flex-1 px-4 pb-4 pt-2">
-        {/* Main Navigation Section */}
-        <div className="space-y-2 mb-6">
-          {menuItems.map((item, index) => {
-            const Icon = item.icon;
-            const isActive = isActiveRoute(item.href);
+        {/* Navigation Items */}
+        <AnimatePresence>
+          {!isCollapsed ? (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200/50 p-4 shadow-sm mb-6"
+            >
+              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 flex items-center">
+                <LayoutDashboard className="h-3 w-3 mr-2 text-primary-500" />
+                Navigation
+              </h3>
+              
+              <div className="space-y-2">
+                {menuItems.map((item, index) => {
+                  const Icon = item.icon;
+                  const isActive = isActiveRoute(item.href);
 
-            return (
+                  return (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -278,10 +291,10 @@ export function Sidebar() {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleNavigation(item.href)}
                   className={`
-                    relative w-full flex items-center rounded-lg px-3 py-3 text-left transition-all duration-300 group
+                    relative w-full flex items-center rounded-lg px-3 py-2.5 text-left transition-all duration-200 border border-transparent group
                     ${isActive 
                       ? 'bg-primary-500 text-white shadow-md' 
-                      : 'text-gray-700 hover:bg-gray-100/70 hover:text-gray-900'
+                      : 'text-gray-700 hover:bg-white hover:shadow-sm hover:border-gray-200'
                     }
                     ${isCollapsed ? 'justify-center' : 'justify-start'}
                   `}
@@ -336,9 +349,72 @@ export function Sidebar() {
 
                 </motion.button>
               </motion.div>
-            );
-          })}
-        </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            ) : (
+              // Collapsed navigation - just icons
+              <div className="space-y-2 mb-6">
+                {menuItems.map((item, index) => {
+                  const Icon = item.icon;
+                  const isActive = isActiveRoute(item.href);
+
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onMouseEnter={() => {
+                        if (isCollapsed) {
+                          setHoveredItem(item.id);
+                          const buttonElement = buttonRefs.current[item.id];
+                          if (buttonElement) {
+                            const rect = buttonElement.getBoundingClientRect();
+                            setTooltipPosition({
+                              top: rect.top + window.scrollY,
+                              left: rect.right + 8
+                            });
+                          }
+                        }
+                      }}
+                      onMouseLeave={() => setHoveredItem(null)}
+                    >
+                      <motion.button
+                        ref={(el) => (buttonRefs.current[item.id] = el)}
+                        whileHover={{ scale: 1.02, x: 4 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleNavigation(item.href)}
+                        className={`
+                          relative w-full flex items-center rounded-lg px-3 py-2.5 text-left transition-all duration-200 border border-transparent group
+                          ${isActive 
+                            ? 'bg-primary-500 text-white shadow-md' 
+                            : 'text-gray-700 hover:bg-white hover:shadow-sm hover:border-gray-200'
+                          }
+                          ${isCollapsed ? 'justify-center' : 'justify-start'}
+                        `}
+                      >
+                        {/* Icon */}
+                        <div className="relative">
+                          <Icon className={`h-5 w-5 transition-colors duration-200 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-primary-500'}`} />
+                          
+                          {/* Hover indicator */}
+                          {!isActive && (
+                            <motion.div
+                              className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-primary-500 rounded-r-full opacity-0 group-hover:opacity-100 group-hover:h-6 transition-all duration-200"
+                              initial={{ height: 0, opacity: 0 }}
+                              whileHover={{ height: 24, opacity: 1 }}
+                            />
+                          )}
+                        </div>
+                      </motion.button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </AnimatePresence>
 
         {/* Divider */}
         <AnimatePresence>
