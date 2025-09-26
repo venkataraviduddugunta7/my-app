@@ -270,7 +270,7 @@ export function Sidebar() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200/50 p-4 shadow-sm mb-6"
+             className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"
             >
               <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 flex items-center">
                 <LayoutDashboard className="h-3 w-3 mr-2 text-primary-500" />
@@ -343,7 +343,7 @@ export function Sidebar() {
                         exit="collapsed"
                         className="ml-3 flex items-center justify-between flex-1 min-w-0"
                       >
-                        <span className="font-medium truncate">{item.label}</span>
+                        <span>{item.label}</span>
                         
                         {/* Badge */}
                         {item.badge && (
@@ -373,8 +373,8 @@ export function Sidebar() {
               </motion.div>
             ) : (
               // Collapsed navigation - just icons
-              <div className="space-y-2 mb-6">
-                {menuItems.map((item, index) => {
+              <div className="space-y-2 mb-4">
+                {menuItems.map((item, index) => { 
                   const Icon = item.icon;
                   const isActive = isActiveRoute(item.href);
 
@@ -441,7 +441,7 @@ export function Sidebar() {
               initial={{ opacity: 0, scaleX: 0 }}
               animate={{ opacity: 1, scaleX: 1 }}
               exit={{ opacity: 0, scaleX: 0 }}
-              className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-6"
+              className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-4"
             />
           )}
         </AnimatePresence>
@@ -453,14 +453,14 @@ export function Sidebar() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200/50 p-4 shadow-sm"
+             className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"
             >
               <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 flex items-center">
                 <Zap className="h-3 w-3 mr-2 text-primary-500" />
                 Quick Actions
               </h3>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
                   
@@ -536,7 +536,7 @@ export function Sidebar() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200/50 p-4 shadow-sm"
+            className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"
             >  
               <div className="text-center">
                 <p className="text-xs text-gray-600 font-semibold flex items-center justify-center">
