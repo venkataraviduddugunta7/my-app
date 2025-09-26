@@ -1919,13 +1919,11 @@ export default function RoomsPage() {
 
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
-      {/* Page Header with Property Selection */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Rooms Management</h1>
         <div className="flex items-center justify-between mt-2">
           <p className="text-gray-600">Manage your floors, rooms, and bed assignments</p>
           
-          {/* Property Selection Info */}
           <div className="flex items-center space-x-3">
             {selectedProperty ? (
               <div className="flex items-center space-x-4">
@@ -1962,10 +1960,9 @@ export default function RoomsPage() {
         </div>
       </div>
 
-      {/* Show property creation prompt if no property exists */}
       {properties.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
+        <div>
+          <div className="p-12 text-center">
             <Building className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-medium text-gray-900 mb-2">Welcome to Rooms Management!</h3>
             <p className="text-gray-600 mb-6">
@@ -1975,11 +1972,10 @@ export default function RoomsPage() {
               <Plus className="w-5 h-5 mr-2" />
               Create Your First Property
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
         <>
-          {/* Tab Navigation */}
           <nav className="flex space-x-8 border-b border-gray-200">
             {['floors', 'rooms', 'beds'].map((tab) => (
               <button
@@ -2001,9 +1997,11 @@ export default function RoomsPage() {
             {/* Floors Tab */}
             {activeTab === 'floors' && (
               <div className="space-y-6">
-                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+             <div className="flex flex-col gap-4 border border-gray-200 rounded-xl p-1">
+             <div className="flex flex-row justify-between  p-4 items-center">
+
                   <h2 className="text-xl font-semibold">
-                    Floors ({filteredFloors.length}{filteredFloors.length !== floors.length ? `/${floors.length}` : ''})
+                    Floors
                   </h2>
                   
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -2054,12 +2052,13 @@ export default function RoomsPage() {
                       </Button>
                     </div>
                   </div>
+                  </div>
                 </div>
                 
                 {floors.length > 0 && filteredFloors.length > 0 && (
                   floorViewMode === 'table' ? (
-                      <Card>
-                        <CardContent className="p-0">
+                      <div>
+                        <div className="p-0">
                           <FloorTable
                           floors={filteredFloors.map(floor => ({
                             ...floor,
@@ -2071,8 +2070,8 @@ export default function RoomsPage() {
                           viewMode={floorViewMode}
                           loading={floorLoading}
                           />
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     ) : (
                     <FloorTable
                       floors={filteredFloors.map(floor => ({
@@ -2124,9 +2123,10 @@ export default function RoomsPage() {
             {/* Rooms Tab */}
             {activeTab === 'rooms' && (
               <div className="space-y-6">
-                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+                    <div className="flex flex-col gap-4 border border-gray-200 rounded-xl p-1">
+                    <div className="flex flex-row justify-between  p-4 items-center">
                   <h2 className="text-xl font-semibold">
-                    Rooms ({filteredRooms.length}{filteredRooms.length !== rooms.length ? `/${rooms.length}` : ''})
+                    Rooms
                   </h2>
                   
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -2188,20 +2188,21 @@ export default function RoomsPage() {
                     </div>
                   </div>
                 </div>
+                </div>
 
                 {floors.length === 0 && (
-                  <Card>
-                    <CardContent className="p-8 text-center">
+                  <div>
+                    <div className="p-8 text-center">
                       <Building className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-gray-500">Please add at least one floor before creating rooms.</p>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
                 
                 {floors.length > 0 && rooms.length > 0 && filteredRooms.length > 0 && (
                   roomViewMode === 'table' ? (
-                      <Card>
-                        <CardContent className="p-0">
+                      <div>
+                        <div className="p-0">
                           <RoomTable
                           rooms={filteredRooms.map(room => ({
                             ...room,
@@ -2214,8 +2215,8 @@ export default function RoomsPage() {
                           floors={floors}
                           loading={roomLoading}
                           />
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     ) : (
                     <RoomTable
                       rooms={filteredRooms.map(room => ({
@@ -2233,8 +2234,8 @@ export default function RoomsPage() {
                 )}
 
                 {rooms.length === 0 && floors.length > 0 && (
-                  <Card>
-                    <CardContent className="p-12 text-center">
+                  <div>
+                    <div className="p-12 text-center">
                       <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No rooms found</h3>
                       <p className="text-gray-500 mb-4">
@@ -2244,13 +2245,13 @@ export default function RoomsPage() {
                         <Plus className="w-4 h-4 mr-2" />
                         Add Your First Room
                       </Button>
-                    </CardContent>
-                  </Card>
+                    </div>
+                    </div>
                 )}
 
                 {floors.length > 0 && rooms.length > 0 && filteredRooms.length === 0 && (
-                  <Card>
-                    <CardContent className="p-12 text-center">
+                  <div>
+                    <div className="p-12 text-center">
                       <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No rooms match your search</h3>
                       <p className="text-gray-500 mb-4">
@@ -2262,8 +2263,9 @@ export default function RoomsPage() {
                       }}>
                         Clear Filters
                       </Button>
-                    </CardContent>
-                  </Card>
+                      </div>
+                      </div>
+
                 )}
               </div>
             )}
@@ -2271,9 +2273,11 @@ export default function RoomsPage() {
             {/* Beds Tab */}
             {activeTab === 'beds' && (
               <div className="space-y-6">
-                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+               
+               <div className="flex flex-col gap-4 border border-gray-200 rounded-xl p-1">
+               <div className="flex flex-row justify-between items-center p-4">
                   <h2 className="text-xl font-semibold">
-                    Beds ({filteredBeds.length}{filteredBeds.length !== beds.length ? `/${beds.length}` : ''})
+                    Beds
                   </h2>
                   
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -2344,21 +2348,22 @@ export default function RoomsPage() {
                       </Button>
                     </div>
                   </div>
+                  </div>
                 </div>
 
                 {rooms.length === 0 && (
-                  <Card>
-                    <CardContent className="p-8 text-center">
+                  <div>
+                    <div className="p-8 text-center">
                       <Home className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-gray-500">Please add at least one room before creating beds.</p>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
                 
                 {rooms.length > 0 && beds.length > 0 && filteredBeds.length > 0 && (
                   bedViewMode === 'table' ? (
-                      <Card>
-                        <CardContent className="p-0">
+                      <div>
+                        <div className="p-0">
                           <BedTable
                             beds={filteredBeds}
                             onEdit={handleEditBed}
@@ -2368,8 +2373,8 @@ export default function RoomsPage() {
                           floors={floors}
                           loading={bedLoading}
                           />
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     ) : (
                     <BedTable
                       beds={filteredBeds}
@@ -2384,8 +2389,8 @@ export default function RoomsPage() {
                 )}
 
                 {beds.length === 0 && rooms.length > 0 && (
-                  <Card>
-                    <CardContent className="p-12 text-center">
+                  <div>
+                    <div className="p-12 text-center">
                       <Bed className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No beds found</h3>
                       <p className="text-gray-500 mb-4">
@@ -2395,13 +2400,13 @@ export default function RoomsPage() {
                         <Plus className="w-4 h-4 mr-2" />
                         Add Your First Bed
                       </Button>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
 
                 {rooms.length > 0 && beds.length > 0 && filteredBeds.length === 0 && (
-                  <Card>
-                    <CardContent className="p-12 text-center">
+                  <div>
+                    <div className="p-12 text-center">
                       <Bed className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No beds match your search</h3>
                       <p className="text-gray-500 mb-4">
@@ -2413,8 +2418,8 @@ export default function RoomsPage() {
                       }}>
                         Clear Filters
                       </Button>
-                    </CardContent>
-                  </Card>
+                      </div>
+                  </div>
                 )}
               </div>
             )}

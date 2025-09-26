@@ -75,7 +75,8 @@ export const createFloorColumns = (onEdit, onDelete, onRowClick) => [
       onClick: onDelete,
       title: 'Delete floor',
       className: 'text-red-600 hover:text-red-900',
-      variant: 'destructive',
+      variant: 'default',
+      size: 'sm',
       disabled: (floor) => (floor.roomCount || 0) > 0
     }
   ])
@@ -135,7 +136,7 @@ export const FloorCard = ({ data: floor, onEdit, onDelete, onClick }) => {
         <button
           onClick={() => onDelete(floor.id)}
           disabled={roomCount > 0}
-          className="p-2.5 text-gray-400 hover:text-error-600 hover:bg-error-50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2.5 text-gray-400 hover:text-error-600 hover:bg-error-50 rounded-xl transition-all duration-200"
           title="Delete floor"
         >
           <Trash2 className="w-4 h-4" />

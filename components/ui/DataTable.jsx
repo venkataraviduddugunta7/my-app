@@ -163,7 +163,7 @@ export function DataTable({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Table Container */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-elegant overflow-hidden">
+      <div className="bg-white border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50">

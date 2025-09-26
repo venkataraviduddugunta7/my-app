@@ -132,7 +132,7 @@ export const createRoomColumns = (onEdit, onDelete, onRowClick, floors = []) => 
       onClick: onDelete,
       title: 'Delete room',
       className: 'text-red-600 hover:text-red-900',
-      variant: 'destructive',
+      variant: 'default',
       disabled: (room) => (room.bedInfo?.total || 0) > 0
     }
   ])
@@ -218,7 +218,7 @@ export const RoomCard = ({ data: room, onEdit, onDelete, onClick, floors = [] })
         <button
           onClick={() => onDelete(room.id)}
           disabled={bedInfo.total > 0}
-          className="p-2.5 text-gray-400 hover:text-error-600 hover:bg-error-50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2.5 text-gray-400 rounded-xl transition-all duration-200"
           title="Delete room"
         >
           <Trash2 className="w-4 h-4" />

@@ -140,7 +140,8 @@ export const createBedColumns = (onEdit, onDelete, rooms = [], floors = []) => [
       onClick: (bed) => onDelete(bed.id),
       title: 'Delete bed',
       className: 'text-red-600 hover:text-red-900',
-      variant: 'destructive',
+      variant: 'default',
+      size: 'sm',
       disabled: (bed) => bed.status === 'Occupied'
     }
   ])
@@ -223,7 +224,9 @@ export const BedCard = ({ data: bed, onEdit, onDelete, rooms = [], floors = [] }
         <button
           onClick={() => onDelete(bed.id)}
           disabled={bed.status === 'Occupied'}
-          className="p-2.5 text-gray-400 hover:text-error-600 hover:bg-error-50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="primary"
+          size="sm"
+          className="p-2.5 text-gray-400 rounded-xl transition-all duration-200"
           title="Delete bed"
         >
           <Trash2 className="w-4 h-4" />
