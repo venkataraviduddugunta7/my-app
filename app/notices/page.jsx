@@ -12,7 +12,8 @@ import {
   Input,
   Dropdown,
   Modal,
-  ModalFooter
+  ModalFooter,
+  DataTable
 } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 import {
@@ -296,132 +297,126 @@ function NoticeTable({ notices, onView, onEdit, onDelete, onPublish }) {
     );
   };
 
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Notice Details
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type & Priority
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Engagement
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Created Date
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {notices.map((notice) => {
-            const readPercentage = ((notice.readBy / notice.totalRecipients) * 100).toFixed(0);
-            return (
-              <tr key={notice.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-start">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-gray-900 line-clamp-2">
-                        {notice.title}
-                      </div>
-                      <div className="text-sm text-gray-500 line-clamp-2 mt-1">
-                        {notice.content}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="space-y-1">
-                    {getTypeBadge(notice.type)}
-                    <div>{getPriorityBadge(notice.priority)}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {getStatusBadge(notice.status)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {notice.status === 'published' ? (
-                    <div className="space-y-1">
-                      <div className="text-sm text-gray-900">
-                        {notice.readBy}/{notice.totalRecipients} read
-                      </div>
-                      <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                        <div 
-                          className="bg-green-500 h-1.5 rounded-full" 
-                          style={{ width: `${readPercentage}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-gray-500">{readPercentage}%</div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500">Not published</div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {formatDate(notice.createdDate)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onView(notice)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEdit(notice)}
-                      className="text-green-600 hover:text-green-900"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    {notice.status === 'draft' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onPublish(notice)}
-                        className="text-purple-600 hover:text-purple-900"
-                      >
-                        <Send className="w-4 h-4" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDelete(notice)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      
-      {notices.length === 0 && (
-        <div className="text-center py-12">
-          <Megaphone className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No notices found</h3>
-          <p className="text-gray-500">Try adjusting your search terms or filters.</p>
+  // Define columns for DataTable
+  const columns = [
+    {
+      accessorKey: 'title',
+      header: 'Notice Details',
+      width: '10%',
+      cell: ({ row }) => (
+        <div className="flex items-start">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium text-gray-900 line-clamp-2">
+              {row.original.title}
+            </div>
+            <div className="text-sm text-gray-500 line-clamp-2 mt-1">
+              {row.original.content}
+            </div>
+          </div>
         </div>
-      )}
-    </div>
+      ),
+    },
+    {
+      accessorKey: 'type',
+      header: 'Type & Priority',
+      cell: ({ row }) => (
+        <div className="space-y-1">
+          {getTypeBadge(row.original.type)}
+          <div>{getPriorityBadge(row.original.priority)}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => getStatusBadge(row.original.status),
+    },
+    {
+      accessorKey: 'engagement',
+      header: 'Engagement',
+      cell: ({ row }) => {
+        const notice = row.original;
+        const readPercentage = ((notice.readBy / notice.totalRecipients) * 100).toFixed(0);
+        
+        return notice.status === 'published' ? (
+          <div className="space-y-1">
+            <div className="text-sm text-gray-900">
+              {notice.readBy}/{notice.totalRecipients} read
+            </div>
+            <div className="w-16 bg-gray-200 rounded-full h-1.5">
+              <div 
+                className="bg-green-500 h-1.5 rounded-full" 
+                style={{ width: `${readPercentage}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-gray-500">{readPercentage}%</div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500">Not published</div>
+        );
+      },
+    },
+    {
+      accessorKey: 'createdDate',
+      header: 'Created Date',
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-900">
+          {formatDate(row.original.createdDate)}
+        </div>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onView(row.original)}
+            className="text-blue-600 hover:text-blue-900"
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(row.original)}
+            className="text-green-600 hover:text-green-900"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          {row.original.status === 'draft' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPublish(row.original)}
+              className="text-purple-600 hover:text-purple-900"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(row.original)}
+            className="text-red-600 hover:text-red-900"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <DataTable
+      data={notices}
+      columns={columns}
+      emptyMessage="No notices found"
+      emptyIcon={Megaphone}
+      className="border border-gray-200 rounded-lg"
+    />
   );
 }
 
@@ -768,22 +763,20 @@ export default function NoticesPage() {
 
       {/* Controls Section */}
       {mockNotices.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
+        <div className="p-1 border border-gray-200 rounded-2xl">
+          <div className="p-4">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
               {/* Search and Filter */}
               <div className="flex flex-col sm:flex-row gap-3 flex-1">
                 <div className="w-full sm:w-80">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      placeholder="Search notices by title or content..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
+                  <Input
+                    type="text"
+                    placeholder="Search notices by title or content..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    icon={Search}
+                    className="w-full"
+                  />
                 </div>
                 <div className="w-full sm:w-48">
                   <Dropdown
@@ -830,16 +823,15 @@ export default function NoticesPage() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Notices Display */}
       {filteredNotices.length > 0 && (
         <>
           {viewMode === 'table' ? (
-            <Card>
-              <CardContent className="p-0">
+              <div>
                 <NoticeTable
                   notices={filteredNotices}
                   onView={handleView}
@@ -847,8 +839,7 @@ export default function NoticesPage() {
                   onDelete={handleDelete}
                   onPublish={handlePublish}
                 />
-              </CardContent>
-            </Card>
+              </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredNotices.map((notice) => (

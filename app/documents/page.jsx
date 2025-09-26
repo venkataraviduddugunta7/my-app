@@ -12,7 +12,8 @@ import {
   Input,
   Dropdown,
   Modal,
-  ModalFooter
+  ModalFooter,
+  DataTable
 } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 import {
@@ -265,42 +266,48 @@ function DocumentCard({ document }) {
           )}
 
           {/* Actions */}
-          <div className="flex space-x-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDetailsModal(true)}
-              className="flex-1"
-            >
-              <Eye className="w-4 h-4 mr-1" />
-              View
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownload}
-              className="flex-1"
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
-            {document.status === 'pending' && (
+          <div className="pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDetailsModal(true)}
+                  className="p-2"
+                  title="View document details"
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  className="p-2"
+                  title="Download document"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+                {document.status === 'pending' && (
+                  <Button
+                    size="sm"
+                    onClick={handleVerify}
+                    className="p-2"
+                    title="Verify document"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
               <Button
+                variant="destructive"
                 size="sm"
-                onClick={handleVerify}
-                className="flex-1"
+                onClick={handleDelete}
+                className="p-2"
+                title="Delete document"
               >
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Verify
+                <Trash2 className="w-4 h-4" />
               </Button>
-            )}
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -460,143 +467,138 @@ function DocumentTable({ documents, onView, onEdit, onDelete, onDownload, onVeri
     return new Date(expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   };
 
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Document Details
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type & Category
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Tenant Info
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Upload Date
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              File Size
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {documents.map((document) => (
-            <tr key={document.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4">
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-gray-900 line-clamp-2">
-                    {document.name}
-                  </div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    {document.fileName}
-                  </div>
-                  {document.expiryDate && isExpiringSoon(document.expiryDate) && (
-                    <div className="text-xs text-orange-600 mt-1 font-medium">
-                      Expiring Soon
-                    </div>
-                  )}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="space-y-1">
-                  {getTypeBadge(document.type)}
-                  {getCategoryBadge(document.category)}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {document.tenantName ? (
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">
-                      {document.tenantName}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      Room {document.roomNumber}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500">
-                    PG Document
-                  </div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {getStatusBadge(document.status)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {formatDate(document.uploadDate)}
-                </div>
-                {document.expiryDate && (
-                  <div className="text-xs text-gray-500">
-                    Expires: {formatDate(document.expiryDate)}
-                  </div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {document.fileSize}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onView(document)}
-                    className="text-blue-600 hover:text-blue-900"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDownload(document)}
-                    className="text-green-600 hover:text-green-900"
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                  {document.status === 'pending' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onVerify(document)}
-                      className="text-purple-600 hover:text-purple-900"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDelete(document)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      {documents.length === 0 && (
-        <div className="text-center py-12">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found</h3>
-          <p className="text-gray-500">Try adjusting your search terms or filters.</p>
+  // Define columns for DataTable
+  const columns = [
+    {
+      accessorKey: 'name',
+      header: 'Document Details',
+      cell: ({ row }) => (
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium text-gray-900 line-clamp-2">
+            {row.original.name}
+          </div>
+          <div className="text-sm text-gray-500 mt-1">
+            {row.original.fileName}
+          </div>
+          {row.original.expiryDate && isExpiringSoon(row.original.expiryDate) && (
+            <div className="text-xs text-orange-600 mt-1 font-medium">
+              Expiring Soon
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      ),
+    },
+    {
+      accessorKey: 'type',
+      header: 'Type & Category',
+      cell: ({ row }) => (
+        <div className="space-y-1">
+          {getTypeBadge(row.original.type)}
+          {getCategoryBadge(row.original.category)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'tenantName',
+      header: 'Tenant Info',
+      cell: ({ row }) => 
+        row.original.tenantName ? (
+          <div>
+            <div className="text-sm font-medium text-gray-900">
+              {row.original.tenantName}
+            </div>
+            <div className="text-sm text-gray-500">
+              Room {row.original.roomNumber}
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500">
+            PG Document
+          </div>
+        ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => getStatusBadge(row.original.status),
+    },
+    {
+      accessorKey: 'uploadDate',
+      header: 'Upload Date',
+      cell: ({ row }) => (
+        <div>
+          <div className="text-sm text-gray-900">
+            {formatDate(row.original.uploadDate)}
+          </div>
+          {row.original.expiryDate && (
+            <div className="text-xs text-gray-500">
+              Expires: {formatDate(row.original.expiryDate)}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'fileSize',
+      header: 'File Size',
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-900">
+          {row.original.fileSize}
+        </div>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onView(row.original)}
+            className="text-blue-600 hover:text-blue-900"
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDownload(row.original)}
+            className="text-green-600 hover:text-green-900"
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+          {row.original.status === 'pending' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onVerify(row.original)}
+              className="text-purple-600 hover:text-purple-900"
+            >
+              <CheckCircle className="w-4 h-4" />
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(row.original)}
+            className="text-red-600 hover:text-red-900"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <DataTable
+      data={documents}
+      columns={columns}
+      emptyMessage="No documents found"
+      emptyIcon={FileText}
+      className="border border-gray-200 rounded-lg"
+    />
   );
 }
 
@@ -892,22 +894,20 @@ export default function DocumentsPage() {
 
       {/* Controls Section */}
       {mockDocuments.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
+        <div className="p-1 border border-gray-200 rounded-2xl">
+          <div className="p-4">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-3 flex-1">
                 <div className="w-full sm:w-80">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      placeholder="Search documents by name, tenant, or file..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
+                  <Input
+                    type="text"
+                    placeholder="Search documents by name, tenant, or file..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    icon={Search}
+                    className="w-full"
+                  />
                 </div>
                 <div className="flex gap-3">
                   <div className="w-full sm:w-40">
@@ -964,16 +964,16 @@ export default function DocumentsPage() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Documents Display */}
       {filteredDocuments.length > 0 && (
         <>
           {viewMode === 'table' ? (
-            <Card>
-              <CardContent className="p-0">
+            <div>
+              <div className="p-0">
                 <DocumentTable
                   documents={filteredDocuments}
                   onView={handleView}
@@ -981,8 +981,8 @@ export default function DocumentsPage() {
                   onDelete={handleDelete}
                   onVerify={handleVerify}
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDocuments.map((document) => (
