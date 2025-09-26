@@ -192,21 +192,26 @@ export function Sidebar() {
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative z-40 flex h-screen flex-col border-r-2 border-gray-200 bg-white shadow-xl overflow-y-auto"
+      className="relative z-40 flex h-screen flex-col border-r-1 border-gray-200 bg-white shadow-xl overflow-y-auto"
     >
-      {/* Toggle Button */}
+      {/* Toggle Button - Fixed Position */}
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white shadow-elegant text-gray-500 hover:text-gray-700 transition-colors"
-        style={{ zIndex: 30 }}
+        className={`fixed top-2 flex items-center justify-center rounded-full border border-gray-200 bg-white shadow-elegant text-gray-500 hover:text-gray-700 transition-all duration-200 ${
+          isCollapsed ? 'h-6 w-6' : 'h-6 w-6'
+        }`}
+        style={{ 
+          zIndex: 9999, 
+          left: isCollapsed ? 'calc(3.5rem)' : 'calc(16rem)' 
+        }}
       >
-        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-5 w-5" />}
       </motion.button>
 
       {/* Header Section - Sticky */}
-      <div className="sticky top-0 z-10 p-4 flex-shrink-0 bg-white shadow-sm">
+      <div className="sticky top-0 z-20 p-4 flex-shrink-0 bg-white shadow-sm">
         <AnimatePresence>
           {!isCollapsed ? (
             <motion.div
@@ -523,23 +528,25 @@ export function Sidebar() {
         </AnimatePresence>
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-gray-200 p-4 bg-white shadow-lg">
+      {/* Footer - Sticky */}
+      <div className="bottom-0 z-10 p-4 bg-white">
         <AnimatePresence>
           {!isCollapsed ? (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center p-3 bg-gradient-to-br from-primary-50 to-secondary-50 rounded-lg border border-primary-100"
-            >
-              <p className="text-xs text-gray-600 font-semibold flex items-center justify-center">
-                <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2 animate-pulse"></div>
-                MY PG v2.0
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Management System
-              </p>
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200/50 p-4 shadow-sm"
+            >  
+              <div className="text-center">
+                <p className="text-xs text-gray-600 font-semibold flex items-center justify-center">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                  MY PG v2.0
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Management System
+                </p>
+              </div>
             </motion.div>
           ) : (
             <motion.div
