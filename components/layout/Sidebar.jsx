@@ -277,7 +277,7 @@ export function Sidebar() {
                 Navigation
               </h3>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {menuItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = isActiveRoute(item.href);
