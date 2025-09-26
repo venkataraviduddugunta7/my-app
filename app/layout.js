@@ -1,15 +1,15 @@
-import { Inter, JetBrains_Mono, Poppins } from "next/font/google";
+import { Lato, JetBrains_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "@/components/providers/ReduxProvider";
 import AppLayout from "@/components/layout/AppLayout";
 import { ToastContainer } from "@/components/ui/Toast";
 
 // Font configurations for premium typography
-const inter = Inter({
+const lato = Lato({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-lato",
   display: "swap",
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  weight: ["100", "300", "400", "700", "900"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -97,7 +97,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} ${poppins.variable}`}
+      className={`${lato.variable} ${jetbrainsMono.variable} ${poppins.variable}`}
     >
       <head>
         {/* Preconnect to external resources for performance */}
@@ -118,7 +118,7 @@ export default function RootLayout({ children }) {
         <link rel="dns-prefetch" href="//fonts.googleapis.com" />
         <link rel="dns-prefetch" href="//fonts.gstatic.com" />
       </head>
-      <body className={`${inter.className} antialiased bg-gray-50 font-sans`}>
+      <body className={`${lato.className} antialiased bg-gray-50 font-sans`}>
         {/* Background Pattern */}
         <div className="fixed inset-0 -z-10 bg-gradient-to-br from-blue-50 via-white to-purple-50">
           <div className="absolute inset-0 bg-grid opacity-[0.02]" />

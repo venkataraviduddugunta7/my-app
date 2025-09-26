@@ -9,11 +9,11 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        'sans': ['Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        'display': ['Cal Sans', 'Inter', 'SF Pro Display', 'sans-serif'],
+        'sans': ['Lato', 'Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        'display': ['Lato', 'Cal Sans', 'Inter', 'SF Pro Display', 'sans-serif'],
         'mono': ['JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'monospace'],
+        'lato': ['Lato', 'sans-serif'],
         'poppins': ['var(--font-poppins)', 'sans-serif'],
-        'lato': ['var(--font-lato)', 'sans-serif'],
       },
       colors: {
         // Primary Brand Colors - Sophisticated Blues
