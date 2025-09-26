@@ -25,6 +25,7 @@ export const loginUser = createAsyncThunk(
       // Store token in localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', data.data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.data.user));
       }
 
       return data.data;
@@ -55,6 +56,7 @@ export const registerUser = createAsyncThunk(
       // Store token in localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', data.data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.data.user));
       }
 
       return data.data;
@@ -74,7 +76,7 @@ export const getUserProfile = createAsyncThunk(
         return rejectWithValue('No token found');
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,7 +133,7 @@ const initialState = {
   user: null,
   token: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true, // Start as true to wait for auth initialization
   error: null,
 };
 

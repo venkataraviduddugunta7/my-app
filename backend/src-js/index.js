@@ -14,6 +14,7 @@ const schedulerService = require('./services/scheduler.service');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
+const adminRoutes = require('./routes/admin.routes');
 const propertyRoutes = require('./routes/property.routes');
 const floorRoutes = require('./routes/floor.routes');
 const roomRoutes = require('./routes/room.routes');
@@ -157,6 +158,7 @@ app.get('/health', async (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/floors', floorRoutes);
 app.use('/api/rooms', roomRoutes);

@@ -540,7 +540,7 @@ export function Sidebar() {
             >  
               <div className="text-center">
                 <p className="text-xs text-gray-600 font-semibold flex items-center justify-center">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2 animate-pulse"></span>
                   MY PG v2.0
                 </p>
                 <p className="text-xs text-gray-500 mt-1">

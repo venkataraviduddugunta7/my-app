@@ -1,8 +1,24 @@
 import { Router } from 'express';
-const router = Router();
-router.get('/', (req, res) => res.json({ message: 'Get tenants - coming soon' }));
-router.get('/:id', (req, res) => res.json({ message: 'Get tenant by ID - coming soon' }));
-router.post('/', (req, res) => res.json({ message: 'Create tenant - coming soon' }));
-router.put('/:id', (req, res) => res.json({ message: 'Update tenant - coming soon' }));
-router.delete('/:id', (req, res) => res.json({ message: 'Delete tenant - coming soon' }));
+import { TenantController } from '../controllers/tenant.controller';
+import { authenticate, requirePropertyOwnership } from '../middleware/auth.middleware';
+
+const router = Router({ mergeParams: true });
+
+// All routes require authentication and property ownership
+router.use(authenticate);
+router.use('/', requirePropertyOwnership);
+
+// Tenant CRUD operations
+router.post('/', TenantController.createTenant);
+router.get('/', TenantController.getTenants);
+router.get('/:tenantId', TenantController.getTenant);
+router.put('/:tenantId', TenantController.updateTenant);
+
+// Tenant management operations
+router.post('/:tenantId/relocate', TenantController.relocateTenant);
+router.post('/:tenantId/vacate', TenantController.vacateTenant);
+
+// Tenant payments
+router.get('/:tenantId/payments', TenantController.getTenantPayments);
+
 export default router;

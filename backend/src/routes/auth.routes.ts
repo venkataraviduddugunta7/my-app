@@ -1,25 +1,17 @@
 import { Router } from 'express';
+import { AuthController } from '../controllers/auth.controller';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// POST /api/auth/register
-router.post('/register', (req, res) => {
-  res.json({ message: 'Register endpoint - coming soon' });
-});
+// Public routes
+router.post('/register', AuthController.register);
+router.post('/login', AuthController.login);
 
-// POST /api/auth/login
-router.post('/login', (req, res) => {
-  res.json({ message: 'Login endpoint - coming soon' });
-});
+// Protected routes
+router.get('/profile', authenticate, AuthController.getProfile);
+router.put('/profile', authenticate, AuthController.updateProfile);
+router.post('/change-password', authenticate, AuthController.changePassword);
+router.post('/logout', authenticate, AuthController.logout);
 
-// POST /api/auth/logout
-router.post('/logout', (req, res) => {
-  res.json({ message: 'Logout endpoint - coming soon' });
-});
-
-// GET /api/auth/me
-router.get('/me', (req, res) => {
-  res.json({ message: 'Get user profile - coming soon' });
-});
-
-export default router; 
+export default router;

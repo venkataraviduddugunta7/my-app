@@ -42,7 +42,7 @@ const register = asyncHandler(async (req, res) => {
   const saltRounds = 12;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-  // Create user
+  // Create user with WAITING_APPROVAL status by default
   const user = await prisma.user.create({
     data: {
       email,
@@ -51,6 +51,7 @@ const register = asyncHandler(async (req, res) => {
       fullName,
       phone,
       role,
+      subscriptionStatus: 'WAITING_APPROVAL', // Default status for new users
     },
     select: {
       id: true,
@@ -59,6 +60,7 @@ const register = asyncHandler(async (req, res) => {
       fullName: true,
       phone: true,
       role: true,
+      subscriptionStatus: true,
       isActive: true,
       createdAt: true,
     }
@@ -73,7 +75,7 @@ const register = asyncHandler(async (req, res) => {
       user,
       token
     },
-    message: 'User registered successfully'
+    message: 'Registration successful! Your account is pending approval from the administrator. You will be notified once approved.'
   });
 });
 

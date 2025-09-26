@@ -20,6 +20,13 @@ model User {
   phone     String?
   role      UserRole @default(OWNER)
   isActive  Boolean  @default(true)
+  subscriptionStatus SubscriptionStatus @default(WAITING_APPROVAL)
+  approvedAt DateTime?
+  approvedBy String?
+  blockedAt  DateTime?
+  blockedBy  String?
+  blockedReason String?
+  lastLoginAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -32,7 +39,31 @@ model User {
   userSettings UserSettings?
   dashboardSettings DashboardSettings?
 
+  // Admin relations
+  approverOf    User[] @relation("ApprovedBy")
+  blockerOf     User[] @relation("BlockedBy")
+  approver      User?  @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  blocker       User?  @relation("BlockedBy", fields: [blockedBy], references: [id])
+  adminActions  AdminAction[]
+
   @@map("users")
+}
+
+// Admin Activity Log
+model AdminAction {
+  id          String           @id @default(cuid())
+  adminId     String
+  targetUserId String?
+  action      AdminActionType
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  admin       User             @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("admin_actions")
 }
 
 // User Settings and Preferences
@@ -89,9 +120,30 @@ model DashboardSettings {
 }
 
 enum UserRole {
+  ADMIN
   OWNER
   MANAGER
   STAFF
+}
+
+enum SubscriptionStatus {
+  WAITING_APPROVAL
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  CANCELLED
+}
+
+enum AdminActionType {
+  USER_APPROVED
+  USER_BLOCKED
+  USER_UNBLOCKED
+  USER_DELETED
+  USER_STATUS_CHANGED
+  USER_ROLE_CHANGED
+  PROPERTY_DELETED
+  TENANT_DELETED
+  SYSTEM_SETTINGS_CHANGED
 }
 
 // Property Management

@@ -42,7 +42,9 @@
     "node-cron": "^3.0.3",
     "winston": "^3.15.0",
     "compression": "^1.7.5",
-    "express-slow-down": "^2.0.3"
+    "express-slow-down": "^2.0.3",
+    "multer": "^2.0.0-rc.4",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -50,6 +52,7 @@
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^1.4.12",
     "@types/node": "^24.0.15",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",

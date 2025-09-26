@@ -1,5 +1,29 @@
 import { Router } from 'express';
+import { SettingsController } from '../controllers/settings.controller';
+import { authenticate, requirePropertyOwnership } from '../middleware/auth.middleware';
+
 const router = Router();
-router.get('/', (req, res) => res.json({ message: 'Get settings - coming soon' }));
-router.put('/terms', (req, res) => res.json({ message: 'Update terms - coming soon' }));
+
+// All routes require authentication
+router.use(authenticate);
+
+// User settings
+router.get('/user', SettingsController.getUserSettings);
+router.put('/user', SettingsController.updateUserSettings);
+
+// Dashboard settings
+router.get('/dashboard', SettingsController.getDashboardSettings);
+router.put('/dashboard', SettingsController.updateDashboardSettings);
+
+// Property settings
+router.get('/properties/:propertyId', requirePropertyOwnership, SettingsController.getPropertySettings);
+router.put('/properties/:propertyId', requirePropertyOwnership, SettingsController.updatePropertySettings);
+
+// System settings
+router.get('/system', SettingsController.getSystemSettings);
+
+// Data management
+router.get('/export', SettingsController.exportUserData);
+router.post('/reset', SettingsController.resetUserSettings);
+
 export default router;

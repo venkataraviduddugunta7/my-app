@@ -1,5 +1,15 @@
 import { Router } from 'express';
+import { DashboardController } from '../controllers/dashboard.controller';
+import { authenticate, requirePropertyOwnership } from '../middleware/auth.middleware';
+
 const router = Router();
-router.get('/stats', (req, res) => res.json({ message: 'Get dashboard stats - coming soon' }));
-router.get('/activities', (req, res) => res.json({ message: 'Get recent activities - coming soon' }));
+
+// All routes require authentication
+router.use(authenticate);
+
+// Dashboard routes
+router.get('/', DashboardController.getDashboardData);
+router.get('/analytics', DashboardController.getAnalytics);
+router.get('/properties/:propertyId', requirePropertyOwnership, DashboardController.getPropertyDashboard);
+
 export default router;

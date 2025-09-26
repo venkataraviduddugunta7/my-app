@@ -7,14 +7,7 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 
 // Import routes
-import authRoutes from './routes/auth.routes';
-import floorRoutes from './routes/floor.routes';
-import roomRoutes from './routes/room.routes';
-import bedRoutes from './routes/bed.routes';
-import tenantRoutes from './routes/tenant.routes';
-import paymentRoutes from './routes/payment.routes';
-import dashboardRoutes from './routes/dashboard.routes';
-import settingsRoutes from './routes/settings.routes';
+import apiRoutes from './routes/index';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -53,21 +46,15 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
-    message: 'PG Management API is running',
+    message: 'MY PG Management API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    version: '1.0.0'
   });
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/floors', floorRoutes);
-app.use('/api/rooms', roomRoutes);
-app.use('/api/beds', bedRoutes);
-app.use('/api/tenants', tenantRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/settings', settingsRoutes);
+app.use('/api', apiRoutes);
 
 // Error handling middleware
 app.use(notFound);

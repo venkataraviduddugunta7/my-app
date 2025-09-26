@@ -12,13 +12,11 @@ export default function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading, user, token } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    // Initialize auth from localStorage
-    dispatch(initializeAuth());
-    // Skip API call for demo mode
+    // Skip API call for demo mode - auth is already initialized in ReduxProvider
     // if (token && !token.startsWith('demo-')) {
     //   dispatch(getUserProfile());
     // }
-  }, [dispatch]);
+  }, [dispatch, token]);
 
   useEffect(() => {
     // Redirect to login if not authenticated and not loading

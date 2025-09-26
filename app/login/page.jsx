@@ -17,7 +17,6 @@ import {
   Users,
   BarChart3,
   CheckCircle,
-  Sparkles,
   Activity,
 } from "lucide-react";
 import { setCredentials } from "@/store/slices/authSlice";
@@ -111,48 +110,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Check if demo mode is enabled
-      const isDemoMode = typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true';
-      
-      if (isDemoMode) {
-        // Demo login - accept any credentials for demonstration
-        const demoUser = {
-          user: {
-            id: "demo-user-" + Date.now(),
-            email: formData.email,
-            fullName: formData.email
-              .split("@")[0]
-              .replace(/[^a-zA-Z]/g, " ")
-              .replace(/\b\w/g, (l) => l.toUpperCase()),
-            role: "OWNER",
-          },
-          token: "demo-token-" + Date.now(),
-        };
-
-        // Store in localStorage for persistence
-        if (typeof window !== "undefined") {
-          localStorage.setItem("auth_token", demoUser.token);
-          localStorage.setItem("auth_user", JSON.stringify(demoUser.user));
-        }
-
-        // Update Redux state directly without API call
-        dispatch(setCredentials(demoUser));
-
-        dispatch(
-          addToast({
-            title: "Demo Mode Active! 🎉",
-            description: "Logged in with demo data for testing",
-            variant: "success",
-          })
-        );
-
-        // Small delay for better UX, then navigate
-        setTimeout(() => {
-          router.push("/");
-        }, 1000);
-      } else {
-        // Real API login
-        const response = await fetch('http://localhost:9000/api/auth/login', {
+      // Real API login
+      const response = await fetch('http://localhost:9000/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -171,12 +130,12 @@ export default function LoginPage() {
 
         // Store in localStorage for persistence
         if (typeof window !== "undefined") {
-          localStorage.setItem("auth_token", data.token);
-          localStorage.setItem("auth_user", JSON.stringify(data.user));
+          localStorage.setItem("auth_token", data.data.token);
+          localStorage.setItem("auth_user", JSON.stringify(data.data.user));
         }
 
         // Update Redux state
-        dispatch(setCredentials(data));
+        dispatch(setCredentials(data.data));
 
         dispatch(
           addToast({
@@ -190,7 +149,6 @@ export default function LoginPage() {
         setTimeout(() => {
           router.push("/");
         }, 1000);
-      }
     } catch (error) {
       dispatch(
         addToast({
@@ -311,45 +269,6 @@ export default function LoginPage() {
             </Button>
           </motion.form>
 
-          {/* Demo Mode Toggle */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200"
-          >
-            <div className="flex items-center space-x-2 mb-2">
-              <Sparkles className="h-4 w-4 text-purple-600" />
-              <span className="text-sm font-semibold text-purple-800">
-                Development Mode
-              </span>
-            </div>
-            <p className="text-xs text-purple-700 mb-2">
-              Toggle between real API and demo mode for testing:
-            </p>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => {
-                  // Enable demo mode
-                  localStorage.setItem('demo_mode', 'true');
-                  window.location.reload();
-                }}
-                className="text-xs px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
-              >
-                Enable Demo Mode
-              </button>
-              <button
-                onClick={() => {
-                  // Disable demo mode
-                  localStorage.removeItem('demo_mode');
-                  window.location.reload();
-                }}
-                className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-              >
-                Use Real API
-              </button>
-            </div>
-          </motion.div>
 
           {/* Sign Up Link */}
           <motion.div

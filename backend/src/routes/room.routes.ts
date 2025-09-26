@@ -1,11 +1,27 @@
 import { Router } from 'express';
+import { RoomController } from '../controllers/room.controller';
+import { authenticate, requirePropertyOwnership } from '../middleware/auth.middleware';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
-router.get('/', (req, res) => res.json({ message: 'Get rooms - coming soon' }));
-router.get('/:id', (req, res) => res.json({ message: 'Get room by ID - coming soon' }));
-router.post('/', (req, res) => res.json({ message: 'Create room - coming soon' }));
-router.put('/:id', (req, res) => res.json({ message: 'Update room - coming soon' }));
-router.delete('/:id', (req, res) => res.json({ message: 'Delete room - coming soon' }));
+// All routes require authentication and property ownership
+router.use(authenticate);
+router.use('/', requirePropertyOwnership);
+
+// Floor management
+router.post('/floors', RoomController.createFloor);
+router.get('/floors', RoomController.getFloors);
+
+// Room management
+router.post('/floors/:floorId/rooms', RoomController.createRoom);
+router.get('/floors/:floorId/rooms', RoomController.getRooms);
+
+// Bed management
+router.post('/floors/:floorId/rooms/:roomId/beds', RoomController.createBed);
+router.get('/floors/:floorId/rooms/:roomId/beds', RoomController.getBeds);
+router.put('/floors/:floorId/rooms/:roomId/beds/:bedId/status', RoomController.updateBedStatus);
+
+// Utility routes
+router.get('/available-beds', RoomController.getAvailableBeds);
 
 export default router;
