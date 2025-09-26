@@ -27,14 +27,14 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "PG Manager Pro - Enterprise Property Management",
+  title: "MY PG - Property Management System",
   description:
-    "World-class PostgreSQL management system with real-time updates, advanced analytics, and premium user experience",
+    "Professional property management system with real-time updates, advanced analytics, and premium user experience",
   keywords:
     "PG management, property management, tenant management, real-time dashboard, analytics",
-  authors: [{ name: "PG Manager Pro Team" }],
-  creator: "PG Manager Pro",
-  publisher: "PG Manager Pro",
+  authors: [{ name: "MY PG Team" }],
+  creator: "MY PG",
+  publisher: "MY PG",
   formatDetection: {
     email: false,
     address: false,
@@ -44,17 +44,17 @@ export const metadata = {
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   ),
   openGraph: {
-    title: "PG Manager Pro - Enterprise Property Management",
+    title: "MY PG - Property Management System",
     description:
-      "Transform your PG management with our world-class platform featuring real-time updates and advanced analytics",
+      "Transform your PG management with our professional platform featuring real-time updates and advanced analytics",
     url: "/",
-    siteName: "PG Manager Pro",
+    siteName: "MY PG",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "PG Manager Pro Dashboard",
+        alt: "MY PG Dashboard",
       },
     ],
     locale: "en_US",
@@ -62,8 +62,8 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PG Manager Pro - Enterprise Property Management",
-    description: "Transform your PG management with our world-class platform",
+    title: "MY PG - Property Management System",
+    description: "Transform your PG management with our professional platform",
     images: ["/og-image.jpg"],
   },
   robots: {

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { 
   LayoutDashboard, 
   Building2, 
@@ -28,6 +29,7 @@ import {
   ClipboardList,
   MessageSquare
 } from 'lucide-react';
+import { Logo } from '@/components/ui';
 
 const menuItems = [
   {
@@ -139,9 +141,16 @@ const quickActions = [
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const [mounted, setMounted] = useState(false);
+  const buttonRefs = useRef({});
   const pathname = usePathname();
   const router = useRouter();
   const { selectedProperty } = useSelector((state) => state.property);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Auto-collapse on mobile
   useEffect(() => {
@@ -183,7 +192,7 @@ export function Sidebar() {
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative z-40 flex h-screen flex-col border-r border-gray-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 overflow-y-auto"
+      className="relative z-40 flex h-screen flex-col border-r-2 border-gray-200 bg-white shadow-xl overflow-y-auto"
     >
       {/* Toggle Button */}
       <motion.button
@@ -197,29 +206,16 @@ export function Sidebar() {
       </motion.button>
 
       {/* Header Section - Sticky */}
-      <div className="sticky top-0 z-10 p-6 flex-shrink-0 bg-white border-b border-gray-200/50">
+      <div className="sticky top-0 z-10 p-6 flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
         <motion.div 
-          className="flex items-center space-x-3 min-w-0"
+          className="flex items-center min-w-0"
           animate={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-glow-sm flex-shrink-0">
-            <Activity className="h-5 w-5" />
-          </div>
-          
-          <AnimatePresence>
-            {!isCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-                className="min-w-0 flex-1"
-              >
-                <h1 className="text-xl font-bold gradient-text truncate">PG Manager</h1>
-                <p className="text-xs text-gray-500 -mt-1 truncate">Professional Edition</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <Logo 
+            size={isCollapsed ? 'default' : 'default'} 
+            showText={!isCollapsed}
+            className={isCollapsed ? 'justify-center' : ''}
+          />
         </motion.div>
 
         {/* Property Selector */}
@@ -248,8 +244,9 @@ export function Sidebar() {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 px-4 pb-4">
-        <div className="space-y-1">
+      <nav className="flex-1 px-4 pb-4 pt-2">
+        {/* Main Navigation Section */}
+        <div className="space-y-2 mb-6">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = isActiveRoute(item.href);
@@ -260,34 +257,49 @@ export function Sidebar() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                onMouseEnter={() => setHoveredItem(item.id)}
+                onMouseEnter={() => {
+                  if (isCollapsed) {
+                    setHoveredItem(item.id);
+                    const buttonElement = buttonRefs.current[item.id];
+                    if (buttonElement) {
+                      const rect = buttonElement.getBoundingClientRect();
+                      setTooltipPosition({
+                        top: rect.top + window.scrollY,
+                        left: rect.right + 8
+                      });
+                    }
+                  }
+                }}
                 onMouseLeave={() => setHoveredItem(null)}
               >
                 <motion.button
+                  ref={(el) => (buttonRefs.current[item.id] = el)}
                   whileHover={{ scale: 1.02, x: 4 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleNavigation(item.href)}
                   className={`
-                    relative w-full flex items-center rounded-xl px-3 py-3 text-left transition-all duration-200
+                    relative w-full flex items-center rounded-lg px-3 py-3 text-left transition-all duration-300 group
                     ${isActive 
-                      ? 'bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-glow-sm' 
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-primary-500 text-white shadow-md' 
+                      : 'text-gray-700 hover:bg-gray-100/70 hover:text-gray-900'
                     }
                     ${isCollapsed ? 'justify-center' : 'justify-start'}
                   `}
                 >
                   {/* Icon */}
                   <div className="relative">
-                    <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                    <Icon className={`h-5 w-5 transition-colors duration-200 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-primary-500'}`} />
                     
-                    {/* Active indicator dot */}
-                    {isActive && (
+                    
+                    {/* Hover indicator */}
+                    {!isActive && (
                       <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white shadow-sm"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-primary-500 rounded-r-full opacity-0 group-hover:opacity-100 group-hover:h-6 transition-all duration-200"
+                        initial={{ height: 0, opacity: 0 }}
+                        whileHover={{ height: 24, opacity: 1 }}
                       />
                     )}
+                    
                   </div>
 
                   {/* Label and Badge */}
@@ -322,26 +334,23 @@ export function Sidebar() {
                     )}
                   </AnimatePresence>
 
-                  {/* Tooltip for collapsed state */}
-                  <AnimatePresence>
-                    {isCollapsed && hoveredItem === item.id && (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg shadow-lg whitespace-nowrap"
-                        style={{ zIndex: 20 }}
-                      >
-                        {item.label}
-                        <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </motion.button>
               </motion.div>
             );
           })}
         </div>
+
+        {/* Divider */}
+        <AnimatePresence>
+          {!isCollapsed && (
+            <motion.div
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              exit={{ opacity: 0, scaleX: 0 }}
+              className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-6"
+            />
+          )}
+        </AnimatePresence>
 
         {/* Quick Actions Section */}
         <AnimatePresence>
@@ -350,9 +359,10 @@ export function Sidebar() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="mt-8"
+              className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200/50 p-4 shadow-sm"
             >
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 flex items-center">
+                <Zap className="h-3 w-3 mr-2 text-primary-500" />
                 Quick Actions
               </h3>
               
@@ -369,7 +379,7 @@ export function Sidebar() {
                       whileHover={{ scale: 1.02, x: 4 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={action.action}
-                      className="w-full flex items-center space-x-3 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                      className="w-full flex items-center space-x-3 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-white hover:shadow-sm rounded-lg transition-all duration-200 border border-transparent hover:border-gray-200 group"
                     >
                       <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${action.color} text-white shadow-sm`}>
                         <Icon className="h-4 w-4" />
@@ -425,20 +435,21 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-gray-200 p-4 bg-white shadow-lg">
         <AnimatePresence>
           {!isCollapsed ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center"
+              className="text-center p-3 bg-gradient-to-br from-primary-50 to-secondary-50 rounded-lg border border-primary-100"
             >
-              <p className="text-xs text-gray-500">
-                PG Manager Pro v2.0
+              <p className="text-xs text-gray-600 font-semibold flex items-center justify-center">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                MY PG v2.0
               </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Enterprise Edition
+              <p className="text-xs text-gray-500 mt-1">
+                Management System
               </p>
             </motion.div>
           ) : (
@@ -454,6 +465,33 @@ export function Sidebar() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Tooltip Portal - Outside sidebar to prevent overflow */}
+      {mounted && isCollapsed && hoveredItem && createPortal(
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, x: -10, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="fixed px-4 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl shadow-2xl whitespace-nowrap pointer-events-none border border-gray-700"
+            style={{
+              zIndex: 9999,
+              top: tooltipPosition.top,
+              left: tooltipPosition.left,
+              backdropFilter: 'blur(8px)',
+              background: 'linear-gradient(135deg, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.95))'
+            }}
+          >
+            {menuItems.find(item => item.id === hoveredItem)?.label}
+            
+            
+            {/* Subtle glow effect */}
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-500/10 to-secondary-500/10 -z-10" />
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.aside>
   );
 }
