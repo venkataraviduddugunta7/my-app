@@ -8,6 +8,7 @@ const Input = forwardRef(({
   className,
   type = 'text',
   label,
+  labelClassName,
   placeholder,
   error,
   success,
@@ -154,7 +155,7 @@ const Input = forwardRef(({
     return (
       <div className="space-y-1">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={cn("block text-sm font-medium text-gray-700 mb-1", labelClassName)}>
             {label}
             {required && <span className="text-error-500 ml-1">*</span>}
           </label>
@@ -227,7 +228,7 @@ const Input = forwardRef(({
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={cn("block text-sm font-medium text-gray-700 mb-1", labelClassName)}>
           {label}
           {required && <span className="text-error-500 ml-1">*</span>}
         </label>

@@ -31,17 +31,14 @@ import {
   UserPlus,
   CreditCard,
   Bell,
-  RefreshCw,
   Filter,
   Search,
   MapPin,
   Phone,
   Mail,
   Wallet,
-  Activity,
   User,
   Zap,
-  Shield,
   BarChart3,
   PieChart,
   ArrowUpRight,
@@ -319,7 +316,6 @@ export default function Dashboard() {
   const { isAuthenticated } = useSelector((state) => state.auth);
   const { selectedProperty } = useSelector((state) => state.property);
 
-  const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -353,16 +349,6 @@ export default function Dashboard() {
         }));
         break;
     }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 2000);
-      dispatch(addToast({
-      title: 'Refreshed',
-      description: 'Dashboard data updated successfully',
-        variant: 'success'
-      }));
   };
 
   const property = selectedProperty || {
@@ -400,75 +386,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
-      {/* Hero Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-r from-primary-500 via-primary-600 to-secondary-500 rounded-3xl p-8 text-white shadow-float-lg"
-      >
-        <div className="absolute inset-0 bg-hero-pattern opacity-10" />
-        <div className="relative flex items-center justify-between">
-          <div>
-            <motion.h1
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-4xl font-bold mb-2"
-            >
-              Welcome Back! 👋
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-xl text-white/90"
-            >
-              Real-time management for{" "}
-              <span className="font-semibold">{property.name}</span>
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="flex items-center space-x-4 mt-4"
-            >
-              <div className="flex items-center space-x-2 bg-white/20 rounded-lg px-3 py-1">
-                <Activity className="w-4 h-4" />
-                <span className="text-sm font-medium">Live Dashboard</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-white/20 rounded-lg px-3 py-1">
-                <Shield className="w-4 h-4" />
-                <span className="text-sm font-medium">Real-time Updates</span>
-              </div>
-            </motion.div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.8 }}
-            className="hidden lg:block"
-          >
-            <div className="flex items-center space-x-4">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 rounded-xl px-4 py-2 transition-all duration-300"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-                />
-                <span className="text-sm font-medium">
-                  {refreshing ? "Refreshing..." : "Refresh"}
-                </span>
-              </motion.button>
-            </div>
-          </motion.div>
-        </div>
-      </motion.div>
-
       {/* Premium Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <PremiumStatsCard

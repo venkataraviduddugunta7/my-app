@@ -105,10 +105,10 @@ export function Logo({ size = 'default', showText = true, className = '' }) {
           transition={{ delay: 0.1 }}
           className="flex flex-col"
         >
-          <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-xl font-semibold tracking-[0.01em] text-white/95">
             PG Manager
           </h1>
-          <p className="text-xs text-gray-500 -mt-1 font-medium tracking-wide">
+          <p className="-mt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-300/85">
             Smart Management Tool
           </p>
         </motion.div>

@@ -20,12 +20,12 @@ export default function ProtectedRoute({ children }) {
   useEffect(() => {
     // Redirect to login if not authenticated and not loading
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      router.replace('/login');
     }
   }, [isAuthenticated, isLoading, router]);
 
   // Show loading screen while checking authentication
-  if (isLoading || (!isAuthenticated && !isLoading)) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -42,6 +42,10 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   // Render children if authenticated
-  return isAuthenticated ? children : null;
-} 
+  return children;
+}

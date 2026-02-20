@@ -2,161 +2,64 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Users, 
-  Bed, 
-  CreditCard, 
-  FileText, 
-  Bell, 
-  Settings, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Building2,
+  Users,
+  Bed,
+  CreditCard,
+  FileText,
+  Bell,
+  Settings,
+  BarChart3,
   Home,
-  ChevronLeft,
-  ChevronRight,
-  Zap,
-  Shield,
-  Activity,
-  Calendar,
-  PieChart,
-  TrendingUp,
-  UserCheck,
-  Wallet,
-  ClipboardList,
-  MessageSquare
+  PanelLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
+import { logoutUser } from '@/store/slices/authSlice';
 
 const menuItems = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/',
-    badge: null,
-    color: 'from-blue-500 to-blue-600'
-  },
-  {
-    id: 'properties',
-    label: 'Properties',
-    icon: Building2,
-    href: '/properties',
-    badge: null,
-    color: 'from-indigo-500 to-indigo-600'
-  },
-  {
-    id: 'tenants',
-    label: 'Tenants',
-    icon: Users,
-    href: '/tenants',
-    badge: 'new',
-    color: 'from-purple-500 to-purple-600'
-  },
-  {
-    id: 'rooms',
-    label: 'Rooms & Beds',
-    icon: Bed,
-    href: '/rooms',
-    badge: null,
-    color: 'from-orange-500 to-orange-600'
-  },
-  {
-    id: 'payments',
-    label: 'Payments',
-    icon: CreditCard,
-    href: '/payments',
-    badge: '5',
-    color: 'from-green-500 to-green-600'
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    icon: BarChart3,
-    href: '/analytics',
-    badge: null,
-    color: 'from-indigo-500 to-indigo-600'
-  },
-  {
-    id: 'reports',
-    label: 'Reports',
-    icon: PieChart,
-    href: '/reports',
-    badge: null,
-    color: 'from-pink-500 to-pink-600'
-  },
-  {
-    id: 'notices',
-    label: 'Notices',
-    icon: Bell,
-    href: '/notices',
-    badge: null,
-    color: 'from-yellow-500 to-yellow-600'
-  },
-  {
-    id: 'documents',
-    label: 'Documents',
-    icon: FileText,
-    href: '/documents',
-    badge: null,
-    color: 'from-teal-500 to-teal-600'
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-    href: '/settings',
-    badge: null,
-    color: 'from-gray-500 to-gray-600'
-  }
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/', badge: null },
+  { id: 'properties', label: 'Properties', icon: Building2, href: '/properties', badge: null },
+  { id: 'tenants', label: 'Tenants', icon: Users, href: '/tenants', badge: 'new' },
+  { id: 'rooms', label: 'Rooms & Beds', icon: Bed, href: '/rooms', badge: null },
+  { id: 'payments', label: 'Payments', icon: CreditCard, href: '/payments', badge: '5' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics', badge: null },
+  { id: 'reports', label: 'Reports', icon: BarChart3, href: '/reports', badge: null },
+  { id: 'notices', label: 'Notices', icon: Bell, href: '/notices', badge: null },
+  { id: 'documents', label: 'Documents', icon: FileText, href: '/documents', badge: null },
+  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings', badge: null },
 ];
 
-const quickActions = [
-  {
-    id: 'add-tenant',
-    label: 'Add Tenant',
-    icon: UserCheck,
-    action: () => console.log('Add tenant'),
-    color: 'from-blue-500 to-blue-600'
-  },
-  {
-    id: 'collect-payment',
-    label: 'Collect Payment',
-    icon: Wallet,
-    action: () => console.log('Collect payment'),
-    color: 'from-green-500 to-green-600'
-  },
-  {
-    id: 'maintenance',
-    label: 'Maintenance',
-    icon: ClipboardList,
-    action: () => console.log('Maintenance'),
-    color: 'from-orange-500 to-orange-600'
-  }
-];
-
-export function Sidebar() {
+export function Sidebar({ isMobileOpen = false, onCloseMobile }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [mounted, setMounted] = useState(false);
   const buttonRefs = useRef({});
   const pathname = usePathname();
   const router = useRouter();
+  const dispatch = useDispatch();
   const { selectedProperty } = useSelector((state) => state.property);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Auto-collapse on mobile
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setIsCollapsed(true);
+      const mobileView = window.innerWidth < 1024;
+      setIsMobile(mobileView);
+
+      if (mobileView) {
+        setIsCollapsed(false);
       }
     };
 
@@ -165,440 +68,196 @@ export function Sidebar() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    if (!isMobileOpen) return;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        onCloseMobile?.();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isMobileOpen, onCloseMobile]);
+
   const isActiveRoute = (href) => {
-    if (href === '/') {
-      return pathname === '/';
-    }
+    if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
 
   const handleNavigation = (href) => {
     router.push(href);
+    if (isMobile) {
+      onCloseMobile?.();
+    }
   };
 
   const sidebarVariants = {
-    expanded: { width: 280 },
-    collapsed: { width: 80 }
+    expanded: { width: 288 },
+    collapsed: { width: 88 },
   };
 
-  const itemVariants = {
-    expanded: { opacity: 1, x: 0 },
-    collapsed: { opacity: 0, x: -10 }
-  };
+  const isSidebarCollapsed = !isMobile && isCollapsed;
 
   return (
-    <motion.aside
-      initial="expanded"
-      animate={isCollapsed ? "collapsed" : "expanded"}
-      variants={sidebarVariants}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative z-40 flex h-screen flex-col border-r-1 border-gray-200 bg-white shadow-xl overflow-y-auto"
-    >
-      {/* Toggle Button - Fixed Position */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className={`fixed top-2 flex items-center justify-center rounded-full border border-gray-200 bg-white shadow-elegant text-gray-500 hover:text-gray-700 transition-all duration-200 ${
-          isCollapsed ? 'h-6 w-6' : 'h-6 w-6'
+    <>
+      {isMobile && isMobileOpen && (
+        <button
+          type="button"
+          onClick={() => onCloseMobile?.()}
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[1px] lg:hidden"
+          aria-label="Close sidebar"
+        />
+      )}
+      <motion.aside
+        initial="expanded"
+        animate={isSidebarCollapsed ? 'collapsed' : 'expanded'}
+        variants={sidebarVariants}
+        transition={{ duration: 0.22, ease: 'easeInOut' }}
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col border-r border-white/10 bg-[radial-gradient(circle_at_-34%_-18%,rgba(56,189,248,0.10),rgba(15,23,42,0.90)_34%,rgba(2,6,23,0.96)_100%)] text-slate-100 backdrop-blur-2xl shadow-[inset_-1px_0_0_rgba(255,255,255,0.05)] transition-transform duration-200 lg:relative lg:z-40 lg:translate-x-0 ${
+          isMobile && !isMobileOpen ? '-translate-x-full' : 'translate-x-0'
         }`}
-        style={{ 
-          zIndex: 9999, 
-          left: isCollapsed ? 'calc(3.5rem)' : 'calc(16rem)' 
-        }}
       >
-        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-5 w-5" />}
-      </motion.button>
-
-      {/* Header Section - Sticky */}
-      <div className="sticky top-0 z-20 p-4 flex-shrink-0 bg-white shadow-sm">
-        <AnimatePresence>
-          {!isCollapsed ? (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200/50 p-4 shadow-sm"
-            >
-              <div className="flex items-center justify-center mb-4">
-                <Logo 
-                  size="default" 
-                  showText={true} 
-                />
-              </div>
-
-              {/* Selected Property */}
-              {selectedProperty && (
-                <div>
-                  <div className="flex items-center space-x-2 p-3 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-lg border border-gray-200/50 shadow-sm">
-                    <Home className="h-4 w-4 text-primary-500 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {selectedProperty.name}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {selectedProperty.address}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+        {!isMobile && (
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="fixed top-3 z-[60] flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-white/[0.10] text-slate-200 backdrop-blur-xl transition-all duration-150 hover:border-white/30 hover:bg-white/[0.16] hover:text-white"
+            style={{ left: isSidebarCollapsed ? '4.05rem' : '17.05rem' }}
+            aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <span className="relative inline-flex items-center justify-center">
+              <PanelLeft className="h-[17px] w-[17px] opacity-85" />
+              {isSidebarCollapsed ? (
+                <PanelLeftOpen className="absolute h-[17px] w-[17px] stroke-[2.2]" />
+              ) : (
+                <PanelLeftClose className="absolute h-[17px] w-[17px] stroke-[2.2]" />
               )}
-            </motion.div>
-          ) : (
-            // Collapsed header - just logo
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center"
-            >
-              <Logo 
-                size="default" 
-                showText={false} 
-              />
-            </motion.div>
+            </span>
+          </motion.button>
+        )}
+
+      <div className="sticky top-0 z-20 border-b border-white/10 p-4">
+        <div
+          className={`rounded-2xl p-3 transition-colors duration-150 ${
+            isSidebarCollapsed ? 'border border-transparent bg-transparent' : 'border border-white/10 bg-white/[0.04]'
+          }`}
+        >
+          <div className="flex items-center justify-center">
+            <Logo size="default" showText={!isSidebarCollapsed} />
+          </div>
+
+          {!isSidebarCollapsed && selectedProperty && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/10 bg-black/10 p-3">
+              <Home className="mt-0.5 h-4 w-4 shrink-0 text-slate-300" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">{selectedProperty.name}</p>
+                <p className="truncate text-xs text-slate-300">{selectedProperty.address}</p>
+              </div>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 px-4 pb-4 pt-2">
-        {/* Navigation Items */}
-        <AnimatePresence>
-          {!isCollapsed ? (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-             className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"
-            >
-              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 flex items-center">
-                <LayoutDashboard className="h-3 w-3 mr-2 text-primary-500" />
-                Navigation
-              </h3>
-              
-              <div className="space-y-1">
-                {menuItems.map((item, index) => {
-                  const Icon = item.icon;
-                  const isActive = isActiveRoute(item.href);
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+        <div className="space-y-1 pt-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = isActiveRoute(item.href);
 
-                  return (
-              <motion.div
+            return (
+              <div
                 key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
                 onMouseEnter={() => {
-                  if (isCollapsed) {
-                    setHoveredItem(item.id);
-                    const buttonElement = buttonRefs.current[item.id];
-                    if (buttonElement) {
-                      const rect = buttonElement.getBoundingClientRect();
-                      setTooltipPosition({
-                        top: rect.top + window.scrollY,
-                        left: rect.right + 8
-                      });
-                    }
+                  if (!isSidebarCollapsed) return;
+                  setHoveredItem(item.id);
+                  const buttonElement = buttonRefs.current[item.id];
+                  if (buttonElement) {
+                    const rect = buttonElement.getBoundingClientRect();
+                    setTooltipPosition({ top: rect.top + window.scrollY + 2, left: rect.right + 8 });
                   }
                 }}
                 onMouseLeave={() => setHoveredItem(null)}
               >
-                <motion.button
+                <button
                   ref={(el) => (buttonRefs.current[item.id] = el)}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={() => handleNavigation(item.href)}
-                  className={`
-                    relative w-full flex items-center rounded-lg px-3 py-2.5 text-left transition-all duration-200 border border-transparent group
-                    ${isActive 
-                      ? 'bg-primary-500 text-white shadow-md' 
-                      : 'text-gray-700 hover:bg-white hover:shadow-sm hover:border-gray-200'
-                    }
-                    ${isCollapsed ? 'justify-center' : 'justify-start'}
-                  `}
+                  className={`group flex w-full items-center rounded-xl border px-3 py-2.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 ${
+                    isActive
+                      ? 'border-cyan-300/35 bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]'
+                      : 'border-transparent text-slate-200 hover:border-white/15 hover:bg-white/[0.10] hover:text-white active:bg-white/[0.14]'
+                  } ${isSidebarCollapsed ? 'justify-center' : 'justify-start'}`}
                 >
-                  {/* Icon */}
-                  <div className="relative">
-                    <Icon className={`h-5 w-5 transition-colors duration-200 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-primary-500'}`} />
-                    
-                    
-                    {/* Hover indicator */}
-                    {!isActive && (
-                      <motion.div
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-primary-500 rounded-r-full opacity-0 group-hover:opacity-100 group-hover:h-6 transition-all duration-200"
-                        initial={{ height: 0, opacity: 0 }}
-                        whileHover={{ height: 24, opacity: 1 }}
-                      />
-                    )}
-                    
-                  </div>
+                  <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-sky-200' : 'text-slate-300 group-hover:text-white'}`} />
 
-                  {/* Label and Badge */}
-                  <AnimatePresence>
-                    {!isCollapsed && (
-                      <motion.div
-                        variants={itemVariants}
-                        initial="collapsed"
-                        animate="expanded"
-                        exit="collapsed"
-                        className="ml-3 flex items-center justify-between flex-1 min-w-0"
-                      >
-                        <span>{item.label}</span>
-                        
-                        {/* Badge */}
-                        {item.badge && (
-                          <motion.span
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className={`
-                              ml-2 flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold
-                              ${item.badge === 'new' 
-                                ? 'bg-success-500 text-white' 
-                                : 'bg-warning-500 text-white'
-                              }
-                            `}
-                          >
-                            {item.badge === 'new' ? '!' : item.badge}
-                          </motion.span>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                </motion.button>
-              </motion.div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            ) : (
-              // Collapsed navigation - just icons
-              <div className="space-y-2 mb-4">
-                {menuItems.map((item, index) => { 
-                  const Icon = item.icon;
-                  const isActive = isActiveRoute(item.href);
-
-                  return (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      onMouseEnter={() => {
-                        if (isCollapsed) {
-                          setHoveredItem(item.id);
-                          const buttonElement = buttonRefs.current[item.id];
-                          if (buttonElement) {
-                            const rect = buttonElement.getBoundingClientRect();
-                            setTooltipPosition({
-                              top: rect.top + window.scrollY,
-                              left: rect.right + 8
-                            });
-                          }
-                        }
-                      }}
-                      onMouseLeave={() => setHoveredItem(null)}
-                    >
-                      <motion.button
-                        ref={(el) => (buttonRefs.current[item.id] = el)}
-                        whileHover={{ scale: 1.02, x: 4 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleNavigation(item.href)}
-                        className={`
-                          relative w-full flex items-center rounded-lg px-3 py-2.5 text-left transition-all duration-200 border border-transparent group
-                          ${isActive 
-                            ? 'bg-primary-500 text-white shadow-md' 
-                            : 'text-gray-700 hover:bg-white hover:shadow-sm hover:border-gray-200'
-                          }
-                          ${isCollapsed ? 'justify-center' : 'justify-start'}
-                        `}
-                      >
-                        {/* Icon */}
-                        <div className="relative">
-                          <Icon className={`h-5 w-5 transition-colors duration-200 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-primary-500'}`} />
-                          
-                          {/* Hover indicator */}
-                          {!isActive && (
-                            <motion.div
-                              className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-primary-500 rounded-r-full opacity-0 group-hover:opacity-100 group-hover:h-6 transition-all duration-200"
-                              initial={{ height: 0, opacity: 0 }}
-                              whileHover={{ height: 24, opacity: 1 }}
-                            />
-                          )}
-                        </div>
-                      </motion.button>
-                    </motion.div>
-                  );
-                })}
+                  {!isSidebarCollapsed && (
+                    <div className="ml-3 flex min-w-0 flex-1 items-center justify-between gap-2">
+                      <span className="truncate text-sm font-medium">{item.label}</span>
+                      {item.badge && (
+                        <span
+                          className={`inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
+                            item.badge === 'new' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                          }`}
+                        >
+                          {item.badge === 'new' ? '!' : item.badge}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </button>
               </div>
-            )}
-          </AnimatePresence>
+            );
+          })}
+        </div>
 
-        {/* Divider */}
-        <AnimatePresence>
-          {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, scaleX: 0 }}
-              animate={{ opacity: 1, scaleX: 1 }}
-              exit={{ opacity: 0, scaleX: 0 }}
-              className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent my-4"
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Quick Actions Section */}
-        <AnimatePresence>
-          {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-             className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"
-            >
-              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 flex items-center">
-                <Zap className="h-3 w-3 mr-2 text-primary-500" />
-                Quick Actions
-              </h3>
-              
-              <div className="space-y-1">
-                {quickActions.map((action, index) => {
-                  const Icon = action.icon;
-                  
-                  return (
-                    <motion.button
-                      key={action.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + index * 0.1 }}
-                      whileHover={{ scale: 1.02, x: 4 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={action.action}
-                      className="w-full flex items-center space-x-3 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-white hover:shadow-sm rounded-lg transition-all duration-200 border border-transparent hover:border-gray-200 group"
-                    >
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${action.color} text-white shadow-sm`}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <span className="font-medium">{action.label}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Stats Summary */}
-        <AnimatePresence>
-          {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"
-            >
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Today's Overview</h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-success-500" />
-                    <span className="text-sm text-gray-600">Occupancy</span>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">87%</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Wallet className="h-4 w-4 text-primary-500" />
-                    <span className="text-sm text-gray-600">Revenue</span>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">₹12.5k</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <MessageSquare className="h-4 w-4 text-warning-500" />
-                    <span className="text-sm text-gray-600">Pending</span>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">3</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </nav>
 
-      {/* Footer - Sticky */}
-      <div className="bottom-0 z-10 p-4 bg-white">
-        <AnimatePresence>
-          {!isCollapsed ? (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-            className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"
-            >  
-              <div className="text-center">
-                <p className="text-xs text-gray-600 font-semibold flex items-center justify-center">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-                  MY PG v2.0
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Management System
-                </p>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex justify-center"
-            >
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
-                <Zap className="h-4 w-4 text-white" />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <div className="border-t border-white/10 p-3">
+        <div className="flex justify-center">
+          <button
+            onClick={() => {
+              dispatch(logoutUser());
+              if (isMobile) onCloseMobile?.();
+            }}
+            className={`inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 text-slate-100 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
+              isSidebarCollapsed ? 'h-10 w-10' : 'w-full px-3 py-2 text-sm font-medium'
+            }`}
+            aria-label="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+            {!isSidebarCollapsed && <span>Logout</span>}
+          </button>
+        </div>
       </div>
 
-      {/* Tooltip Portal - Outside sidebar to prevent overflow */}
-      {mounted && isCollapsed && hoveredItem && createPortal(
-        <AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0, x: -10, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -10, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed px-4 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl shadow-2xl whitespace-nowrap pointer-events-none border border-gray-700"
-            style={{
-              zIndex: 9999,
-              top: tooltipPosition.top,
-              left: tooltipPosition.left,
-              backdropFilter: 'blur(8px)',
-              background: 'linear-gradient(135deg, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.95))'
-            }}
-          >
-            {menuItems.find(item => item.id === hoveredItem)?.label}
-            
-            
-            {/* Subtle glow effect */}
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-500/10 to-secondary-500/10 -z-10" />
-          </motion.div>
-        </AnimatePresence>,
-        document.body
-      )}
-    </motion.aside>
+      {mounted && isSidebarCollapsed && hoveredItem &&
+        createPortal(
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              className="fixed rounded-lg border border-white/10 bg-slate-900/95 px-3 py-2 text-xs font-medium text-slate-100 shadow-xl"
+              style={{ zIndex: 9999, top: tooltipPosition.top, left: tooltipPosition.left }}
+            >
+              {menuItems.find((item) => item.id === hoveredItem)?.label}
+            </motion.div>
+          </AnimatePresence>,
+          document.body
+        )}
+      </motion.aside>
+    </>
   );
 }
 
-// Export the toggle component for mobile use
 export function SidebarToggle() {
   return (
     <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200 lg:hidden"
+      whileTap={{ scale: 0.96 }}
+      className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 lg:hidden"
+      aria-label="Open sidebar"
     >
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />

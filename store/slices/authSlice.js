@@ -76,13 +76,31 @@ export const getUserProfile = createAsyncThunk(
         return rejectWithValue('No token found');
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      let response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
+
+      // Backward compatibility if backend still exposes /auth/profile
+      if (response.status === 404) {
+        response = await fetch(`${API_BASE_URL}/auth/profile`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+      }
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -92,6 +110,9 @@ export const getUserProfile = createAsyncThunk(
 
       return data.data;
     } catch (error) {
+      if (error.name === 'AbortError') {
+        return rejectWithValue('Profile request timed out');
+      }
       return rejectWithValue(error.message || 'Network error');
     }
   }
@@ -234,8 +255,10 @@ const authSlice = createSlice({
         state.error = action.payload;
         state.isAuthenticated = false;
         state.token = null;
+        state.user = null;
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
         }
       })
       

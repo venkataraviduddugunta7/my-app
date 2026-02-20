@@ -8,11 +8,8 @@ import propertyService from '@/services/propertyService';
 import { 
   Search, 
   Bell, 
-  Settings, 
-  LogOut, 
+  RefreshCw,
   User, 
-  Moon, 
-  Sun,
   Menu,
   X,
   ChevronDown,
@@ -22,22 +19,19 @@ import {
   Building2,
   Check
 } from 'lucide-react';
-import { logoutUser } from '@/store/slices/authSlice';
 import { setSelectedProperty } from '@/store/slices/propertySlice';
 import { addToast } from '@/store/slices/uiSlice';
 import RealtimeIndicator from '@/components/ui/RealtimeIndicator';
 
-export function Header() {
+export function Header({ onOpenSidebar }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPropertyMenu, setShowPropertyMenu] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [properties, setProperties] = useState([]);
   const [loadingProperties, setLoadingProperties] = useState(false);
   
-  const profileMenuRef = useRef(null);
   const notificationRef = useRef(null);
   const propertyMenuRef = useRef(null);
   const dispatch = useDispatch();
@@ -69,9 +63,6 @@ export function Header() {
   // Close dropdowns when clicking outside and when pressing Escape
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
-        setShowProfileMenu(false);
-      }
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
@@ -82,7 +73,6 @@ export function Header() {
 
     const handleKeydown = (event) => {
       if (event.key === 'Escape') {
-        setShowProfileMenu(false);
         setShowNotifications(false);
         setShowPropertyMenu(false);
       }
@@ -98,7 +88,6 @@ export function Header() {
 
   // Close any open menus when route changes
   useEffect(() => {
-    setShowProfileMenu(false);
     setShowNotifications(false);
     setShowPropertyMenu(false);
   }, [pathname]);
@@ -118,23 +107,19 @@ export function Header() {
     }
   };
 
-  const handleLogout = () => {
-    dispatch(logoutUser());
-    setShowProfileMenu(false);
-  };
-
-  const handleSettingsClick = () => {
-    router.push('/settings');
-    setShowProfileMenu(false);
-  };
-
   const getUserInitials = (name) => {
     return name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U';
   };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
+  const handleHeaderRefresh = () => {
+    setIsRefreshing(true);
+    router.refresh();
+    dispatch(addToast({
+      title: 'Refreshed',
+      description: 'Latest data loaded',
+      variant: 'success'
+    }));
+    window.setTimeout(() => setIsRefreshing(false), 700);
   };
 
   // Mock notifications data
@@ -172,7 +157,7 @@ export function Header() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="w-full border-b border-gray-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60"
+      className="w-full border-b border-white/10 bg-[radial-gradient(circle_at_-40%_-240%,rgba(56,189,248,0.16),rgba(15,23,42,0.90)_35%,rgba(2,6,23,0.96)_100%)] backdrop-blur-2xl shadow-[inset_0_-1px_0_rgba(255,255,255,0.05)]"
     >
       <div className="flex h-16 items-center justify-between px-6">
         {/* Left Section - Logo & Search */}
@@ -181,7 +166,8 @@ export function Header() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="lg:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
+            onClick={onOpenSidebar}
+            className="rounded-xl border border-white/10 p-2 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white lg:hidden"
             aria-label="Open sidebar"
           >
             <Menu className="h-5 w-5" />
@@ -192,15 +178,15 @@ export function Header() {
             <div className="relative" ref={propertyMenuRef}>
               <motion.button
                 onClick={() => setShowPropertyMenu(!showPropertyMenu)}
-                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-200 rounded-xl transition-all"
+                className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.07] px-3 py-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10)] transition-all duration-200 hover:border-white/25 hover:bg-white/[0.11]"
                 aria-expanded={showPropertyMenu}
                 aria-haspopup="menu"
               >
-                <Building2 className="h-4 w-4 text-primary-600" />
-                <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-[150px] truncate">
+                <Building2 className="h-4 w-4 text-cyan-200" />
+                <span className="hidden max-w-[150px] truncate text-sm font-medium text-white sm:block">
                   {selectedProperty?.name || 'Select Property'}
                 </span>
-                <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${showPropertyMenu ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 text-slate-200 transition-transform duration-200 ${showPropertyMenu ? 'rotate-180' : ''}`} />
               </motion.button>
 
               <AnimatePresence>
@@ -209,7 +195,7 @@ export function Header() {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-[60]"
+                    className="absolute left-0 top-full z-[60] mt-2 w-64 overflow-hidden rounded-xl border border-white/15 bg-slate-950/95 shadow-2xl backdrop-blur-xl"
                   >
                     <div className="p-2">
                       <button
@@ -217,17 +203,17 @@ export function Header() {
                           router.push('/properties');
                           setShowPropertyMenu(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
+                        className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-cyan-100 transition-colors hover:bg-white/[0.08]"
                       >
                         + Manage Properties
                       </button>
                     </div>
-                    <div className="border-t border-gray-100">
+                    <div className="border-t border-white/10">
                       <div className="max-h-64 overflow-y-auto p-2">
                         {loadingProperties ? (
                           <div className="flex items-center justify-center py-4">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
-                            <span className="ml-2 text-sm text-gray-500">Loading properties...</span>
+                            <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-cyan-300"></div>
+                            <span className="ml-2 text-sm text-slate-200">Loading properties...</span>
                           </div>
                         ) : properties.length > 0 ? (
                           properties.map((property) => {
@@ -246,21 +232,21 @@ export function Header() {
                                   }));
                                   setShowPropertyMenu(false);
                                 }}
-                                className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                                className={`w-full rounded-lg px-3 py-2 text-left transition-colors ${
                                   selectedProperty?.id === property.id
-                                    ? 'bg-primary-50 text-primary-700'
-                                    : 'hover:bg-gray-50'
+                                    ? 'bg-white/[0.10] text-white'
+                                    : 'text-slate-100 hover:bg-white/[0.06]'
                                 }`}
                               >
                                 <div className="flex items-center justify-between">
                                   <div>
-                                    <p className="text-sm font-medium">{property.name}</p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-sm font-medium text-white">{property.name}</p>
+                                    <p className="text-xs text-slate-300">
                                       {occupiedBeds}/{totalBeds} beds occupied
                                     </p>
                                   </div>
                                   {selectedProperty?.id === property.id && (
-                                    <Check className="h-4 w-4 text-primary-600" />
+                                    <Check className="h-4 w-4 text-cyan-300" />
                                   )}
                                 </div>
                               </button>
@@ -268,14 +254,14 @@ export function Header() {
                           })
                         ) : (
                           <div className="text-center py-4">
-                            <Building2 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">No properties found</p>
+                            <Building2 className="mx-auto mb-2 h-8 w-8 text-slate-500" />
+                            <p className="text-sm text-slate-300">No properties found</p>
                             <button
                               onClick={() => {
                                 router.push('/properties');
                                 setShowPropertyMenu(false);
                               }}
-                              className="text-xs text-primary-600 hover:text-primary-700 mt-1"
+                              className="mt-1 text-xs text-cyan-100 hover:text-cyan-50"
                             >
                               Add your first property
                             </button>
@@ -298,7 +284,7 @@ export function Header() {
               transition={{ duration: 0.2 }}
             >
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-colors duration-200" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors duration-200" />
               <input
                 type="text"
                 placeholder="Search tenants, rooms, payments..."
@@ -308,9 +294,10 @@ export function Header() {
                 onBlur={() => setIsSearchFocused(false)}
                 className={`
                   w-full pl-10 pr-4 py-2.5 text-sm
-                  bg-gray-50 border border-gray-200 rounded-xl
-                  placeholder:text-gray-500 transition-all duration-200
-                  ${isSearchFocused ? 'shadow-elegant' : 'hover:bg-gray-100'}
+                  rounded-xl border border-white/15 bg-white/[0.07]
+                  text-white placeholder:text-slate-300 transition-all duration-200
+                  focus:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/20
+                  ${isSearchFocused ? 'shadow-[0_0_0_1px_rgba(125,211,252,0.24)]' : 'hover:bg-white/[0.1]'}
                 `}
                 aria-label="Global search"
               />
@@ -319,7 +306,7 @@ export function Header() {
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-white"
                   aria-label="Clear search"
                 >
                   <X className="h-4 w-4" />
@@ -334,18 +321,18 @@ export function Header() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-float-lg z-[60]"
+                  className="absolute top-full z-[60] mt-2 w-full rounded-xl border border-white/15 bg-slate-950/95 shadow-2xl backdrop-blur-xl"
                 >
                   <div className="p-3">
-                    <p className="text-xs text-gray-500 mb-2">Quick Results</p>
+                    <p className="mb-2 text-xs text-slate-300">Quick Results</p>
                     <div className="space-y-1">
-                      <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-700">John Doe - Room 201</span>
+                      <div className="flex cursor-pointer items-center space-x-3 rounded-lg p-2 hover:bg-white/[0.07]">
+                        <User className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm text-white">John Doe - Room 201</span>
                       </div>
-                      <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-700">Sarah Wilson - Room 105</span>
+                      <div className="flex cursor-pointer items-center space-x-3 rounded-lg p-2 hover:bg-white/[0.07]">
+                        <User className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm text-white">Sarah Wilson - Room 105</span>
                       </div>
                     </div>
                   </div>
@@ -360,13 +347,22 @@ export function Header() {
         <div className="flex items-center space-x-3">
           {/* Real-time Status Indicator */}
           <RealtimeIndicator  />
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleHeaderRefresh}
+            className="rounded-xl border border-white/10 p-2 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+            aria-label="Refresh data"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </motion.button>
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
+              className="relative rounded-xl border border-white/10 p-2 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
               aria-expanded={showNotifications}
               aria-haspopup="menu"
             >
@@ -389,12 +385,12 @@ export function Header() {
                   initial={{ opacity: 0, scale: 0.95, y: -10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-float-lg z-[60]"
+                  className="absolute right-0 z-[60] mt-2 w-80 rounded-xl border border-white/15 bg-slate-950/95 shadow-2xl backdrop-blur-xl"
                 >
-                  <div className="p-4 border-b border-gray-100">
+                  <div className="border-b border-white/10 p-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
-                      <span className="text-xs text-gray-500">{unreadCount} new</span>
+                      <h3 className="text-sm font-semibold text-white">Notifications</h3>
+                      <span className="text-xs text-slate-300">{unreadCount} new</span>
                     </div>
                   </div>
                   
@@ -405,42 +401,42 @@ export function Header() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
-                          notification.unread ? 'bg-primary-50/30' : ''
+                        className={`cursor-pointer border-b border-white/5 p-4 transition-colors hover:bg-white/[0.05] ${
+                          notification.unread ? 'bg-cyan-500/10' : ''
                         }`}
                       >
                         <div className="flex items-start space-x-3">
                           <div className={`
                             flex h-8 w-8 items-center justify-center rounded-lg
-                            ${notification.type === 'success' ? 'bg-success-100 text-success-600' : ''}
-                            ${notification.type === 'warning' ? 'bg-warning-100 text-warning-600' : ''}
-                            ${notification.type === 'error' ? 'bg-error-100 text-error-600' : ''}
+                            ${notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-200' : ''}
+                            ${notification.type === 'warning' ? 'bg-amber-500/20 text-amber-200' : ''}
+                            ${notification.type === 'error' ? 'bg-rose-500/20 text-rose-200' : ''}
                           `}>
                             {notification.type === 'success' && <Zap className="h-4 w-4" />}
                             {notification.type === 'warning' && <Shield className="h-4 w-4" />}
                             {notification.type === 'error' && <Activity className="h-4 w-4" />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-white">
                               {notification.title}
                             </p>
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="mt-1 text-sm text-slate-200">
                               {notification.message}
                             </p>
-                            <p className="text-xs text-gray-500 mt-2">
+                            <p className="mt-2 text-xs text-slate-400">
                               {notification.time}
                             </p>
                           </div>
                           {notification.unread && (
-                            <div className="h-2 w-2 rounded-full bg-primary-500"></div>
+                            <div className="h-2 w-2 rounded-full bg-cyan-300"></div>
                           )}
                         </div>
                       </motion.div>
                     ))}
                   </div>
                   
-                  <div className="p-3 border-t border-gray-100">
-                    <button className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium">
+                  <div className="border-t border-white/10 p-3">
+                    <button className="w-full text-center text-sm font-medium text-cyan-100 hover:text-cyan-50">
                       View all notifications
                     </button>
                   </div>
@@ -448,95 +444,14 @@ export function Header() {
               )}
             </AnimatePresence>
           </div>
-
-          {/* Profile Menu */}
-          <div className="relative" ref={profileMenuRef}>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center space-x-3 rounded-lg p-2 hover:bg-gray-100 transition-all duration-200"
-              aria-expanded={showProfileMenu}
-              aria-haspopup="menu"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="hidden sm:block text-right">
-                  <p className="text-sm font-semibold text-gray-900">{user?.fullName || 'User'}</p>
-                  <p className="text-xs text-gray-500 capitalize">{user?.role?.toLowerCase() || 'Member'}</p>
-                </div>
-
-                <div className="relative">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white font-semibold text-sm shadow-elegant">
-                    {getUserInitials(user?.fullName)}
-                  </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success-500 border-2 border-white"></div>
-                </div>
-                
-                <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${
-                  showProfileMenu ? 'rotate-180' : ''
-                }`} />
-              </div>
-            </motion.button>
-
-            {/* Profile Dropdown */}
-            <AnimatePresence>
-              {showProfileMenu && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 1, y: 0 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 1, y: 0 }}
-                  className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-float-lg z-[60]"
-                >
-                  {/* Profile Header */}
-                  <div className="p-4 border-b border-gray-100">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 text-white font-semibold">
-                        {getUserInitials(user?.fullName)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{user?.fullName || 'User'}</p>
-                        <p className="text-xs text-gray-500">{user?.email}</p>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 mt-1">
-                          {user?.role || 'Member'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Menu Items */}
-                  <div className="p-2">
-                    <motion.button
-                      whileHover={{ x: 4 }}
-                      onClick={handleSettingsClick}
-                      className="flex w-full items-center space-x-3 rounded-lg p-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-all duration-200"
-                    >
-                      <Settings className="h-4 w-4 text-gray-500" />
-                      <span>Settings & Preferences</span>
-                    </motion.button>
-                    
-                    <motion.button
-                      whileHover={{ x: 4 }}
-                      onClick={() => router.push('/profile')}
-                      className="flex w-full items-center space-x-3 rounded-lg p-3 text-left text-sm text-gray-700 hover:bg-gray-50 transition-all duration-200"
-                    >
-                      <User className="h-4 w-4 text-gray-500" />
-                      <span>View Profile</span>
-                    </motion.button>
-                  </div>
-                  
-                  <div className="border-t border-gray-100 p-2">
-                    <motion.button
-                      whileHover={{ x: 4 }}
-                      onClick={handleLogout}
-                      className="flex w-full items-center space-x-3 rounded-lg p-3 text-left text-sm text-error-700 hover:bg-error-50 transition-all duration-200"
-                    >
-                      <LogOut className="h-4 w-4 text-error-500" />
-                      <span>Sign Out</span>
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="flex items-center gap-3 px-1 py-1">
+            <div className="hidden text-right sm:block">
+              <p className="max-w-[180px] truncate text-sm font-semibold text-white">{user?.fullName || 'User'}</p>
+              <p className="max-w-[180px] truncate text-xs text-slate-200/90">{user?.email || 'No email'}</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/20 text-sm font-semibold text-white">
+              {getUserInitials(user?.fullName)}
+            </div>
           </div>
         </div>
       </div>
@@ -548,16 +463,16 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-gray-200 bg-gray-50 p-4"
+            className="border-t border-white/10 bg-slate-950/65 p-4 md:hidden"
           >
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                className="w-full rounded-lg border border-white/15 bg-white/[0.08] py-2 pl-10 pr-4 text-white placeholder:text-slate-300 focus:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/20"
               />
             </div>
           </motion.div>
