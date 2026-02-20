@@ -133,7 +133,7 @@ const propertySlice = createSlice({
       }
     },
     setSelectedProperty: (state, action) => {
-      // Set property directly (for demo mode)
+      // Set selected property directly
       state.selectedProperty = action.payload;
       if (action.payload?.id) {
         localStorage.setItem('selectedPropertyId', action.payload.id);

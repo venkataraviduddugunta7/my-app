@@ -365,25 +365,23 @@ export default function Dashboard() {
       }));
   };
 
-  // Use demo property if no property is selected
   const property = selectedProperty || {
-    id: 'demo-property-1',
-    name: 'Sunrise PG',
-    address: '123 Main Street, City',
-    totalBeds: 24,
-    occupiedBeds: 21
+    id: '',
+    name: 'No Property Selected',
+    address: '',
+    totalBeds: 0,
+    occupiedBeds: 0
   };
   
-  // Use real stats or fallback to demo data
   const displayStats = stats || {
-    totalBeds: property.totalBeds || 24,
-    occupiedBeds: property.occupiedBeds || 21,
-    availableBeds: (property.totalBeds || 24) - (property.occupiedBeds || 21),
-    totalTenants: displayTenants.length || 21,
-    monthlyRevenue: (property.occupiedBeds || 21) * 8000,
-    pendingPayments: 24000,
-    occupancyRate: property.totalBeds ? ((property.occupiedBeds || 0) / property.totalBeds * 100) : 87.5,
-    collectionRate: 85.7
+    totalBeds: property.totalBeds || 0,
+    occupiedBeds: property.occupiedBeds || 0,
+    availableBeds: (property.totalBeds || 0) - (property.occupiedBeds || 0),
+    totalTenants: displayTenants.length || 0,
+    monthlyRevenue: 0,
+    pendingPayments: 0,
+    occupancyRate: property.totalBeds ? ((property.occupiedBeds || 0) / property.totalBeds * 100) : 0,
+    collectionRate: 0
   };
 
   // Ensure all numeric values are properly defined and safe for calculations
@@ -398,11 +396,7 @@ export default function Dashboard() {
     collectionRate: Number(displayStats.collectionRate) || 0
   };
   
-  const displayActivities = recentActivities?.length > 0 ? recentActivities : [
-    { id: 1, type: 'payment', message: 'Payment received from John Doe - ₹8,000', time: '2 hours ago' },
-    { id: 2, type: 'tenant', message: 'New tenant moved in to Bed 203', time: '5 hours ago' },
-    { id: 3, type: 'maintenance', message: 'Maintenance request for Bed 202', time: '1 day ago' },
-  ];
+  const displayActivities = recentActivities?.length > 0 ? recentActivities : [];
 
   return (
     <div className="space-y-8 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">

@@ -87,7 +87,7 @@ function ProfileSettings() {
     } catch (error) {
       console.error('❌ Error fetching user settings:', error);
       
-      // Use demo/default settings on error
+      // Use empty-safe defaults on error
       const defaultSettings = {
         theme: 'light',
         language: 'en',
@@ -98,19 +98,19 @@ function ProfileSettings() {
       
       setUserSettings(defaultSettings);
       setProfileData({
-        fullName: user?.fullName || 'Demo User',
-        email: user?.email || 'demo@pgmanager.com',
-        phone: '+91 9876543210',
-        username: 'demouser',
+        fullName: user?.fullName || '',
+        email: user?.email || '',
+        phone: user?.phone || '',
+        username: user?.username || '',
         ...defaultSettings
       });
       
       // Only show error in development
       if (process.env.NODE_ENV === 'development') {
         dispatch(addToast({
-          title: 'Using Demo Settings',
-          description: 'Failed to load settings from server, using demo data',
-          variant: 'info'
+          title: 'Settings Load Failed',
+          description: 'Failed to load settings from server.',
+          variant: 'error'
         }));
       }
     } finally {

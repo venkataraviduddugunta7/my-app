@@ -3,19 +3,18 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
-import { initializeAuth, getUserProfile } from '@/store/slices/authSlice';
+import { getUserProfile } from '@/store/slices/authSlice';
 import { Loader2, Building } from 'lucide-react';
 
 export default function ProtectedRoute({ children }) {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { isAuthenticated, isLoading, user, token } = useSelector((state) => state.auth);
+  const { isAuthenticated, isLoading, token } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    // Skip API call for demo mode - auth is already initialized in ReduxProvider
-    // if (token && !token.startsWith('demo-')) {
-    //   dispatch(getUserProfile());
-    // }
+    if (token) {
+      dispatch(getUserProfile());
+    }
   }, [dispatch, token]);
 
   useEffect(() => {
