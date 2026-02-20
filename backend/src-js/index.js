@@ -68,11 +68,11 @@ webSocketService.initialize(server);
 app.use(compression()); // Gzip compression
 app.use(helmet()); // Security headers
 
-// Slow down middleware for additional protection
+// Slow down middleware for additional protection (express-slow-down v2 API)
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 100, // Allow 100 requests per windowMs without delay
-  delayMs: 500 // Add 500ms delay per request after delayAfter
+  delayMs: () => 500 // Add 500ms delay per request after delayAfter
 });
 
 app.use(speedLimiter);
@@ -174,7 +174,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 9000;
 
 const startServer = async () => {
   try {
