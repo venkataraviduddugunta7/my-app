@@ -49,82 +49,60 @@ import {
   Eye
 } from 'lucide-react';
 
-// Stunning Stats Card Component
+// Dashboard Stats Card
 function PremiumStatsCard({ title, value, subtitle, icon: Icon, color, trend, delay = 0 }) {
   const colorClasses = {
     blue: 'from-blue-500 to-blue-600',
     green: 'from-emerald-500 to-emerald-600',
-    purple: 'from-purple-500 to-purple-600',
-    orange: 'from-orange-500 to-orange-600',
-    pink: 'from-pink-500 to-pink-600',
+    purple: 'from-violet-500 to-indigo-600',
+    orange: 'from-orange-500 to-amber-500',
+    pink: 'from-pink-500 to-rose-500',
     indigo: 'from-indigo-500 to-indigo-600'
   };
 
   const bgClasses = {
-    blue: 'from-blue-50 to-blue-100',
-    green: 'from-emerald-50 to-emerald-100',
-    purple: 'from-purple-50 to-purple-100',
-    orange: 'from-orange-50 to-orange-100',
-    pink: 'from-pink-50 to-pink-100',
-    indigo: 'from-indigo-50 to-indigo-100'
+    blue: 'from-blue-50/70 to-blue-100/50',
+    green: 'from-emerald-50/70 to-emerald-100/50',
+    purple: 'from-violet-50/70 to-indigo-100/50',
+    orange: 'from-orange-50/70 to-amber-100/50',
+    pink: 'from-pink-50/70 to-rose-100/50',
+    indigo: 'from-indigo-50/70 to-indigo-100/50'
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, delay, ease: "easeOut" }}
-      whileHover={{ y: 0, scale: 1 }}
-      className="group relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-elegant hover:shadow-float-lg transition-all duration-300"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, delay, ease: 'easeOut' }}
+      whileHover={{ y: -2 }}
+      className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/88 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md"
     >
-      {/* Gradient Background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${bgClasses[color]} opacity-50 group-hover:opacity-70 transition-opacity duration-300`} />
-      
-      {/* Content */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${bgClasses[color]} opacity-75`} />
+
       <div className="relative p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300`}>
-            <Icon className="h-6 w-6" />
+        <div className="mb-4 flex items-center justify-between">
+          <div className={`flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br ${colorClasses[color]} text-white shadow-sm`}>
+            <Icon className="h-5 w-5" />
           </div>
-          
+
           {trend && (
-            <div className={`flex items-center space-x-1 text-sm font-medium ${
-              trend.startsWith('+') ? 'text-emerald-600' : 'text-red-500'
+            <div className={`flex items-center gap-1 text-sm font-medium ${
+              trend.startsWith('+') ? 'text-emerald-600' : 'text-rose-500'
             }`}>
-              {trend.startsWith('+') ? 
-                <ArrowUpRight className="h-4 w-4" /> : 
-                <ArrowDownRight className="h-4 w-4" />
-              }
+              {trend.startsWith('+')
+                ? <ArrowUpRight className="h-4 w-4" />
+                : <ArrowDownRight className="h-4 w-4" />}
               <span>{trend}</span>
             </div>
           )}
         </div>
-        
+
         <div className="space-y-1">
-          <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-          <p className="text-3xl font-bold text-gray-900 group-hover:text-gray-800 transition-colors">
-            {value}
-          </p>
-          <p className="text-sm text-gray-500">{subtitle}</p>
+          <h3 className="text-sm font-medium text-slate-600">{title}</h3>
+          <p className="text-3xl font-bold text-slate-900">{value}</p>
+          <p className="text-sm text-slate-500">{subtitle}</p>
         </div>
       </div>
-      
-      {/* Hover Effect */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20"
-        style={{
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
-          transform: 'translateX(-100%)'
-        }}
-        animate={{
-          transform: ['translateX(-100%)', 'translateX(100%)']
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          repeatDelay: 3
-        }}
-      />
     </motion.div>
   );
 }
@@ -133,20 +111,20 @@ function PremiumStatsCard({ title, value, subtitle, icon: Icon, color, trend, de
 function EnhancedBedStatusCard({ bed, onQuickAction, delay = 0 }) {
   const getStatusColor = (status, paymentStatus) => {
     if (status === 'OCCUPIED') {
-      if (paymentStatus === 'overdue') return 'border-red-200 bg-gradient-to-br from-red-50 to-red-100';
-      if (paymentStatus === 'due') return 'border-yellow-200 bg-gradient-to-br from-yellow-50 to-yellow-100';
-      return 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100';
+      if (paymentStatus === 'overdue') return 'border-rose-200/70 bg-rose-50/70';
+      if (paymentStatus === 'due') return 'border-amber-200/70 bg-amber-50/70';
+      return 'border-emerald-200/70 bg-emerald-50/70';
     }
-    if (status === 'AVAILABLE') return 'border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100';
-    if (status === 'MAINTENANCE') return 'border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100';
-    return 'border-gray-200 bg-white';
+    if (status === 'AVAILABLE') return 'border-blue-200/70 bg-blue-50/70';
+    if (status === 'MAINTENANCE') return 'border-slate-200/80 bg-slate-50/75';
+    return 'border-slate-200/80 bg-white/85';
   };
 
   const getStatusIcon = (status) => {
-    if (status === 'OCCUPIED') return <Users className="w-4 h-4 text-emerald-600" />;
-    if (status === 'AVAILABLE') return <Bed className="w-4 h-4 text-blue-600" />;
-    if (status === 'MAINTENANCE') return <AlertCircle className="w-4 h-4 text-gray-600" />;
-    return <Bed className="w-4 h-4 text-gray-400" />;
+    if (status === 'OCCUPIED') return <Users className="h-4 w-4 text-emerald-600" />;
+    if (status === 'AVAILABLE') return <Bed className="h-4 w-4 text-blue-600" />;
+    if (status === 'MAINTENANCE') return <AlertCircle className="h-4 w-4 text-slate-600" />;
+    return <Bed className="h-4 w-4 text-slate-400" />;
   };
 
   const tenant = bed.tenant;
@@ -154,155 +132,126 @@ function EnhancedBedStatusCard({ bed, onQuickAction, delay = 0 }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, delay, ease: "easeOut" }}
-      className={`group relative overflow-hidden rounded-2xl border-2 shadow-elegant hover:shadow-float transition-all duration-300 cursor-pointer ${getStatusColor(bed.status, paymentStatus)}`}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, delay, ease: 'easeOut' }}
+      className={`group relative overflow-hidden rounded-2xl border bg-white/88 shadow-sm backdrop-blur-sm transition-shadow duration-200 hover:shadow-md ${getStatusColor(bed.status, paymentStatus)}`}
     >
-      {/* Status Indicator */}
-      <div className="absolute top-3 right-3">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className={`w-3 h-3 rounded-full ${
-            bed.status === 'OCCUPIED' ? 'bg-emerald-500' :
-            bed.status === 'AVAILABLE' ? 'bg-blue-500' : 'bg-gray-500'
-          }`}
-        />
+      <div className="absolute right-3 top-3">
+        <div className={`h-2.5 w-2.5 rounded-full ${
+          bed.status === 'OCCUPIED' ? 'bg-emerald-500' :
+          bed.status === 'AVAILABLE' ? 'bg-blue-500' : 'bg-slate-500'
+        }`} />
       </div>
 
       <div className="p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm shadow-sm">
-            {getStatusIcon(bed.status)}
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/70 bg-white/80 shadow-sm">
+              {getStatusIcon(bed.status)}
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900">Bed {bed.bedNumber}</h4>
-              <p className="text-xs text-gray-600">
+              <h4 className="font-semibold text-slate-900">Bed {bed.bedNumber}</h4>
+              <p className="text-xs text-slate-600">
                 Room {bed.room?.roomNumber} • Floor {bed.room?.floor?.name}
               </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-gray-900">₹{bed.rent}</p>
-            <p className="text-xs text-gray-500">{bed.bedType}</p>
+            <p className="text-lg font-bold text-slate-900">₹{bed.rent}</p>
+            <p className="text-xs text-slate-500">{bed.bedType}</p>
           </div>
         </div>
 
-        {/* Tenant Info */}
         {tenant ? (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-3 mb-4"
-          >
+          <div className="mb-4 space-y-3">
             <div className="flex items-center space-x-2">
-              <User className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-900">{tenant.fullName}</span>
+              <User className="h-4 w-4 text-slate-500" />
+              <span className="text-sm font-medium text-slate-900">{tenant.fullName}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Phone className="w-4 h-4 text-gray-500" />
-              <span className="text-xs text-gray-600">{tenant.phone}</span>
+              <Phone className="h-4 w-4 text-slate-500" />
+              <span className="text-xs text-slate-600">{tenant.phone}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4 text-gray-500" />
-              <span className="text-xs text-gray-600">
+              <Calendar className="h-4 w-4 text-slate-500" />
+              <span className="text-xs text-slate-600">
                 Joined {formatDate(tenant.joiningDate)}
               </span>
             </div>
-            
-            {/* Payment Status */}
-            <div className="flex items-center justify-between pt-2 border-t border-white/50">
+
+            <div className="flex items-center justify-between border-t border-slate-200/70 pt-2">
               <div className="flex items-center space-x-1">
-                <Wallet className="w-4 h-4 text-gray-500" />
-                <span className="text-xs text-gray-600">Payment:</span>
+                <Wallet className="h-4 w-4 text-slate-500" />
+                <span className="text-xs text-slate-600">Payment:</span>
               </div>
-              <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+              <span className={`rounded-full px-3 py-1 text-xs font-medium ${
                 paymentStatus === 'current' ? 'bg-emerald-100 text-emerald-700' :
-                paymentStatus === 'due' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-red-100 text-red-700'
+                paymentStatus === 'due' ? 'bg-amber-100 text-amber-700' :
+                'bg-rose-100 text-rose-700'
               }`}>
-                {paymentStatus === 'current' ? 'Current' : 
+                {paymentStatus === 'current' ? 'Current' :
                  paymentStatus === 'due' ? 'Due Soon' : 'Overdue'}
               </span>
             </div>
-          </motion.div>
+          </div>
         ) : (
-          <div className="space-y-3 mb-4">
+          <div className="mb-4 space-y-3">
             <div className="flex items-center space-x-2">
-              <Bed className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600">Available for occupancy</span>
+              <Bed className="h-4 w-4 text-slate-500" />
+              <span className="text-sm text-slate-600">Available for occupancy</span>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-slate-500">
               Deposit: ₹{bed.deposit}
             </div>
           </div>
         )}
 
-        {/* Quick Actions */}
         <div className="flex space-x-2">
           {bed.status === 'AVAILABLE' ? (
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onQuickAction('assign', bed)}
-              className="flex-1 btn-primary text-xs py-2"
+              className="btn-primary flex-1 py-2 text-xs"
             >
-              <UserPlus className="w-3 h-3 mr-1" />
+              <UserPlus className="mr-1 h-3 w-3" />
               Add Tenant
             </motion.button>
           ) : bed.status === 'OCCUPIED' ? (
             <>
               <motion.button
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onQuickAction('payment', bed)}
-                className="flex-1 btn-secondary text-xs py-2"
+                className="btn-secondary flex-1 py-2 text-xs"
               >
-                <CreditCard className="w-3 h-3 mr-1" />
+                <CreditCard className="mr-1 h-3 w-3" />
                 Payment
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onQuickAction('contact', bed)}
-                className="flex-1 btn-ghost text-xs py-2"
+                className="btn-ghost flex-1 py-2 text-xs"
               >
-                <Phone className="w-3 h-3 mr-1" />
+                <Phone className="mr-1 h-3 w-3" />
                 Contact
               </motion.button>
             </>
           ) : (
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onQuickAction('maintenance', bed)}
-              className="flex-1 btn-ghost text-xs py-2"
+              className="btn-ghost flex-1 py-2 text-xs"
             >
-              <AlertCircle className="w-3 h-3 mr-1" />
+              <AlertCircle className="mr-1 h-3 w-3" />
               Maintenance
             </motion.button>
           )}
-            </div>
-          </div>
-      
-      {/* Shimmer Effect */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100"
-        style={{
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-          transform: 'translateX(-100%)'
-        }}
-        animate={{
-          transform: ['translateX(-100%)', 'translateX(100%)']
-        }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          repeatDelay: 2
-        }}
-      />
+        </div>
+      </div>
     </motion.div>
   );
 }
@@ -385,7 +334,7 @@ export default function Dashboard() {
   const displayActivities = recentActivities?.length > 0 ? recentActivities : [];
 
   return (
-    <div className="space-y-8 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
+    <div className="app-shell min-h-screen space-y-8 p-6">
       {/* Premium Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <PremiumStatsCard
@@ -435,9 +384,9 @@ export default function Dashboard() {
           transition={{ delay: 0.5 }}
           className="lg:col-span-1 h-full"
         >
-          <div className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6 h-full">
+          <div className="app-surface h-full rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-900">
                 Quick Actions
               </h3>
               <Zap className="w-5 h-5 text-primary-500" />
@@ -480,22 +429,22 @@ export default function Dashboard() {
                     whileHover={{ scale: 1.01, x: 2 }}
                     whileTap={{ scale: 0.99 }}
                     onClick={action.action}
-                    className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-all duration-300"
+                    className="w-full flex items-center space-x-3 rounded-xl p-3 transition-colors duration-200 hover:bg-slate-100/70"
                   >
                     <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg border ${
                         action.color === "blue"
-                          ? "from-blue-500 to-blue-600"
+                          ? "border-blue-200/70 bg-blue-100/60 text-blue-700"
                           : action.color === "green"
-                          ? "from-emerald-500 to-emerald-600"
+                          ? "border-emerald-200/70 bg-emerald-100/60 text-emerald-700"
                           : action.color === "orange"
-                          ? "from-orange-500 to-orange-600"
-                          : "from-purple-500 to-purple-600"
-                      } text-white shadow-sm`}
+                          ? "border-amber-200/70 bg-amber-100/60 text-amber-700"
+                          : "border-violet-200/70 bg-violet-100/60 text-violet-700"
+                      }`}
                     >
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-slate-900">
                       {action.label}
                     </span>
                   </motion.button>
@@ -512,37 +461,37 @@ export default function Dashboard() {
           transition={{ delay: 0.7 }}
           className="lg:col-span-2 h-full"
         >
-          <div className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6 h-full">
+          <div className="app-surface h-full rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-900">
                 Performance Overview
               </h3>
               <PieChart className="w-5 h-5 text-primary-500" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-white mx-auto mb-3 shadow-glow-sm">
+              <div className="rounded-xl border border-slate-200/70 bg-white/75 p-4 text-center shadow-sm">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-200/70 bg-emerald-100/60 text-emerald-700">
                   <Award className="h-6 w-6" />
                 </div>
-                <p className="text-2xl font-bold text-emerald-600">95%</p>
-                <p className="text-sm text-gray-600">Tenant Satisfaction</p>
+                <p className="text-2xl font-bold text-slate-900">95%</p>
+                <p className="text-sm text-slate-600">Tenant Satisfaction</p>
               </div>
 
-              <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-white mx-auto mb-3 shadow-glow-sm">
+              <div className="rounded-xl border border-slate-200/70 bg-white/75 p-4 text-center shadow-sm">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-blue-200/70 bg-blue-100/60 text-blue-700">
                   <Target className="h-6 w-6" />
                 </div>
-                <p className="text-2xl font-bold text-blue-600">98%</p>
-                <p className="text-sm text-gray-600">Payment Collection</p>
+                <p className="text-2xl font-bold text-slate-900">98%</p>
+                <p className="text-sm text-slate-600">Payment Collection</p>
               </div>
 
-              <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500 text-white mx-auto mb-3 shadow-glow-sm">
+              <div className="rounded-xl border border-slate-200/70 bg-white/75 p-4 text-center shadow-sm">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-violet-200/70 bg-violet-100/60 text-violet-700">
                   <Star className="h-6 w-6" />
                 </div>
-                <p className="text-2xl font-bold text-purple-600">4.8</p>
-                <p className="text-sm text-gray-600">Average Rating</p>
+                <p className="text-2xl font-bold text-slate-900">4.8</p>
+                <p className="text-sm text-slate-600">Average Rating</p>
               </div>
             </div>
           </div>
@@ -557,27 +506,27 @@ export default function Dashboard() {
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            <h2 className="flex items-center text-2xl font-bold text-slate-900">
               <Eye className="w-6 h-6 mr-3 text-primary-600" />
               Live Bed Status
             </h2>
-            <p className="text-gray-600 mt-1">
+            <p className="mt-1 text-slate-600">
               Real-time occupancy monitoring with instant updates
             </p>
           </div>
 
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-gray-600">Occupied</span>
+              <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
+              <span className="text-slate-600">Occupied</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span className="text-gray-600">Available</span>
+              <div className="h-3 w-3 rounded-full bg-blue-500"></div>
+              <span className="text-slate-600">Available</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-              <span className="text-gray-600">Maintenance</span>
+              <div className="h-3 w-3 rounded-full bg-gray-500"></div>
+              <span className="text-slate-600">Maintenance</span>
             </div>
           </div>
         </div>
@@ -595,10 +544,10 @@ export default function Dashboard() {
           ) : (
             <div className="col-span-full text-center py-12">
               <Bed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="mb-2 text-lg font-semibold text-slate-900">
                 No Beds Found
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="mb-4 text-slate-600">
                 No beds are available for this property yet.
               </p>
               <button
@@ -617,10 +566,10 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.5 }}
-        className="bg-white rounded-2xl shadow-elegant border border-gray-100 p-6"
+        className="app-surface rounded-2xl p-6"
       >
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+          <h3 className="flex items-center text-lg font-semibold text-slate-900">
             <Clock className="w-5 h-5 mr-2 text-primary-500" />
             Recent Activities
           </h3>
@@ -667,26 +616,26 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.6 + index * 0.1 }}
-                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-300"
+                className="flex items-center space-x-3 rounded-lg p-3 transition-colors duration-200 hover:bg-slate-100/70"
               >
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                     activity.color === "emerald"
-                      ? "bg-emerald-100 text-emerald-600"
+                      ? "border border-emerald-200/70 bg-emerald-100/60 text-emerald-700"
                       : activity.color === "blue"
-                      ? "bg-blue-100 text-blue-600"
+                      ? "border border-blue-200/70 bg-blue-100/60 text-blue-700"
                       : activity.color === "orange"
-                      ? "bg-orange-100 text-orange-600"
-                      : "bg-purple-100 text-purple-600"
+                      ? "border border-amber-200/70 bg-amber-100/60 text-amber-700"
+                      : "border border-violet-200/70 bg-violet-100/60 text-violet-700"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-slate-900">
                     {activity.title}
                   </p>
-                  <p className="text-xs text-gray-500">{activity.time}</p>
+                  <p className="text-xs text-slate-500">{activity.time}</p>
                 </div>
               </motion.div>
             );

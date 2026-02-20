@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import webSocketService from '@/services/websocket';
 import { addToast } from '@/store/slices/uiSlice';
@@ -21,6 +21,12 @@ export default function WebSocketProvider({ children }) {
   const { selectedProperty } = useSelector((state) => state.property);
   const isInitialized = useRef(false);
   const currentPropertyId = useRef(null);
+  const [connectionStatus, setConnectionStatus] = useState(() => webSocketService.getConnectionStatus());
+
+  useEffect(() => {
+    const unsubscribe = webSocketService.subscribeConnectionStatus(setConnectionStatus);
+    return () => unsubscribe();
+  }, []);
 
   // Initialize WebSocket connection when user is authenticated
   useEffect(() => {
@@ -91,12 +97,12 @@ export default function WebSocketProvider({ children }) {
     };
   }, []);
 
-  const contextValue = {
-    isConnected: webSocketService.isConnectedToServer(),
-    connectionStatus: webSocketService.getConnectionStatus(),
+  const contextValue = useMemo(() => ({
+    isConnected: connectionStatus.connected,
+    connectionStatus,
     refreshData: (propertyId) => webSocketService.refreshData(propertyId),
     service: webSocketService
-  };
+  }), [connectionStatus]);
 
   return (
     <WebSocketContext.Provider value={contextValue}>

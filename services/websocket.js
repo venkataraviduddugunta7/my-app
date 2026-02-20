@@ -27,6 +27,7 @@ class WebSocketService {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
     this.subscriptions = new Set();
+    this.statusListeners = new Set();
   }
 
   connect(token) {
@@ -57,6 +58,7 @@ class WebSocketService {
       console.log('🔌 WebSocket connected');
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      this.notifyStatusChange();
       
       store.dispatch(addToast({
         title: 'Connected',
@@ -68,6 +70,7 @@ class WebSocketService {
     this.socket.on('disconnect', (reason) => {
       console.log('🔌 WebSocket disconnected:', reason);
       this.isConnected = false;
+      this.notifyStatusChange();
       
       if (reason === 'io server disconnect') {
         // Server disconnected, try to reconnect
@@ -77,6 +80,8 @@ class WebSocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('🔌 WebSocket connection error:', error);
+      this.isConnected = false;
+      this.notifyStatusChange();
       this.handleReconnection();
     });
 
@@ -233,6 +238,7 @@ class WebSocketService {
   handleReconnection() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log('🔌 Max reconnection attempts reached');
+      this.notifyStatusChange();
       store.dispatch(addToast({
         title: 'Connection Failed',
         description: 'Unable to establish real-time connection',
@@ -243,6 +249,7 @@ class WebSocketService {
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * this.reconnectAttempts;
+    this.notifyStatusChange();
     
     console.log(`🔌 Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
     
@@ -258,6 +265,7 @@ class WebSocketService {
     if (this.socket?.connected && propertyId) {
       this.socket.emit('join-property', propertyId);
       this.subscriptions.add(`property:${propertyId}`);
+      this.notifyStatusChange();
     }
   }
 
@@ -265,6 +273,7 @@ class WebSocketService {
     if (this.socket?.connected && propertyId) {
       this.socket.emit('leave-property', propertyId);
       this.subscriptions.delete(`property:${propertyId}`);
+      this.notifyStatusChange();
     }
   }
 
@@ -272,6 +281,7 @@ class WebSocketService {
     if (this.socket?.connected && propertyId) {
       this.socket.emit('subscribe-dashboard', propertyId);
       this.subscriptions.add(`dashboard:${propertyId}`);
+      this.notifyStatusChange();
     }
   }
 
@@ -279,6 +289,7 @@ class WebSocketService {
     if (this.socket?.connected && propertyId) {
       this.socket.emit('subscribe-beds', propertyId);
       this.subscriptions.add(`beds:${propertyId}`);
+      this.notifyStatusChange();
     }
   }
 
@@ -286,6 +297,7 @@ class WebSocketService {
     if (this.socket?.connected && propertyId) {
       this.socket.emit('subscribe-payments', propertyId);
       this.subscriptions.add(`payments:${propertyId}`);
+      this.notifyStatusChange();
     }
   }
 
@@ -293,6 +305,7 @@ class WebSocketService {
     if (this.socket?.connected) {
       this.socket.emit('subscribe-properties');
       this.subscriptions.add('properties');
+      this.notifyStatusChange();
     }
   }
 
@@ -300,6 +313,7 @@ class WebSocketService {
     if (this.socket?.connected) {
       this.socket.emit('unsubscribe-properties');
       this.subscriptions.delete('properties');
+      this.notifyStatusChange();
     }
   }
 
@@ -316,6 +330,25 @@ class WebSocketService {
     };
   }
 
+  notifyStatusChange() {
+    const status = this.getConnectionStatus();
+    this.statusListeners.forEach((listener) => {
+      try {
+        listener(status);
+      } catch (error) {
+        console.error('🔌 Status listener error:', error);
+      }
+    });
+  }
+
+  subscribeConnectionStatus(listener) {
+    this.statusListeners.add(listener);
+    listener(this.getConnectionStatus());
+    return () => {
+      this.statusListeners.delete(listener);
+    };
+  }
+
   disconnect() {
     if (this.socket) {
       this.subscriptions.clear();
@@ -323,6 +356,7 @@ class WebSocketService {
       this.socket = null;
       this.isConnected = false;
       this.reconnectAttempts = 0;
+      this.notifyStatusChange();
       
       console.log('🔌 WebSocket disconnected manually');
     }

@@ -29,6 +29,10 @@
   --sidebar-glass-bg: rgba(15, 23, 42, 0.78);
   --sidebar-glass-border: rgba(255, 255, 255, 0.1);
   --auth-surface: rgba(255, 255, 255, 0.9);
+  --app-shell-bg: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), rgba(248, 250, 252, 0.98) 34%, #f8fafc 100%);
+  --app-surface-bg: rgba(255, 255, 255, 0.88);
+  --app-surface-border: rgba(148, 163, 184, 0.28);
+  --app-surface-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
 /* Dark Mode Support */
@@ -251,6 +255,17 @@ body {
     background-image: linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
                       linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
     background-size: 20px 20px;
+  }
+
+  .app-shell {
+    background: var(--app-shell-bg);
+  }
+
+  .app-surface {
+    background: var(--app-surface-bg);
+    border: 1px solid var(--app-surface-border);
+    box-shadow: var(--app-surface-shadow);
+    backdrop-filter: blur(8px);
   }
   
   /* Animation Delays */

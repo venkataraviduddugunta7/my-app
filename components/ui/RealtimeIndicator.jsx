@@ -1,24 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { LoaderCircle, Wifi, WifiOff } from 'lucide-react';
-import webSocketService from '@/services/websocket';
+import { useWebSocket } from '@/components/providers/WebSocketProvider';
 
 export default function RealtimeIndicator() {
-  const [connectionStatus, setConnectionStatus] = useState(() => webSocketService.getConnectionStatus());
-
-  useEffect(() => {
-    const updateConnectionStatus = () => {
-      setConnectionStatus(webSocketService.getConnectionStatus());
-    };
-
-    updateConnectionStatus();
-    const intervalId = window.setInterval(updateConnectionStatus, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
-
-  const isConnected = connectionStatus.connected;
+  const { isConnected, connectionStatus } = useWebSocket();
   const isReconnecting = !isConnected && connectionStatus.reconnectAttempts > 0;
 
   const containerClassName = isConnected
