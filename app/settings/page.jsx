@@ -1,1305 +1,1500 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import {
+  Bell,
+  Building2,
+  ChevronDown,
+  FileText,
+  Globe,
+  Plus,
+  Save,
+  Settings,
+  Shield,
+  Trash2,
+  User,
+} from 'lucide-react';
 import { addToast } from '@/store/slices/uiSlice';
 import { fetchProperties } from '@/store/slices/propertySlice';
 import apiService from '@/services/api';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle
-} from '@/components/ui/Card';
+import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Modal, ModalFooter } from '@/components/ui/Modal';
-import { Dropdown } from '@/components/ui/Dropdown';
-import {
-  Settings,
-  User,
-  Bell,
-  Shield,
-  FileText,
-  Save,
-  Download,
-  Upload,
-  Plus,
-  Trash2,
-  Eye,
-  Edit3
-} from 'lucide-react';
-import { DeleteIcon, EditIcon, ICON_COLORS } from '@/src/assets/icons';
+
+const THEME_OPTIONS = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'auto', label: 'System (Auto)' },
+];
+
+const LANGUAGE_OPTIONS = [
+  { value: 'en', label: 'English' },
+  { value: 'hi', label: 'Hindi' },
+];
+
+const TIMEZONE_OPTIONS = [
+  { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
+  { value: 'UTC', label: 'UTC' },
+  { value: 'America/New_York', label: 'America/New_York (EST)' },
+];
+
+const DATE_FORMAT_OPTIONS = [
+  { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+  { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+];
+
+const CURRENCY_OPTIONS = [
+  { value: 'INR', label: 'Indian Rupee (INR)' },
+  { value: 'USD', label: 'US Dollar (USD)' },
+  { value: 'EUR', label: 'Euro (EUR)' },
+];
+
+const PAYMENT_METHOD_OPTIONS = ['Cash', 'UPI', 'Bank Transfer', 'Card', 'Net Banking'];
+
+const defaultProfileData = {
+  fullName: '',
+  email: '',
+  phone: '',
+  username: '',
+  theme: 'light',
+  language: 'en',
+  timezone: 'Asia/Kolkata',
+  dateFormat: 'DD/MM/YYYY',
+  currency: 'INR',
+};
+
+const defaultNotificationData = {
+  emailNotifications: true,
+  smsNotifications: false,
+  pushNotifications: true,
+  rentReminders: true,
+  maintenanceAlerts: true,
+  newTenantAlerts: true,
+  paymentAlerts: true,
+  systemUpdates: false,
+};
+
+const defaultSystemData = {
+  theme: 'light',
+  language: 'en',
+  timezone: 'Asia/Kolkata',
+  dateFormat: 'DD/MM/YYYY',
+  currency: 'INR',
+  rentDueDay: 5,
+  lateFeeDays: 3,
+  lateFeeAmount: 500,
+  acceptedMethods: ['Cash', 'UPI', 'Bank Transfer'],
+  contactPhone: '',
+  contactEmail: '',
+  emergencyContact: '',
+};
+
+const defaultSecurityData = {
+  twoFactorEnabled: false,
+  sessionTimeout: 60,
+  loginNotifications: true,
+};
+
+const inputClasses =
+  'border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 focus:border-sky-500 focus:ring-sky-500/20';
+const labelClasses = 'text-slate-700';
+
+function SettingsCard({ icon: Icon, title, description, children, actions }) {
+  return (
+    <Card
+      hover={false}
+      className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-sm"
+    >
+      <CardHeader className="border-b border-slate-200 pb-5">
+        <CardTitle className="flex items-center gap-3 text-base font-semibold text-slate-900">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-600">
+            <Icon className="h-4 w-4" />
+          </span>
+          {title}
+        </CardTitle>
+        {description ? <p className="text-sm text-slate-600">{description}</p> : null}
+      </CardHeader>
+      <CardContent className="space-y-6 pt-6">
+        {children}
+        {actions ? <div className="border-t border-slate-200 pt-5">{actions}</div> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SectionTitle({ children }) {
+  return <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500">{children}</h3>;
+}
+
+function SelectField({ label, value, options, onChange, hint }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-slate-700">{label}</label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-9 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20"
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value} className="bg-white text-slate-900">
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+      </div>
+      {hint ? <p className="text-xs text-slate-500">{hint}</p> : null}
+    </div>
+  );
+}
+
+function PropertySelector({ properties, propertyId, onChange, disabled = false }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-slate-700">Property</label>
+      <div className="relative">
+        <select
+          value={propertyId}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled || properties.length === 0}
+          className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-9 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {properties.length === 0 ? (
+            <option value="">No properties available</option>
+          ) : null}
+          {properties.map((property) => (
+            <option key={property.id} value={property.id} className="bg-white text-slate-900">
+              {property.name}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+      </div>
+    </div>
+  );
+}
+
+function ToggleField({ id, label, description, checked, onChange }) {
+  return (
+    <label
+      htmlFor={id}
+      className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50"
+    >
+      <div>
+        <p className="text-sm font-medium text-slate-900">{label}</p>
+        {description ? <p className="mt-1 text-xs text-slate-600">{description}</p> : null}
+      </div>
+      <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
+        <input
+          id={id}
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          className="peer sr-only"
+        />
+        <span className="absolute inset-0 rounded-full bg-slate-300 transition peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sky-500/25 peer-checked:bg-sky-500" />
+        <span className="absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+      </span>
+    </label>
+  );
+}
+
+function FieldError({ message }) {
+  if (!message) return null;
+  return <p className="text-xs text-rose-600">{message}</p>;
+}
 
 function ProfileSettings() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const [loading, setLoading] = useState(false);
-  const [userSettings, setUserSettings] = useState(null);
-  const [profileData, setProfileData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    username: '',
-    theme: 'light',
-    language: 'en',
-    timezone: 'Asia/Kolkata',
-    dateFormat: 'DD/MM/YYYY',
-    currency: 'INR'
-  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [profileData, setProfileData] = useState(defaultProfileData);
+  const [errors, setErrors] = useState({});
 
-  // Fetch user settings on component mount
   useEffect(() => {
-    fetchUserSettings();
-  }, []);
+    let isMounted = true;
 
-  const fetchUserSettings = async () => {
-    try {
-      setLoading(true);
-      console.log('🔧 Fetching user settings...');
-      
-      const response = await apiService.settings.getUserSettings();
-      console.log('✅ User settings response:', response);
-      
-      const userData = response.data;
-      
-      // Use default settings if userSettings is null
-      const settings = userData?.userSettings || {
-        theme: 'light',
-        language: 'en',
-        timezone: 'Asia/Kolkata',
-        dateFormat: 'DD/MM/YYYY',
-        currency: 'INR'
-      };
-      
-      setUserSettings(settings);
-      setProfileData({
-        fullName: userData?.fullName || '',
-        email: userData?.email || '',
-        phone: userData?.phone || '',
-        username: userData?.username || '',
-        theme: settings.theme,
-        language: settings.language,
-        timezone: settings.timezone,
-        dateFormat: settings.dateFormat,
-        currency: settings.currency
-      });
-    } catch (error) {
-      console.error('❌ Error fetching user settings:', error);
-      
-      // Use empty-safe defaults on error
-      const defaultSettings = {
-        theme: 'light',
-        language: 'en',
-        timezone: 'Asia/Kolkata',
-        dateFormat: 'DD/MM/YYYY',
-        currency: 'INR'
-      };
-      
-      setUserSettings(defaultSettings);
-      setProfileData({
-        fullName: user?.fullName || '',
-        email: user?.email || '',
-        phone: user?.phone || '',
-        username: user?.username || '',
-        ...defaultSettings
-      });
-      
-      // Only show error in development
-      if (process.env.NODE_ENV === 'development') {
-        dispatch(addToast({
-          title: 'Settings Load Failed',
-          description: 'Failed to load settings from server.',
-          variant: 'error'
+    const loadSettings = async () => {
+      try {
+        const response = await apiService.settings.getUserSettings();
+        const userData = response.data || {};
+        const settings = userData.userSettings || {};
+
+        if (!isMounted) return;
+
+        setProfileData({
+          fullName: userData.fullName || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+          username: userData.username || '',
+          theme: settings.theme || 'light',
+          language: settings.language || 'en',
+          timezone: settings.timezone || 'Asia/Kolkata',
+          dateFormat: settings.dateFormat || 'DD/MM/YYYY',
+          currency: settings.currency || 'INR',
+        });
+      } catch {
+        if (!isMounted) return;
+        setProfileData((previous) => ({
+          ...previous,
+          fullName: user?.fullName || previous.fullName,
+          email: user?.email || previous.email,
+          phone: user?.phone || previous.phone,
+          username: user?.username || previous.username,
         }));
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } finally {
-      setLoading(false);
+    };
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const validate = () => {
+    const nextErrors = {};
+
+    if (!profileData.fullName.trim()) {
+      nextErrors.fullName = 'Full name is required.';
     }
+
+    if (!profileData.email.trim()) {
+      nextErrors.email = 'Email address is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email.trim())) {
+      nextErrors.email = 'Enter a valid email address.';
+    }
+
+    if (profileData.phone.trim() && !/^[0-9+\-()\s]{7,20}$/.test(profileData.phone.trim())) {
+      nextErrors.phone = 'Enter a valid phone number.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleSave = async () => {
+    if (!validate()) {
+      dispatch(
+        addToast({
+          title: 'Fix validation errors',
+          description: 'Please correct the highlighted fields before saving.',
+          variant: 'error',
+        })
+      );
+      return;
+    }
+
+    setSaving(true);
+
     try {
-      setLoading(true);
-      await apiService.settings.updateUserSettings(profileData);
-      
-      dispatch(addToast({
-        title: 'Profile Updated',
-        description: 'Your profile settings have been saved successfully.',
-        variant: 'success'
-      }));
+      await apiService.settings.updateUserSettings({
+        fullName: profileData.fullName.trim(),
+        email: profileData.email.trim(),
+        phone: profileData.phone.trim(),
+        theme: profileData.theme,
+        language: profileData.language,
+        timezone: profileData.timezone,
+        dateFormat: profileData.dateFormat,
+        currency: profileData.currency,
+      });
+
+      dispatch(
+        addToast({
+          title: 'Profile updated',
+          description: 'Your account settings were saved successfully.',
+          variant: 'success',
+        })
+      );
     } catch (error) {
-      // Show backend error message if available
-      const errorMsg = error?.response?.data?.error?.message || error?.message || 'Failed to save profile settings.';
-      dispatch(addToast({
-        title: 'Error',
-        description: errorMsg,
-        variant: 'error'
-      }));
+      dispatch(
+        addToast({
+          title: 'Update failed',
+          description:
+            error?.message || error?.response?.data?.error?.message || 'Unable to save profile settings.',
+          variant: 'error',
+        })
+      );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const currencyOptions = [
-    { value: 'INR', label: 'Indian Rupee (₹)' },
-    // { value: 'USD', label: 'US Dollar ($)' },
-    // { value: 'EUR', label: 'Euro (€)' }
-  ];
-
-  const dateFormatOptions = [
-    { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-    // { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-    // { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' }
-  ];
-
-  const timezoneOptions = [
-    { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
-    // { value: 'UTC', label: 'UTC' },
-    // { value: 'America/New_York', label: 'America/New_York (EST)' }
-  ];
-
-  const themeOptions = [
-    { value: 'light', label: 'Light Theme' },
-    // { value: 'dark', label: 'Dark Theme' },
-    // { value: 'auto', label: 'Auto (System)' }
-  ];
-
-  if (loading && !userSettings) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="animate-pulse">Loading user settings...</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <User className="w-5 h-5" />
-          <span>Profile Settings</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Personal Information */}
-        <div>
-          <h4 className="font-medium text-gray-900 mb-3">Personal Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Full Name"
-              value={profileData.fullName}
-              onChange={(e) => setProfileData(prev => ({ ...prev, fullName: e.target.value }))}
-              placeholder="Enter your full name"
-            />
-            <Input
-              label="Email Address"
-              type="email"
-              value={profileData.email}
-              onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="Enter your email"
-            />
-            <Input
-              label="Phone Number"
-              value={profileData.phone}
-              onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="Enter your phone number"
-            />
-            <Input
-              label="Username"
-              value={profileData.username}
-              disabled
-              className="bg-gray-50"
-              placeholder="Username cannot be changed"
-            />
-          </div>
-        </div>
-
-        {/* System Preferences */}
-        <div>
-          <h4 className="font-medium text-gray-900 mb-3">System Preferences</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Dropdown
-              label="Theme"
-              options={themeOptions}
-              value={profileData.theme}
-              onChange={(value) => setProfileData(prev => ({ ...prev, theme: value }))}
-            />
-            <Dropdown
-              label="Currency"
-              options={currencyOptions}
-              value={profileData.currency}
-              onChange={(value) => setProfileData(prev => ({ ...prev, currency: value }))}
-            />
-            <Dropdown
-              label="Date Format"
-              options={dateFormatOptions}
-              value={profileData.dateFormat}
-              onChange={(value) => setProfileData(prev => ({ ...prev, dateFormat: value }))}
-            />
-            <Dropdown
-              label="Timezone"
-              options={timezoneOptions}
-              value={profileData.timezone}
-              onChange={(value) => setProfileData(prev => ({ ...prev, timezone: value }))}
-            />
-          </div>
-        </div>
-
+    <SettingsCard
+      icon={User}
+      title="Profile & Preferences"
+      description="Update account identity and personal defaults used across your PG operations."
+      actions={
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={loading}>
-            <Save className="w-4 h-4 mr-2" />
-            {loading ? 'Saving...' : 'Save Changes'}
+          <Button onClick={handleSave} loading={saving} disabled={loading}>
+            <Save className="h-4 w-4" />
+            <span>Save changes</span>
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      }
+    >
+      <div className="space-y-4">
+        <SectionTitle>Account</SectionTitle>
+        {loading ? <p className="text-sm text-slate-600">Loading profile settings...</p> : null}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Input
+              label="Full Name"
+              labelClassName={labelClasses}
+              className={inputClasses}
+              value={profileData.fullName}
+              onChange={(event) => setProfileData((previous) => ({ ...previous, fullName: event.target.value }))}
+              placeholder="Your full name"
+            />
+            <FieldError message={errors.fullName} />
+          </div>
+
+          <div>
+            <Input
+              type="email"
+              label="Email"
+              labelClassName={labelClasses}
+              className={inputClasses}
+              value={profileData.email}
+              onChange={(event) => setProfileData((previous) => ({ ...previous, email: event.target.value }))}
+              placeholder="name@example.com"
+            />
+            <FieldError message={errors.email} />
+          </div>
+
+          <div>
+            <Input
+              label="Phone"
+              labelClassName={labelClasses}
+              className={inputClasses}
+              value={profileData.phone}
+              onChange={(event) => setProfileData((previous) => ({ ...previous, phone: event.target.value }))}
+              placeholder="+91 98765 43210"
+            />
+            <FieldError message={errors.phone} />
+          </div>
+
+          <Input
+            label="Username"
+            labelClassName={labelClasses}
+            className={cn(inputClasses, 'cursor-not-allowed opacity-80')}
+            value={profileData.username}
+            disabled
+            hint="Username is fixed for this account."
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <SectionTitle>Preferences</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <SelectField
+            label="Theme"
+            value={profileData.theme}
+            options={THEME_OPTIONS}
+            onChange={(value) => setProfileData((previous) => ({ ...previous, theme: value }))}
+          />
+          <SelectField
+            label="Language"
+            value={profileData.language}
+            options={LANGUAGE_OPTIONS}
+            onChange={(value) => setProfileData((previous) => ({ ...previous, language: value }))}
+          />
+          <SelectField
+            label="Timezone"
+            value={profileData.timezone}
+            options={TIMEZONE_OPTIONS}
+            onChange={(value) => setProfileData((previous) => ({ ...previous, timezone: value }))}
+          />
+          <SelectField
+            label="Date Format"
+            value={profileData.dateFormat}
+            options={DATE_FORMAT_OPTIONS}
+            onChange={(value) => setProfileData((previous) => ({ ...previous, dateFormat: value }))}
+          />
+          <SelectField
+            label="Currency"
+            value={profileData.currency}
+            options={CURRENCY_OPTIONS}
+            onChange={(value) => setProfileData((previous) => ({ ...previous, currency: value }))}
+          />
+        </div>
+      </div>
+    </SettingsCard>
   );
 }
 
 function NotificationSettings() {
   const dispatch = useDispatch();
-  const [loading, setLoading] = useState(false);
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    smsNotifications: false,
-    pushNotifications: true,
-    rentReminders: true,
-    maintenanceAlerts: true,
-    newTenantAlerts: true,
-    paymentAlerts: true,
-    systemUpdates: false
-  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notifications, setNotifications] = useState(defaultNotificationData);
 
-  // Fetch notification settings on component mount
   useEffect(() => {
-    fetchNotificationSettings();
+    let isMounted = true;
+
+    const loadSettings = async () => {
+      try {
+        const response = await apiService.settings.getUserSettings();
+        const settings = response.data?.userSettings || {};
+
+        if (!isMounted) return;
+
+        setNotifications({
+          emailNotifications: settings.emailNotifications ?? true,
+          smsNotifications: settings.smsNotifications ?? false,
+          pushNotifications: settings.pushNotifications ?? true,
+          rentReminders: settings.rentReminders ?? true,
+          maintenanceAlerts: settings.maintenanceAlerts ?? true,
+          newTenantAlerts: settings.newTenantAlerts ?? true,
+          paymentAlerts: settings.paymentAlerts ?? true,
+          systemUpdates: settings.systemUpdates ?? false,
+        });
+      } catch {
+        if (!isMounted) return;
+        setNotifications(defaultNotificationData);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const fetchNotificationSettings = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.settings.getUserSettings();
-      const userSettings = response.data?.userSettings || {};
-      
-      // Always set notifications with defaults
-      setNotifications({
-        emailNotifications: userSettings.emailNotifications ?? true,
-        smsNotifications: userSettings.smsNotifications ?? false,
-        pushNotifications: userSettings.pushNotifications ?? true,
-        rentReminders: userSettings.rentReminders ?? true,
-        maintenanceAlerts: userSettings.maintenanceAlerts ?? true,
-        newTenantAlerts: userSettings.newTenantAlerts ?? true,
-        paymentAlerts: userSettings.paymentAlerts ?? true,
-        systemUpdates: userSettings.systemUpdates ?? false
-      });
-    } catch (error) {
-      dispatch(addToast({
-        title: 'Error',
-        description: 'Failed to load notification settings.',
-        variant: 'error'
-      }));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSave = async () => {
+    setSaving(true);
+
     try {
-      setLoading(true);
       await apiService.settings.updateUserSettings(notifications);
-      
-      dispatch(addToast({
-        title: 'Notifications Updated',
-        description: 'Your notification preferences have been saved.',
-        variant: 'success'
-      }));
-    } catch (error) {
-      dispatch(addToast({
-        title: 'Error',
-        description: 'Failed to save notification settings.',
-        variant: 'error'
-      }));
+      dispatch(
+        addToast({
+          title: 'Notifications updated',
+          description: 'Your notification preferences were saved.',
+          variant: 'success',
+        })
+      );
+    } catch {
+      dispatch(
+        addToast({
+          title: 'Update failed',
+          description: 'Unable to save notification settings.',
+          variant: 'error',
+        })
+      );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
-
-  const NotificationToggle = ({ label, description, checked, onChange }) => (
-    <div className="flex items-center justify-between p-4 border rounded-lg">
-      <div className="flex-1">
-        <h4 className="font-medium text-gray-900">{label}</h4>
-        <p className="text-sm text-gray-500 mt-1">{description}</p>
-      </div>
-      <label className="relative inline-flex items-center cursor-pointer">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="sr-only peer"
-        />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-      </label>
-    </div>
-  );
-
-  if (loading && Object.keys(notifications).every(key => notifications[key] === true || notifications[key] === false)) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="animate-pulse">Loading notification settings...</div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Bell className="w-5 h-5" />
-          <span>Notification Settings</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <NotificationToggle
-          label="Email Notifications"
-          description="Receive notifications via email"
-          checked={notifications.emailNotifications}
-          onChange={(checked) => setNotifications(prev => ({ ...prev, emailNotifications: checked }))}
-        />
-        
-        <NotificationToggle
-          label="SMS Notifications"
-          description="Receive notifications via SMS"
-          checked={notifications.smsNotifications}
-          onChange={(checked) => setNotifications(prev => ({ ...prev, smsNotifications: checked }))}
-        />
-        
-        <NotificationToggle
-          label="Push Notifications"
-          description="Receive push notifications in browser"
-          checked={notifications.pushNotifications}
-          onChange={(checked) => setNotifications(prev => ({ ...prev, pushNotifications: checked }))}
-        />
-        
-        <NotificationToggle
-          label="Rent Reminders"
-          description="Get notified about upcoming rent payments"
-          checked={notifications.rentReminders}
-          onChange={(checked) => setNotifications(prev => ({ ...prev, rentReminders: checked }))}
-        />
-        
-        <NotificationToggle
-          label="Maintenance Alerts"
-          description="Receive alerts about maintenance requests"
-          checked={notifications.maintenanceAlerts}
-          onChange={(checked) => setNotifications(prev => ({ ...prev, maintenanceAlerts: checked }))}
-        />
-        
-        <NotificationToggle
-          label="New Tenant Alerts"
-          description="Get notified when new tenants join"
-          checked={notifications.newTenantAlerts}
-          onChange={(checked) => setNotifications(prev => ({ ...prev, newTenantAlerts: checked }))}
-        />
-        
-        <NotificationToggle
-          label="Payment Alerts"
-          description="Receive notifications about payments"
-          checked={notifications.paymentAlerts}
-          onChange={(checked) => setNotifications(prev => ({ ...prev, paymentAlerts: checked }))}
-        />
-        
-        <NotificationToggle
-          label="System Updates"
-          description="Get notified about system updates and features"
-          checked={notifications.systemUpdates}
-          onChange={(checked) => setNotifications(prev => ({ ...prev, systemUpdates: checked }))}
-        />
-
-        <div className="flex justify-end pt-4">
-          <Button onClick={handleSave} disabled={loading}>
-            <Save className="w-4 h-4 mr-2" />
-            {loading ? 'Saving...' : 'Save Changes'}
+    <SettingsCard
+      icon={Bell}
+      title="Notification Preferences"
+      description="Control which channels and operational events should notify you."
+      actions={
+        <div className="flex justify-end">
+          <Button onClick={handleSave} loading={saving} disabled={loading}>
+            <Save className="h-4 w-4" />
+            <span>Save notifications</span>
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      }
+    >
+      {loading ? <p className="text-sm text-slate-600">Loading notification settings...</p> : null}
+
+      <div className="space-y-4">
+        <SectionTitle>Channels</SectionTitle>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <ToggleField
+            id="notif-email"
+            label="Email notifications"
+            description="Send updates to your registered email address."
+            checked={notifications.emailNotifications}
+            onChange={(value) => setNotifications((previous) => ({ ...previous, emailNotifications: value }))}
+          />
+          <ToggleField
+            id="notif-sms"
+            label="SMS notifications"
+            description="Send critical updates as SMS."
+            checked={notifications.smsNotifications}
+            onChange={(value) => setNotifications((previous) => ({ ...previous, smsNotifications: value }))}
+          />
+          <ToggleField
+            id="notif-push"
+            label="Push notifications"
+            description="Show browser push notifications while using the app."
+            checked={notifications.pushNotifications}
+            onChange={(value) => setNotifications((previous) => ({ ...previous, pushNotifications: value }))}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <SectionTitle>Operational Events</SectionTitle>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <ToggleField
+            id="notif-rent"
+            label="Rent reminders"
+            description="Upcoming due-date reminders and missed payments."
+            checked={notifications.rentReminders}
+            onChange={(value) => setNotifications((previous) => ({ ...previous, rentReminders: value }))}
+          />
+          <ToggleField
+            id="notif-maintenance"
+            label="Maintenance alerts"
+            description="New and updated maintenance requests."
+            checked={notifications.maintenanceAlerts}
+            onChange={(value) => setNotifications((previous) => ({ ...previous, maintenanceAlerts: value }))}
+          />
+          <ToggleField
+            id="notif-tenant"
+            label="New tenant alerts"
+            description="When tenant records are created in your property."
+            checked={notifications.newTenantAlerts}
+            onChange={(value) => setNotifications((previous) => ({ ...previous, newTenantAlerts: value }))}
+          />
+          <ToggleField
+            id="notif-payment"
+            label="Payment alerts"
+            description="Payment received, failed, or pending notifications."
+            checked={notifications.paymentAlerts}
+            onChange={(value) => setNotifications((previous) => ({ ...previous, paymentAlerts: value }))}
+          />
+          <ToggleField
+            id="notif-system"
+            label="System updates"
+            description="Product updates and maintenance notices."
+            checked={notifications.systemUpdates}
+            onChange={(value) => setNotifications((previous) => ({ ...previous, systemUpdates: value }))}
+          />
+        </div>
+      </div>
+    </SettingsCard>
   );
 }
 
-function TermsAndConditionsSettings() {
+function TermsAndRulesSettings() {
   const dispatch = useDispatch();
   const { properties, selectedProperty } = useSelector((state) => state.property);
+
+  const [propertyId, setPropertyId] = useState('');
   const [loading, setLoading] = useState(false);
-  const [terms, setTerms] = useState([]);
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [rules, setRules] = useState(['']);
+  const [amenities, setAmenities] = useState([]);
+  const [amenityInput, setAmenityInput] = useState('');
 
-  // Fetch terms and conditions on component mount
   useEffect(() => {
-    // Always use selectedProperty or fall back to the first available property
-    const propertyId = selectedProperty?.id || properties[0]?.id;
-    if (propertyId) {
-      fetchTermsAndConditions(propertyId);
-    }
-  }, [selectedProperty, properties]);
-
-  const fetchTermsAndConditions = async (propertyId = selectedProperty?.id) => {
-    if (!propertyId) return;
-
-    try {
-      setLoading(true);
-      console.log('🔧 Fetching terms and conditions for property:', propertyId);
-      
-      const response = await apiService.settings.getPropertySettings(propertyId);
-      const settings = response.data;
-      
-      console.log('✅ Terms and conditions response:', settings);
-      
-      // Set terms from property settings rules
-      if (settings.rules && settings.rules.length > 0) {
-        setTerms(settings.rules);
-      } else {
-        // Set default terms if none exist
-        setTerms([
-          "The tenant agrees to pay rent on or before the 5th of every month.",
-          "No smoking or consumption of alcohol is allowed on the premises.",
-          "Visitors are allowed only between 9:00 AM to 9:00 PM.",
-          "The tenant must maintain cleanliness in their room and common areas.",
-          "Any damage to property will be charged from the security deposit."
-        ]);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching terms and conditions:', error);
-      dispatch(addToast({
-        title: 'Error',
-        description: `Failed to load terms and conditions: ${error.message || 'Unknown error'}`,
-        variant: 'error'
-      }));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddTerm = () => {
-    setTerms([...terms, ""]);
-    setEditingIndex(terms.length); // Start editing the new term
-  };
-
-  const handleUpdateTerm = (index, value) => {
-    const updatedTerms = [...terms];
-    updatedTerms[index] = value;
-    setTerms(updatedTerms);
-  };
-
-  const handleDeleteTerm = (index) => {
-    if (terms.length > 1) {
-      setTerms(terms.filter((_, i) => i !== index));
-      if (editingIndex === index) {
-        setEditingIndex(null);
-      } else if (editingIndex > index) {
-        setEditingIndex(editingIndex - 1);
-      }
-    } else {
-      dispatch(addToast({
-        title: 'Cannot Delete',
-        description: 'At least one term must be present.',
-        variant: 'warning'
-      }));
-    }
-  };
-
-  const handleEditTerm = (index) => {
-    setEditingIndex(index);
-  };
-
-  const handleSaveEdit = (index) => {
-    if (terms[index].trim() === '') {
-      dispatch(addToast({
-        title: 'Invalid Term',
-        description: 'Term cannot be empty.',
-        variant: 'error'
-      }));
+    if (properties.length === 0) {
+      setPropertyId('');
       return;
     }
-    setEditingIndex(null);
+
+    const preferredPropertyId = selectedProperty?.id || properties[0]?.id;
+
+    if (!propertyId || !properties.some((property) => property.id === propertyId)) {
+      setPropertyId(preferredPropertyId || '');
+    }
+  }, [properties, propertyId, selectedProperty]);
+
+  useEffect(() => {
+    if (!propertyId) {
+      setRules(['']);
+      setAmenities([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadPropertySettings = async () => {
+      setLoading(true);
+
+      try {
+        const response = await apiService.settings.getPropertySettings(propertyId);
+        const data = response.data || {};
+
+        if (!isMounted) return;
+
+        const incomingRules = Array.isArray(data.rules) ? data.rules : [];
+        const incomingAmenities = Array.isArray(data.amenities) ? data.amenities : [];
+
+        setRules(incomingRules.length > 0 ? incomingRules : ['']);
+        setAmenities(incomingAmenities);
+      } catch {
+        if (isMounted) {
+          dispatch(
+            addToast({
+              title: 'Load failed',
+              description: 'Unable to fetch rules for this property.',
+              variant: 'error',
+            })
+          );
+          setRules(['']);
+          setAmenities([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadPropertySettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch, propertyId]);
+
+  const updateRule = (index, value) => {
+    setRules((previous) => previous.map((rule, currentIndex) => (currentIndex === index ? value : rule)));
   };
 
-  const handleCancelEdit = () => {
-    setEditingIndex(null);
+  const addRule = () => {
+    setRules((previous) => [...previous, '']);
+  };
+
+  const removeRule = (index) => {
+    setRules((previous) => {
+      const next = previous.filter((_, currentIndex) => currentIndex !== index);
+      return next.length > 0 ? next : [''];
+    });
+  };
+
+  const addAmenity = () => {
+    const nextAmenity = amenityInput.trim();
+
+    if (!nextAmenity) return;
+
+    if (amenities.includes(nextAmenity)) {
+      setAmenityInput('');
+      return;
+    }
+
+    setAmenities((previous) => [...previous, nextAmenity]);
+    setAmenityInput('');
+  };
+
+  const removeAmenity = (targetAmenity) => {
+    setAmenities((previous) => previous.filter((amenity) => amenity !== targetAmenity));
   };
 
   const handleSave = async () => {
-    const validTerms = terms.filter(term => term.trim() !== '');
-    if (validTerms.length === 0) {
-      dispatch(addToast({
-        title: 'Invalid Terms',
-        description: 'Please add at least one valid term.',
-        variant: 'error'
-      }));
+    if (!propertyId) {
+      dispatch(
+        addToast({
+          title: 'Property required',
+          description: 'Create a property first before saving rules.',
+          variant: 'error',
+        })
+      );
       return;
     }
 
-    const propertyId = selectedProperty?.id || properties[0]?.id;
-    if (!propertyId) {
-      dispatch(addToast({
-        title: 'Error',
-        description: 'No property selected. Please create a property first.',
-        variant: 'error'
-      }));
+    const cleanRules = rules.map((rule) => rule.trim()).filter(Boolean);
+    const cleanAmenities = [...new Set(amenities.map((amenity) => amenity.trim()).filter(Boolean))];
+
+    if (cleanRules.length === 0) {
+      dispatch(
+        addToast({
+          title: 'Rule required',
+          description: 'Add at least one valid rule before saving.',
+          variant: 'error',
+        })
+      );
       return;
     }
+
+    setSaving(true);
 
     try {
-      setLoading(true);
-      console.log('🔧 Saving terms and conditions for property:', propertyId);
-      
-      await apiService.settings.updatePropertySettings(propertyId, {
-        rules: validTerms
+      await apiService.settings.updatePropertyRules(propertyId, {
+        rules: cleanRules,
+        amenities: cleanAmenities,
       });
-      
-      console.log('✅ Terms and conditions saved successfully');
-      
-      dispatch(addToast({
-        title: 'Terms Updated',
-        description: 'Terms and conditions have been saved successfully.',
-        variant: 'success'
-      }));
-    } catch (error) {
-      console.error('❌ Error saving terms and conditions:', error);
-      dispatch(addToast({
-        title: 'Error',
-        description: `Failed to save terms and conditions: ${error.message || 'Unknown error'}`,
-        variant: 'error'
-      }));
+
+      setRules(cleanRules);
+      setAmenities(cleanAmenities);
+
+      dispatch(
+        addToast({
+          title: 'Rules updated',
+          description: 'Rules and amenities were saved successfully.',
+          variant: 'success',
+        })
+      );
+    } catch {
+      dispatch(
+        addToast({
+          title: 'Save failed',
+          description: 'Unable to save property rules right now.',
+          variant: 'error',
+        })
+      );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  if (loading && terms.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="animate-pulse">Loading terms and conditions...</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (properties.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Properties Found</h3>
-          <p className="text-gray-600">Please create a property first to manage terms and conditions.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <FileText className="w-5 h-5" />
-          <span>Terms & Conditions</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-4">
-            Configure the terms and conditions that new tenants must agree to during registration.
-            These terms will be displayed during the tenant onboarding process.
-          </p>
+    <SettingsCard
+      icon={FileText}
+      title="Terms & Rules"
+      description="Define enforceable house rules and published amenities for tenant onboarding."
+      actions={
+        <div className="flex justify-end">
+          <Button onClick={handleSave} loading={saving} disabled={loading || properties.length === 0}>
+            <Save className="h-4 w-4" />
+            <span>Save rules</span>
+          </Button>
+        </div>
+      }
+    >
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <PropertySelector properties={properties} propertyId={propertyId} onChange={setPropertyId} disabled={loading} />
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <p className="font-medium text-slate-900">Tenant onboarding scope</p>
+          <p className="mt-1">Rules in this tab appear in tenant registration and agreement review screens.</p>
+        </div>
+      </div>
+
+      {properties.length === 0 ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          No property found. Create a property to configure rules and amenities.
+        </div>
+      ) : null}
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <SectionTitle>Rules</SectionTitle>
+          <Button type="button" variant="outline" size="sm" onClick={addRule} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add rule</span>
+          </Button>
         </div>
 
+        {loading ? <p className="text-sm text-slate-600">Loading rules...</p> : null}
+
         <div className="space-y-3">
-          {terms.map((term, index) => (
-            <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg">
-              <span className="text-blue-600 font-semibold mt-2 min-w-[20px]">
-                {index + 1}.
-              </span>
-              <div className="flex-1">
-                {editingIndex === index ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={term}
-                      onChange={(e) => handleUpdateTerm(index, e.target.value)}
-                      placeholder="Enter term or condition..."
-                      rows={1}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[40px] max-h-[120px]"
-                      style={{ 
-                        minHeight: '40px',
-                        height: 'auto',
-                        overflow: 'hidden'
-                      }}
-                      onInput={(e) => {
-                        e.target.style.height = 'auto';
-                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                      }}
-                      autoFocus
-                    />
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleSaveEdit(index)}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Save className="w-3 h-3 mr-1" />
-                        Save
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCancelEdit}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full px-3 py-2 text-gray-700 leading-relaxed">
-                    {term || <span className="text-gray-400 italic">Empty term</span>}
-                  </div>
-                )}
+          {rules.map((rule, index) => (
+            <div key={`rule-${index}`} className="rounded-xl border border-slate-200 bg-white p-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Rule {index + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => removeRule(index)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-300/30"
+                  aria-label={`Delete rule ${index + 1}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-              {editingIndex !== index && (
-                <div className="flex space-x-1 mt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditTerm(index)}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  >
-                    <EditIcon  />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteTerm(index)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <DeleteIcon color={ICON_COLORS.error}/>
-                  </Button>
-                </div>
-              )}
+              <textarea
+                rows={2}
+                value={rule}
+                onChange={(event) => updateRule(index, event.target.value)}
+                placeholder="Example: Rent must be paid by the 5th of every month."
+                className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20"
+              />
             </div>
           ))}
         </div>
+      </div>
 
-        <div className="flex justify-between items-center pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={handleAddTerm}
-            disabled={editingIndex !== null}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Term
-          </Button>
-
-          <div className="flex space-x-3">
+      <div className="space-y-4">
+        <SectionTitle>Amenities</SectionTitle>
+        <div className="flex flex-col gap-3 md:flex-row">
+          <Input
+            label="Add Amenity"
+            labelClassName={labelClasses}
+            className={inputClasses}
+            value={amenityInput}
+            onChange={(event) => setAmenityInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                addAmenity();
+              }
+            }}
+            placeholder="WiFi, Laundry, Security..."
+          />
+          <div className="md:self-end">
             <Button
+              type="button"
               variant="outline"
-              onClick={() => setShowPreview(true)}
-              disabled={editingIndex !== null}
+              onClick={addAmenity}
+              className="w-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50 md:w-auto"
             >
-              <Eye className="w-4 h-4 mr-2" />
-              Preview
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={editingIndex !== null || terms.some(term => term.trim() === "")}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Terms
+              <Plus className="h-4 w-4" />
+              <span>Add</span>
             </Button>
           </div>
         </div>
 
-        {/* Preview Modal */}
-        <Modal
-          isOpen={showPreview}
-          onClose={() => setShowPreview(false)}
-          title="Terms & Conditions Preview"
-          size="lg"
-        >
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-6 rounded-lg border">
-              <h3 className="text-xl font-bold text-center mb-6 text-gray-900">
-                Terms and Conditions
-              </h3>
-              <div className="space-y-3">
-                <p className="text-gray-700 mb-4">
-                  By registering as a tenant, you agree to comply with the following terms and conditions:
-                </p>
-                {terms.filter(term => term.trim() !== '').map((term, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <span className="font-semibold text-blue-600">{index + 1}.</span>
-                    <p className="text-gray-700 leading-relaxed">{term}</p>
-                  </div>
-                ))}
-                {terms.filter(term => term.trim() !== '').length === 0 && (
-                  <p className="text-gray-500 italic text-center">
-                    No terms and conditions added yet.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-          <ModalFooter>
-            <Button onClick={() => setShowPreview(false)}>
-              Close Preview
-            </Button>
-          </ModalFooter>
-        </Modal>
-      </CardContent>
-    </Card>
+        <div className="flex flex-wrap gap-2">
+          {amenities.length === 0 ? <p className="text-sm text-slate-500">No amenities listed yet.</p> : null}
+          {amenities.map((amenity) => (
+            <button
+              key={amenity}
+              type="button"
+              onClick={() => removeAmenity(amenity)}
+              className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-100"
+              aria-label={`Remove amenity ${amenity}`}
+            >
+              {amenity}
+              <Trash2 className="h-3 w-3" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </SettingsCard>
   );
 }
 
 function SystemSettings() {
   const dispatch = useDispatch();
   const { properties, selectedProperty } = useSelector((state) => state.property);
+
+  const [propertyId, setPropertyId] = useState('');
   const [loading, setLoading] = useState(false);
-  const [systemData, setSystemData] = useState({
-    currency: 'INR',
-    dateFormat: 'DD/MM/YYYY',
-    timezone: 'Asia/Kolkata',
-    language: 'en',
-    theme: 'light',
-    rentDueDay: 5,
-    lateFeeDays: 3,
-    lateFeeAmount: 500,
-    backupFrequency: 'daily'
-  });
+  const [saving, setSaving] = useState(false);
+  const [systemData, setSystemData] = useState(defaultSystemData);
+  const [errors, setErrors] = useState({});
 
-  // Fetch system settings on component mount
   useEffect(() => {
-    fetchSystemSettings();
-  }, []);
+    if (properties.length === 0) {
+      setPropertyId('');
+      return;
+    }
 
-  const fetchSystemSettings = async () => {
-    try {
+    const preferredPropertyId = selectedProperty?.id || properties[0]?.id;
+
+    if (!propertyId || !properties.some((property) => property.id === propertyId)) {
+      setPropertyId(preferredPropertyId || '');
+    }
+  }, [properties, propertyId, selectedProperty]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSettings = async () => {
       setLoading(true);
-      console.log('🔧 Fetching system settings...');
-      
-      // Get user settings for system preferences
-      const userResponse = await apiService.settings.getUserSettings();
-      const userData = userResponse.data;
-      
-      // Get property settings for rent-related settings if property exists
-      let propertySettings = null;
-      const propertyId = selectedProperty?.id || properties[0]?.id;
-      if (propertyId) {
-        try {
-          const propertyResponse = await apiService.settings.getPropertySettings(propertyId);
-          propertySettings = propertyResponse.data;
-        } catch (error) {
-          console.log('No property settings found, using defaults');
+
+      try {
+        const userResponse = await apiService.settings.getUserSettings();
+        const userSettings = userResponse.data?.userSettings || {};
+
+        let propertySettings = null;
+
+        if (propertyId) {
+          try {
+            const propertyResponse = await apiService.settings.getPropertySettings(propertyId);
+            propertySettings = propertyResponse.data || null;
+          } catch {
+            propertySettings = null;
+          }
+        }
+
+        if (!isMounted) return;
+
+        const paymentSettings = propertySettings?.paymentSettings || {};
+        const contactInfo = propertySettings?.contactInfo || {};
+
+        setSystemData({
+          theme: userSettings.theme || 'light',
+          language: userSettings.language || 'en',
+          timezone: userSettings.timezone || 'Asia/Kolkata',
+          dateFormat: userSettings.dateFormat || 'DD/MM/YYYY',
+          currency: userSettings.currency || 'INR',
+          rentDueDay: Number(paymentSettings.rentDueDay ?? 5),
+          lateFeeDays: Number(paymentSettings.lateFeeDays ?? 3),
+          lateFeeAmount: Number(paymentSettings.lateFeeAmount ?? 500),
+          acceptedMethods:
+            Array.isArray(paymentSettings.acceptedMethods) && paymentSettings.acceptedMethods.length > 0
+              ? paymentSettings.acceptedMethods
+              : ['Cash', 'UPI', 'Bank Transfer'],
+          contactPhone: contactInfo.phone || '',
+          contactEmail: contactInfo.email || '',
+          emergencyContact: contactInfo.emergencyContact || '',
+        });
+      } catch {
+        if (isMounted) {
+          dispatch(
+            addToast({
+              title: 'Load failed',
+              description: 'Unable to fetch system settings.',
+              variant: 'error',
+            })
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
         }
       }
-      
-      console.log('✅ System settings response:', { userData, propertySettings });
-      
-      // Use default values if userSettings is null
-      const settings = userData?.userSettings || {};
-      
-      setSystemData({
-        // User settings with defaults
-        currency: settings.currency || 'INR',
-        dateFormat: settings.dateFormat || 'DD/MM/YYYY',
-        timezone: settings.timezone || 'Asia/Kolkata',
-        language: settings.language || 'en',
-        theme: settings.theme || 'light',
-        // Property settings for rent configuration
-        rentDueDay: propertySettings?.paymentSettings?.rentDueDay || 5,
-        lateFeeDays: propertySettings?.paymentSettings?.lateFeeDays || 3,
-        lateFeeAmount: propertySettings?.paymentSettings?.lateFeeAmount || 500,
-        backupFrequency: 'daily' // This could be added to user settings later
-      });
-    } catch (error) {
-      console.error('❌ Error fetching system settings:', error);
-      dispatch(addToast({
-        title: 'Error',
-        description: `Failed to load system settings: ${error.message || 'Unknown error'}`,
-        variant: 'error'
-      }));
-    } finally {
-      setLoading(false);
+    };
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch, propertyId]);
+
+  const validate = () => {
+    const nextErrors = {};
+
+    if (Number(systemData.rentDueDay) < 1 || Number(systemData.rentDueDay) > 31) {
+      nextErrors.rentDueDay = 'Rent due day must be between 1 and 31.';
     }
+
+    if (Number(systemData.lateFeeDays) < 0 || Number(systemData.lateFeeDays) > 30) {
+      nextErrors.lateFeeDays = 'Grace period must be between 0 and 30 days.';
+    }
+
+    if (Number(systemData.lateFeeAmount) < 0) {
+      nextErrors.lateFeeAmount = 'Late fee amount cannot be negative.';
+    }
+
+    if (systemData.contactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(systemData.contactEmail.trim())) {
+      nextErrors.contactEmail = 'Enter a valid contact email.';
+    }
+
+    if (systemData.acceptedMethods.length === 0) {
+      nextErrors.acceptedMethods = 'Select at least one accepted payment method.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const currencyOptions = [
-    { value: 'INR', label: 'Indian Rupee (₹)' },
-    { value: 'USD', label: 'US Dollar ($)' },
-    { value: 'EUR', label: 'Euro (€)' }
-  ];
-
-  const dateFormatOptions = [
-    { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-    { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-    { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' }
-  ];
-
-  const timezoneOptions = [
-    { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
-    { value: 'UTC', label: 'UTC' },
-    { value: 'America/New_York', label: 'America/New_York (EST)' }
-  ];
-
-  const themeOptions = [
-    { value: 'light', label: 'Light Theme' },
-    { value: 'dark', label: 'Dark Theme' },
-    { value: 'auto', label: 'Auto (System)' }
-  ];
-
-  const backupOptions = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' }
-  ];
+  const togglePaymentMethod = (method) => {
+    setSystemData((previous) => {
+      const hasMethod = previous.acceptedMethods.includes(method);
+      return {
+        ...previous,
+        acceptedMethods: hasMethod
+          ? previous.acceptedMethods.filter((item) => item !== method)
+          : [...previous.acceptedMethods, method],
+      };
+    });
+  };
 
   const handleSave = async () => {
+    if (!validate()) {
+      dispatch(
+        addToast({
+          title: 'Fix validation errors',
+          description: 'Please correct highlighted system fields before saving.',
+          variant: 'error',
+        })
+      );
+      return;
+    }
+
+    setSaving(true);
+
     try {
-      setLoading(true);
-      console.log('🔧 Saving system settings...');
-      
-      // Update user settings
-      const userSettingsUpdate = {
-        currency: systemData.currency,
-        dateFormat: systemData.dateFormat,
-        timezone: systemData.timezone,
+      await apiService.settings.updateUserSettings({
+        theme: systemData.theme,
         language: systemData.language,
-        theme: systemData.theme
-      };
-      
-      await apiService.settings.updateUserSettings(userSettingsUpdate);
-      
-      // Update property settings for rent configuration if property exists
-      const propertyId = selectedProperty?.id || properties[0]?.id;
+        timezone: systemData.timezone,
+        dateFormat: systemData.dateFormat,
+        currency: systemData.currency,
+      });
+
       if (propertyId) {
-        const propertySettingsUpdate = {
+        await apiService.settings.updatePropertySettings(propertyId, {
           paymentSettings: {
-            rentDueDay: systemData.rentDueDay,
-            lateFeeDays: systemData.lateFeeDays,
-            lateFeeAmount: systemData.lateFeeAmount,
-            acceptedMethods: ['Cash', 'UPI', 'Bank Transfer'] // Keep existing methods
-          }
-        };
-        
-        await apiService.settings.updatePropertySettings(propertyId, propertySettingsUpdate);
+            rentDueDay: Number(systemData.rentDueDay),
+            lateFeeDays: Number(systemData.lateFeeDays),
+            lateFeeAmount: Number(systemData.lateFeeAmount),
+            acceptedMethods: systemData.acceptedMethods,
+          },
+          contactInfo: {
+            phone: systemData.contactPhone.trim(),
+            email: systemData.contactEmail.trim(),
+            emergencyContact: systemData.emergencyContact.trim(),
+          },
+        });
       }
-      
-      console.log('✅ System settings saved successfully');
-      
-      dispatch(addToast({
-        title: 'System Settings Updated',
-        description: 'System configuration has been saved successfully.',
-        variant: 'success'
-      }));
-    } catch (error) {
-      console.error('❌ Error saving system settings:', error);
-      dispatch(addToast({
-        title: 'Error',
-        description: `Failed to save system settings: ${error.message || 'Unknown error'}`,
-        variant: 'error'
-      }));
+
+      dispatch(
+        addToast({
+          title: 'System settings updated',
+          description: 'Operational configuration saved successfully.',
+          variant: 'success',
+        })
+      );
+    } catch {
+      dispatch(
+        addToast({
+          title: 'Save failed',
+          description: 'Unable to save system settings.',
+          variant: 'error',
+        })
+      );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleBackup = () => {
-    dispatch(addToast({
-      title: 'Backup Started',
-      description: 'System backup is in progress...',
-      variant: 'info'
-    }));
-  };
-
-  const handleRestore = () => {
-    dispatch(addToast({
-      title: 'Restore Initiated',
-      description: 'System restore process has started.',
-      variant: 'warning'
-    }));
-  };
-
-  if (loading && systemData.currency === 'INR') {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="animate-pulse">Loading system settings...</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Settings className="w-5 h-5" />
-          <span>System Settings</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* General Settings */}
-        <div>
-          <h4 className="font-medium text-gray-900 mb-3">General Settings</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Dropdown
-              label="Currency"
-              options={currencyOptions}
-              value={systemData.currency}
-              onChange={(value) => setSystemData(prev => ({ ...prev, currency: value }))}
-            />
-            <Dropdown
-              label="Date Format"
-              options={dateFormatOptions}
-              value={systemData.dateFormat}
-              onChange={(value) => setSystemData(prev => ({ ...prev, dateFormat: value }))}
-            />
-            <Dropdown
-              label="Timezone"
-              options={timezoneOptions}
-              value={systemData.timezone}
-              onChange={(value) => setSystemData(prev => ({ ...prev, timezone: value }))}
-            />
-            <Dropdown
-              label="Theme"
-              options={themeOptions}
-              value={systemData.theme}
-              onChange={(value) => setSystemData(prev => ({ ...prev, theme: value }))}
-            />
+    <SettingsCard
+      icon={Settings}
+      title="System Configuration"
+      description="Production-facing defaults for locale, payment policy, and property contact details."
+      actions={
+        <div className="flex justify-end">
+          <Button onClick={handleSave} loading={saving} disabled={loading}>
+            <Save className="h-4 w-4" />
+            <span>Save configuration</span>
+          </Button>
+        </div>
+      }
+    >
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <SelectField
+          label="Theme"
+          value={systemData.theme}
+          options={THEME_OPTIONS}
+          onChange={(value) => setSystemData((previous) => ({ ...previous, theme: value }))}
+        />
+        <SelectField
+          label="Language"
+          value={systemData.language}
+          options={LANGUAGE_OPTIONS}
+          onChange={(value) => setSystemData((previous) => ({ ...previous, language: value }))}
+        />
+        <SelectField
+          label="Timezone"
+          value={systemData.timezone}
+          options={TIMEZONE_OPTIONS}
+          onChange={(value) => setSystemData((previous) => ({ ...previous, timezone: value }))}
+        />
+        <SelectField
+          label="Date Format"
+          value={systemData.dateFormat}
+          options={DATE_FORMAT_OPTIONS}
+          onChange={(value) => setSystemData((previous) => ({ ...previous, dateFormat: value }))}
+        />
+        <SelectField
+          label="Currency"
+          value={systemData.currency}
+          options={CURRENCY_OPTIONS}
+          onChange={(value) => setSystemData((previous) => ({ ...previous, currency: value }))}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <SectionTitle>Property Ops</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <PropertySelector properties={properties} propertyId={propertyId} onChange={setPropertyId} disabled={loading} />
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <p className="font-medium text-slate-900">Applies to selected property</p>
+            <p className="mt-1">Rent and contact values below are scoped to this property only.</p>
           </div>
         </div>
 
-        {/* Rent Settings */}
-        <div className="border-t pt-6">
-          <h4 className="font-medium text-gray-900 mb-3">Rent & Payment Settings</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
             <Input
               label="Rent Due Day"
+              labelClassName={labelClasses}
+              className={inputClasses}
               type="number"
               min="1"
               max="31"
               value={systemData.rentDueDay}
-              onChange={(e) => setSystemData(prev => ({ ...prev, rentDueDay: e.target.value }))}
+              onChange={(event) =>
+                setSystemData((previous) => ({ ...previous, rentDueDay: Number(event.target.value || 0) }))
+              }
             />
+            <FieldError message={errors.rentDueDay} />
+          </div>
+
+          <div>
             <Input
-              label="Late Fee Grace Period (Days)"
+              label="Late Fee Grace (Days)"
+              labelClassName={labelClasses}
+              className={inputClasses}
               type="number"
               min="0"
               max="30"
               value={systemData.lateFeeDays}
-              onChange={(e) => setSystemData(prev => ({ ...prev, lateFeeDays: e.target.value }))}
+              onChange={(event) =>
+                setSystemData((previous) => ({ ...previous, lateFeeDays: Number(event.target.value || 0) }))
+              }
             />
+            <FieldError message={errors.lateFeeDays} />
+          </div>
+
+          <div>
             <Input
               label="Late Fee Amount"
+              labelClassName={labelClasses}
+              className={inputClasses}
               type="number"
               min="0"
               value={systemData.lateFeeAmount}
-              onChange={(e) => setSystemData(prev => ({ ...prev, lateFeeAmount: e.target.value }))}
+              onChange={(event) =>
+                setSystemData((previous) => ({ ...previous, lateFeeAmount: Number(event.target.value || 0) }))
+              }
             />
+            <FieldError message={errors.lateFeeAmount} />
           </div>
         </div>
+      </div>
 
-        {/* Backup Settings */}
-        <div className="border-t pt-6">
-          <h4 className="font-medium text-gray-900 mb-3">Backup & Recovery</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Dropdown
-              label="Backup Frequency"
-              options={backupOptions}
-              value={systemData.backupFrequency}
-              onChange={(value) => setSystemData(prev => ({ ...prev, backupFrequency: value }))}
+      <div className="space-y-3">
+        <SectionTitle>Accepted Payment Methods</SectionTitle>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+          {PAYMENT_METHOD_OPTIONS.map((method) => {
+            const selected = systemData.acceptedMethods.includes(method);
+
+            return (
+              <button
+                key={method}
+                type="button"
+                onClick={() => togglePaymentMethod(method)}
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-left text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-500/25',
+                  selected
+                    ? 'border-sky-300 bg-sky-50 text-sky-700'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                )}
+              >
+                {method}
+              </button>
+            );
+          })}
+        </div>
+        <FieldError message={errors.acceptedMethods} />
+      </div>
+
+      <div className="space-y-4">
+        <SectionTitle>Contact Information</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Input
+            label="Property Contact Phone"
+            labelClassName={labelClasses}
+            className={inputClasses}
+            value={systemData.contactPhone}
+            onChange={(event) => setSystemData((previous) => ({ ...previous, contactPhone: event.target.value }))}
+            placeholder="+91 98765 43210"
+          />
+
+          <div>
+            <Input
+              type="email"
+              label="Property Contact Email"
+              labelClassName={labelClasses}
+              className={inputClasses}
+              value={systemData.contactEmail}
+              onChange={(event) => setSystemData((previous) => ({ ...previous, contactEmail: event.target.value }))}
+              placeholder="property@example.com"
             />
-            <div className="flex items-end">
-              <p className="text-sm text-gray-600">Last backup: January 15, 2024</p>
-            </div>
+            <FieldError message={errors.contactEmail} />
           </div>
-          <div className="flex space-x-3">
-            <Button variant="outline" onClick={handleBackup}>
-              <Download className="w-4 h-4 mr-2" />
-              Create Backup
-            </Button>
-            <Button variant="outline" onClick={handleRestore}>
-              <Upload className="w-4 h-4 mr-2" />
-              Restore Backup
-            </Button>
-          </div>
-        </div>
 
-        <div className="flex justify-end pt-4 border-t">
-          <Button onClick={handleSave}>
-            <Save className="w-4 h-4 mr-2" />
-            Save Settings
-          </Button>
+          <Input
+            label="Emergency Contact"
+            labelClassName={labelClasses}
+            className={inputClasses}
+            value={systemData.emergencyContact}
+            onChange={(event) => setSystemData((previous) => ({ ...previous, emergencyContact: event.target.value }))}
+            placeholder="Caretaker / alternate number"
+          />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsCard>
   );
 }
 
 function SecuritySettings() {
   const dispatch = useDispatch();
-  const [loading, setLoading] = useState(false);
-  const [securityData, setSecurityData] = useState({
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [securityData, setSecurityData] = useState(defaultSecurityData);
+  const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    twoFactorEnabled: false,
-    sessionTimeout: 60,
-    loginNotifications: true
   });
+  const [errors, setErrors] = useState({});
 
-  // Fetch security settings on component mount
   useEffect(() => {
-    fetchSecuritySettings();
+    let isMounted = true;
+
+    const loadSettings = async () => {
+      try {
+        const response = await apiService.settings.getUserSettings();
+        const settings = response.data?.userSettings || {};
+
+        if (!isMounted) return;
+
+        setSecurityData({
+          twoFactorEnabled: settings.twoFactorEnabled ?? false,
+          sessionTimeout: Number(settings.sessionTimeout ?? 60),
+          loginNotifications: settings.loginNotifications ?? true,
+        });
+      } catch {
+        if (isMounted) {
+          setSecurityData(defaultSecurityData);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const fetchSecuritySettings = async () => {
-    try {
-      setLoading(true);
-      console.log('🔧 Fetching security settings...');
-      
-      const response = await apiService.settings.getUserSettings();
-      const userData = response.data;
-      
-      console.log('✅ Security settings response:', userData);
-      
-      const settings = userData?.userSettings || {};
-      
-      setSecurityData(prev => ({
-        ...prev,
-        twoFactorEnabled: settings.twoFactorEnabled || false,
-        sessionTimeout: settings.sessionTimeout || 60,
-        loginNotifications: settings.loginNotifications || true
-      }));
-    } catch (error) {
-      console.error('❌ Error fetching security settings:', error);
-      dispatch(addToast({
-        title: 'Error',
-        description: `Failed to load security settings: ${error.message || 'Unknown error'}`,
-        variant: 'error'
-      }));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handlePasswordChange = async () => {
-    if (securityData.newPassword !== securityData.confirmPassword) {
-      dispatch(addToast({
-        title: 'Password Mismatch',
-        description: 'New password and confirm password do not match.',
-        variant: 'error'
-      }));
+    const nextErrors = {};
+
+    if (!passwordData.currentPassword) {
+      nextErrors.currentPassword = 'Current password is required.';
+    }
+
+    if (!passwordData.newPassword) {
+      nextErrors.newPassword = 'New password is required.';
+    } else if (passwordData.newPassword.length < 8) {
+      nextErrors.newPassword = 'Use at least 8 characters for stronger security.';
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      nextErrors.confirmPassword = 'New password and confirmation do not match.';
+    }
+
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      dispatch(
+        addToast({
+          title: 'Password validation failed',
+          description: 'Please fix the highlighted password fields.',
+          variant: 'error',
+        })
+      );
       return;
     }
 
-    if (securityData.newPassword.length < 6) {
-      dispatch(addToast({
-        title: 'Password Too Short',
-        description: 'Password must be at least 6 characters long.',
-        variant: 'error'
-      }));
-      return;
-    }
+    setPasswordSaving(true);
 
     try {
-      setLoading(true);
-      console.log('🔧 Changing password...');
-      
-      // Call password change API (you'll need to implement this endpoint)
       await apiService.auth.changePassword({
-        currentPassword: securityData.currentPassword,
-        newPassword: securityData.newPassword
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
       });
-      
-      console.log('✅ Password changed successfully');
-      
-      dispatch(addToast({
-        title: 'Password Updated',
-        description: 'Your password has been changed successfully.',
-        variant: 'success'
+
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setErrors((previous) => ({
+        ...previous,
+        currentPassword: undefined,
+        newPassword: undefined,
+        confirmPassword: undefined,
       }));
 
-      setSecurityData(prev => ({
-        ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      }));
+      dispatch(
+        addToast({
+          title: 'Password updated',
+          description: 'Your password has been changed successfully.',
+          variant: 'success',
+        })
+      );
     } catch (error) {
-      console.error('❌ Error changing password:', error);
-      dispatch(addToast({
-        title: 'Error',
-        description: `Failed to change password: ${error.message || 'Unknown error'}`,
-        variant: 'error'
-      }));
+      dispatch(
+        addToast({
+          title: 'Password change failed',
+          description: error?.message || 'Unable to update password.',
+          variant: 'error',
+        })
+      );
     } finally {
-      setLoading(false);
+      setPasswordSaving(false);
     }
   };
 
-  const handleSecuritySettingsUpdate = async () => {
+  const handleSaveSecurity = async () => {
+    if (Number(securityData.sessionTimeout) < 15 || Number(securityData.sessionTimeout) > 480) {
+      setErrors((previous) => ({
+        ...previous,
+        sessionTimeout: 'Session timeout must be between 15 and 480 minutes.',
+      }));
+      dispatch(
+        addToast({
+          title: 'Invalid timeout',
+          description: 'Session timeout must be between 15 and 480 minutes.',
+          variant: 'error',
+        })
+      );
+      return;
+    }
+
+    setErrors((previous) => ({ ...previous, sessionTimeout: undefined }));
+    setSaving(true);
+
     try {
-      setLoading(true);
-      console.log('🔧 Updating security settings...');
-      
-      const securitySettingsUpdate = {
+      await apiService.settings.updateUserSettings({
         twoFactorEnabled: securityData.twoFactorEnabled,
-        sessionTimeout: securityData.sessionTimeout,
-        loginNotifications: securityData.loginNotifications
-      };
-      
-      await apiService.settings.updateUserSettings(securitySettingsUpdate);
-      
-      console.log('✅ Security settings updated successfully');
-      
-      dispatch(addToast({
-        title: 'Security Settings Updated',
-        description: 'Your security preferences have been saved successfully.',
-        variant: 'success'
-      }));
-    } catch (error) {
-      console.error('❌ Error updating security settings:', error);
-      dispatch(addToast({
-        title: 'Error',
-        description: `Failed to update security settings: ${error.message || 'Unknown error'}`,
-        variant: 'error'
-      }));
+        sessionTimeout: Number(securityData.sessionTimeout),
+        loginNotifications: securityData.loginNotifications,
+      });
+
+      dispatch(
+        addToast({
+          title: 'Security settings updated',
+          description: 'Security preferences saved successfully.',
+          variant: 'success',
+        })
+      );
+    } catch {
+      dispatch(
+        addToast({
+          title: 'Save failed',
+          description: 'Unable to save security preferences.',
+          variant: 'error',
+        })
+      );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
-
-  const handleTwoFactorToggle = () => {
-    setSecurityData(prev => ({ ...prev, twoFactorEnabled: !prev.twoFactorEnabled }));
-  };
-
-  if (loading && securityData.sessionTimeout === 60) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="animate-pulse">Loading security settings...</div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Shield className="w-5 h-5" />
-          <span>Security Settings</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Password Change */}
-        <div>
-          <h4 className="font-medium text-gray-900 mb-3">Change Password</h4>
-          <div className="space-y-4">
-            <Input
-              label="Current Password"
-              type="password"
-              value={securityData.currentPassword}
-              onChange={(e) => setSecurityData(prev => ({ ...prev, currentPassword: e.target.value }))}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="New Password"
-                type="password"
-                value={securityData.newPassword}
-                onChange={(e) => setSecurityData(prev => ({ ...prev, newPassword: e.target.value }))}
-              />
-              <Input
-                label="Confirm New Password"
-                type="password"
-                value={securityData.confirmPassword}
-                onChange={(e) => setSecurityData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-              />
-            </div>
-            <Button onClick={handlePasswordChange}>
-              <Save className="w-4 h-4 mr-2" />
-              Change Password
-            </Button>
-          </div>
-        </div>
-
-        {/* Two-Factor Authentication */}
-        <div className="border-t pt-6">
-          <h4 className="font-medium text-gray-900 mb-3">Two-Factor Authentication</h4>
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <h5 className="font-medium">Enable Two-Factor Authentication</h5>
-              <p className="text-sm text-gray-500 mt-1">
-                Add an extra layer of security to your account
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={securityData.twoFactorEnabled}
-                onChange={handleTwoFactorToggle}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-        </div>
-
-        {/* Session Settings */}
-        <div className="border-t pt-6">
-          <h4 className="font-medium text-gray-900 mb-3">Session Settings</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Session Timeout (minutes)"
-              type="number"
-              min="15"
-              max="480"
-              value={securityData.sessionTimeout}
-              onChange={(e) => setSecurityData(prev => ({ ...prev, sessionTimeout: e.target.value }))}
-            />
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <h5 className="font-medium">Login Notifications</h5>
-                <p className="text-sm text-gray-500 mt-1">Get notified of new logins</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={securityData.loginNotifications}
-                  onChange={(e) => setSecurityData(prev => ({ ...prev, loginNotifications: e.target.checked }))}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Save Security Settings */}
-        <div className="flex justify-end pt-4 border-t">
-          <Button
-            onClick={handleSecuritySettingsUpdate}
-            disabled={loading}
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {loading ? 'Saving...' : 'Save Security Settings'}
+    <SettingsCard
+      icon={Shield}
+      title="Security"
+      description="Protect account access and define your active session policy."
+      actions={
+        <div className="flex justify-end">
+          <Button onClick={handleSaveSecurity} loading={saving} disabled={loading}>
+            <Save className="h-4 w-4" />
+            <span>Save security settings</span>
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      }
+    >
+      <div className="space-y-4">
+        <SectionTitle>Change Password</SectionTitle>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Input
+              type="password"
+              label="Current Password"
+              labelClassName={labelClasses}
+              className={inputClasses}
+              value={passwordData.currentPassword}
+              onChange={(event) =>
+                setPasswordData((previous) => ({ ...previous, currentPassword: event.target.value }))
+              }
+              placeholder="Current password"
+            />
+            <FieldError message={errors.currentPassword} />
+          </div>
+
+          <div>
+            <Input
+              type="password"
+              label="New Password"
+              labelClassName={labelClasses}
+              className={inputClasses}
+              value={passwordData.newPassword}
+              onChange={(event) => setPasswordData((previous) => ({ ...previous, newPassword: event.target.value }))}
+              placeholder="Minimum 8 characters"
+            />
+            <FieldError message={errors.newPassword} />
+          </div>
+
+          <div>
+            <Input
+              type="password"
+              label="Confirm New Password"
+              labelClassName={labelClasses}
+              className={inputClasses}
+              value={passwordData.confirmPassword}
+              onChange={(event) =>
+                setPasswordData((previous) => ({ ...previous, confirmPassword: event.target.value }))
+              }
+              placeholder="Re-enter new password"
+            />
+            <FieldError message={errors.confirmPassword} />
+          </div>
+        </div>
+
+        <div>
+          <Button onClick={handlePasswordChange} loading={passwordSaving} variant="outline" className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+            <Save className="h-4 w-4" />
+            <span>Change password</span>
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <SectionTitle>Access Controls</SectionTitle>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <ToggleField
+            id="security-2fa"
+            label="Two-factor authentication"
+            description="Require a second verification step during login."
+            checked={securityData.twoFactorEnabled}
+            onChange={(value) => setSecurityData((previous) => ({ ...previous, twoFactorEnabled: value }))}
+          />
+
+          <ToggleField
+            id="security-login-notifications"
+            label="Login notifications"
+            description="Notify on new login or unusual sign-in attempts."
+            checked={securityData.loginNotifications}
+            onChange={(value) => setSecurityData((previous) => ({ ...previous, loginNotifications: value }))}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <SectionTitle>Session Policy</SectionTitle>
+        <div className="max-w-sm">
+          <Input
+            type="number"
+            min="15"
+            max="480"
+            label="Session Timeout (minutes)"
+            labelClassName={labelClasses}
+            className={inputClasses}
+            value={securityData.sessionTimeout}
+            onChange={(event) =>
+              setSecurityData((previous) => ({ ...previous, sessionTimeout: Number(event.target.value || 0) }))
+            }
+          />
+          <FieldError message={errors.sessionTimeout} />
+        </div>
+      </div>
+    </SettingsCard>
   );
 }
 
@@ -1308,7 +1503,6 @@ export default function SettingsPage() {
   const { isAuthenticated } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('profile');
 
-  // Fetch properties on component mount
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchProperties());
@@ -1318,9 +1512,9 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'terms', label: 'Terms & Conditions', icon: FileText },
-    { id: 'system', label: 'System', icon: Settings },
-    { id: 'security', label: 'Security', icon: Shield }
+    { id: 'rules', label: 'Terms & Rules', icon: FileText },
+    { id: 'system', label: 'System', icon: Globe },
+    { id: 'security', label: 'Security', icon: Shield },
   ];
 
   const renderTabContent = () => {
@@ -1329,8 +1523,8 @@ export default function SettingsPage() {
         return <ProfileSettings />;
       case 'notifications':
         return <NotificationSettings />;
-      case 'terms':
-        return <TermsAndConditionsSettings />;
+      case 'rules':
+        return <TermsAndRulesSettings />;
       case 'system':
         return <SystemSettings />;
       case 'security':
@@ -1341,38 +1535,44 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-2">Manage your PG system preferences and configuration</p>
-      </div>
+    <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-7xl space-y-6">
+        <header className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Settings</h1>
+          <p className="max-w-3xl text-sm text-slate-600 sm:text-base">
+            Manage your PG system preferences and production configuration in one place.
+          </p>
+        </header>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex space-x-8">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+        <div className="overflow-x-auto pb-1">
+          <nav className="flex min-w-max items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
 
-      {/* Tab Content */}
-      <div>{renderTabContent()}</div>
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-500/25',
+                    isActive
+                      ? 'border-sky-300 bg-sky-50 text-sky-700'
+                      : 'border-transparent bg-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
+                  )}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div>{renderTabContent()}</div>
+      </div>
     </div>
   );
-} 
+}
