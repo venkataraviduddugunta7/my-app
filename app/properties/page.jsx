@@ -23,7 +23,6 @@ import {
   Home,
   Phone,
   Mail,
-  Globe,
   Calendar,
   Shield,
   Wifi,
@@ -45,7 +44,6 @@ import { Modal } from "@/components/ui/Modal";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { addToast } from "@/store/slices/uiSlice";
 import {
-  selectProperty,
   setSelectedProperty,
 } from "@/store/slices/propertySlice";
 import { formatCurrency } from "@/lib/utils";
@@ -66,7 +64,6 @@ const DEFAULT_PROPERTY = {
   amenities: [],
   phone: "",
   email: "",
-  website: "",
   type: "Co-ed",
 };
 
@@ -89,6 +86,11 @@ const PROPERTY_TYPE_OPTIONS = [
   { value: "Co-ed", label: "Co-ed (Mixed)", icon: Users },
 ];
 
+const PROPERTY_TYPE_VALUES = new Set(PROPERTY_TYPE_OPTIONS.map((option) => option.value));
+const PINCODE_REGEX = /^\d{6}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[0-9+\-()\s]{7,20}$/;
+
 export default function PropertiesPage() {
   const dispatch = useDispatch();
   const { selectedProperty } = useSelector((state) => state.property);
@@ -107,6 +109,7 @@ export default function PropertiesPage() {
   const [propertyToDelete, setPropertyToDelete] = useState(null);
 
   const [formData, setFormData] = useState(DEFAULT_PROPERTY);
+  const [formErrors, setFormErrors] = useState({});
 
   // Fetch properties on component mount
   useEffect(() => {
@@ -191,6 +194,7 @@ export default function PropertiesPage() {
   const handleAddProperty = () => {
     setEditingProperty(null);
     setFormData(DEFAULT_PROPERTY);
+    setFormErrors({});
     setShowModal(true);
   };
 
@@ -203,18 +207,121 @@ export default function PropertiesPage() {
       state: property.state || "",
       pincode: property.pincode || "",
       description: property.description || "",
-      totalFloors: property.totalFloors || "",
-      totalRooms: property.totalRooms || "",
-      totalBeds: property.totalBeds || "",
-      monthlyRent: property.monthlyRent || "",
-      securityDeposit: property.securityDeposit || "",
+      totalFloors: property.totalFloors ?? "",
+      totalRooms: property.totalRooms ?? "",
+      totalBeds: property.totalBeds ?? "",
+      monthlyRent: property.monthlyRent ?? "",
+      securityDeposit: property.securityDeposit ?? "",
       amenities: property.amenities || [],
       phone: property.phone || "",
       email: property.email || "",
-      website: property.website || "",
       type: property.type || "Co-ed",
     });
+    setFormErrors({});
     setShowModal(true);
+  };
+
+  const updateField = (field, value) => {
+    setFormData((previous) => ({ ...previous, [field]: value }));
+    setFormErrors((previous) => {
+      if (!previous[field]) return previous;
+      const next = { ...previous };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const validatePropertyForm = () => {
+    const nextErrors = {};
+
+    const name = formData.name.trim();
+    const address = formData.address.trim();
+    const city = formData.city.trim();
+    const stateValue = formData.state.trim();
+    const pincode = formData.pincode.trim();
+    const propertyType = formData.type;
+    const phone = formData.phone.trim();
+    const email = formData.email.trim();
+
+    const totalBeds = Number(formData.totalBeds);
+    const monthlyRent = Number(formData.monthlyRent);
+    const totalFloors =
+      formData.totalFloors === "" || formData.totalFloors === null || formData.totalFloors === undefined
+        ? undefined
+        : Number(formData.totalFloors);
+    const totalRooms =
+      formData.totalRooms === "" || formData.totalRooms === null || formData.totalRooms === undefined
+        ? undefined
+        : Number(formData.totalRooms);
+    const securityDeposit =
+      formData.securityDeposit === "" || formData.securityDeposit === null || formData.securityDeposit === undefined
+        ? undefined
+        : Number(formData.securityDeposit);
+
+    if (!name) nextErrors.name = "Property name is required.";
+    if (!PROPERTY_TYPE_VALUES.has(propertyType)) nextErrors.type = "Select a valid property type.";
+    if (!address) nextErrors.address = "Street address is required.";
+    if (!city) nextErrors.city = "City is required.";
+    if (!stateValue) nextErrors.state = "State is required.";
+    if (!pincode) {
+      nextErrors.pincode = "Pincode is required.";
+    } else if (!PINCODE_REGEX.test(pincode)) {
+      nextErrors.pincode = "Pincode must be a 6-digit number.";
+    }
+
+    if (!Number.isInteger(totalBeds) || totalBeds < 1) {
+      nextErrors.totalBeds = "Total beds must be at least 1.";
+    }
+
+    if (!Number.isFinite(monthlyRent) || monthlyRent <= 0) {
+      nextErrors.monthlyRent = "Monthly rent must be greater than 0.";
+    }
+
+    if (totalFloors !== undefined && (!Number.isInteger(totalFloors) || totalFloors < 0)) {
+      nextErrors.totalFloors = "Total floors must be 0 or more.";
+    }
+
+    if (totalRooms !== undefined && (!Number.isInteger(totalRooms) || totalRooms < 0)) {
+      nextErrors.totalRooms = "Total rooms must be 0 or more.";
+    }
+
+    if (securityDeposit !== undefined && (!Number.isFinite(securityDeposit) || securityDeposit < 0)) {
+      nextErrors.securityDeposit = "Security deposit cannot be negative.";
+    }
+
+    if (phone && !PHONE_REGEX.test(phone)) {
+      nextErrors.phone = "Enter a valid phone number.";
+    }
+
+    if (email && !EMAIL_REGEX.test(email)) {
+      nextErrors.email = "Enter a valid email address.";
+    }
+
+    setFormErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return null;
+    }
+
+    return {
+      name,
+      type: propertyType,
+      address,
+      city,
+      state: stateValue,
+      pincode,
+      description: formData.description.trim() || undefined,
+      totalBeds,
+      monthlyRent,
+      totalFloors,
+      totalRooms,
+      securityDeposit,
+      amenities: Array.isArray(formData.amenities)
+        ? [...new Set(formData.amenities.map((item) => item.trim()).filter(Boolean))]
+        : [],
+      phone: phone || undefined,
+      email: email || undefined,
+    };
   };
 
   const handleDeleteProperty = (propertyId) => {
@@ -268,12 +375,13 @@ export default function PropertiesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const payload = validatePropertyForm();
 
-    if (!formData.name || !formData.address || !formData.totalBeds) {
+    if (!payload) {
       dispatch(
         addToast({
-          title: "Missing Information",
-          description: "Please fill in all required fields",
+          title: "Validation failed",
+          description: "Please fix the highlighted fields before saving.",
           variant: "warning",
         })
       );
@@ -282,7 +390,7 @@ export default function PropertiesPage() {
 
     // Validate capacity update if editing
     if (editingProperty) {
-      const capacityValidation = validateCapacityUpdate(editingProperty, formData);
+      const capacityValidation = validateCapacityUpdate(editingProperty, payload);
       if (!capacityValidation.isValid) {
         dispatch(addToast({
           title: 'Capacity Validation Failed',
@@ -299,10 +407,10 @@ export default function PropertiesPage() {
 
       if (editingProperty) {
         // Update existing property
-        response = await propertyService.updateProperty(editingProperty.id, formData);
+        response = await propertyService.updateProperty(editingProperty.id, payload);
       } else {
         // Add new property
-        response = await propertyService.createProperty(formData);
+        response = await propertyService.createProperty(payload);
       }
 
       if (response.success) {
@@ -312,7 +420,7 @@ export default function PropertiesPage() {
         dispatch(
           addToast({
             title: editingProperty ? "Property Updated" : "Property Added",
-            description: response.message || `${formData.name} has been ${editingProperty ? 'updated' : 'added'} successfully`,
+            description: response.message || `${payload.name} has been ${editingProperty ? 'updated' : 'added'} successfully`,
             variant: "success",
           })
         );
@@ -565,10 +673,10 @@ export default function PropertiesPage() {
                               {amenity}
                             </span>
                           ))}
-                           {property.amenities.length > 3 && (
+                           {property.amenities.length > 4 && (
                              <div className="relative group/more">
                                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-md cursor-help hover:bg-gray-200 transition-colors">
-                                 +{property.amenities.length - 3} more
+                                 +{property.amenities.length - 4} more
                                </span>
                                
                                {/* Tooltip for +X more button */}
@@ -714,7 +822,10 @@ export default function PropertiesPage() {
       {/* Add/Edit Modal */}
       <Modal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => {
+          setShowModal(false);
+          setFormErrors({});
+        }}
         title={editingProperty ? "Edit Property" : "Add New Property"}
         size="xl"
       >
@@ -736,18 +847,18 @@ export default function PropertiesPage() {
                 label="Property Name"
                 required
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={(e) => updateField("name", e.target.value)}
                 placeholder="e.g., Sunrise PG"
+                error={formErrors.name}
               />
               <Dropdown
                 label="Property Type"
                 options={PROPERTY_TYPE_OPTIONS}
                 value={formData.type}
-                onChange={(value) => setFormData({ ...formData, type: value })}
+                onChange={(value) => updateField("type", value)}
                 placeholder="Select property type..."
                 premium
+                error={formErrors.type}
               />
             </div>
           </div>
@@ -767,36 +878,34 @@ export default function PropertiesPage() {
                 label="Street Address"
                 required
                 value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
+                onChange={(e) => updateField("address", e.target.value)}
                 placeholder="e.g., 123 Main Street"
+                error={formErrors.address}
               />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
                   label="City"
                   required
                   value={formData.city}
-                  onChange={(e) =>
-                    setFormData({ ...formData, city: e.target.value })
-                  }
+                  onChange={(e) => updateField("city", e.target.value)}
                   placeholder="e.g., Bangalore"
+                  error={formErrors.city}
                 />
                 <Input
                   label="State"
+                  required
                   value={formData.state}
-                  onChange={(e) =>
-                    setFormData({ ...formData, state: e.target.value })
-                  }
+                  onChange={(e) => updateField("state", e.target.value)}
                   placeholder="e.g., Karnataka"
+                  error={formErrors.state}
                 />
                 <Input
                   label="Pincode"
+                  required
                   value={formData.pincode}
-                  onChange={(e) =>
-                    setFormData({ ...formData, pincode: e.target.value })
-                  }
+                  onChange={(e) => updateField("pincode", e.target.value)}
                   placeholder="e.g., 560001"
+                  error={formErrors.pincode}
                 />
               </div>
             </div>
@@ -817,35 +926,26 @@ export default function PropertiesPage() {
                 label="Total Floors"
                 type="number"
                 value={formData.totalFloors || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const numValue = value === '' ? 0 : parseInt(value);
-                  setFormData({ ...formData, totalFloors: isNaN(numValue) ? 0 : numValue });
-                }}
+                onChange={(e) => updateField("totalFloors", e.target.value)}
                 placeholder="e.g., 4"
+                error={formErrors.totalFloors}
               />
               <Input
                 label="Total Rooms"
                 type="number"
                 value={formData.totalRooms || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const numValue = value === '' ? 0 : parseInt(value);
-                  setFormData({ ...formData, totalRooms: isNaN(numValue) ? 0 : numValue });
-                }}
+                onChange={(e) => updateField("totalRooms", e.target.value)}
                 placeholder="e.g., 16"
+                error={formErrors.totalRooms}
               />
               <Input
                 label="Total Beds"
                 type="number"
                 required
                 value={formData.totalBeds || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const numValue = value === '' ? 0 : parseInt(value);
-                  setFormData({ ...formData, totalBeds: isNaN(numValue) ? 0 : numValue });
-                }}
+                onChange={(e) => updateField("totalBeds", e.target.value)}
                 placeholder="e.g., 48"
+                error={formErrors.totalBeds}
               />
             </div>
           </div>
@@ -866,23 +966,17 @@ export default function PropertiesPage() {
                 type="number"
                 required
                 value={formData.monthlyRent || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const numValue = value === '' ? 0 : parseFloat(value);
-                  setFormData({ ...formData, monthlyRent: isNaN(numValue) ? 0 : numValue });
-                }}
+                onChange={(e) => updateField("monthlyRent", e.target.value)}
                 placeholder="e.g., 8000"
+                error={formErrors.monthlyRent}
               />
               <Input
                 label="Security Deposit (₹)"
                 type="number"
                 value={formData.securityDeposit || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const numValue = value === '' ? 0 : parseFloat(value);
-                  setFormData({ ...formData, securityDeposit: isNaN(numValue) ? 0 : numValue });
-                }}
+                onChange={(e) => updateField("securityDeposit", e.target.value)}
                 placeholder="e.g., 16000"
+                error={formErrors.securityDeposit}
               />
             </div>
           </div>
@@ -897,35 +991,24 @@ export default function PropertiesPage() {
                 Contact Information
               </h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
+                onChange={(e) => updateField("phone", e.target.value)}
                 placeholder="+91 9876543210"
                 icon={Phone}
+                error={formErrors.phone}
               />
               <Input
                 label="Email"
                 type="email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={(e) => updateField("email", e.target.value)}
                 placeholder="property@example.com"
                 icon={Mail}
-              />
-              <Input
-                label="Website"
-                value={formData.website}
-                onChange={(e) =>
-                  setFormData({ ...formData, website: e.target.value })
-                }
-                placeholder="www.example.com"
-                icon={Globe}
+                error={formErrors.email}
               />
             </div>
           </div>
@@ -973,7 +1056,10 @@ export default function PropertiesPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setFormErrors({});
+                }}
               >
                 Cancel
               </Button>

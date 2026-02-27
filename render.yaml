@@ -5,9 +5,9 @@ services:
     rootDir: backend
     plan: free
     autoDeploy: true
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run db:generate
+    preDeployCommand: npx prisma migrate deploy
     startCommand: npm start
-    preDeployCommand: npx prisma db push
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -22,20 +22,6 @@ services:
         fromDatabase:
           name: pg-management-db
           property: connectionString
-
-  - type: web
-    name: pg-management-frontend
-    runtime: node
-    rootDir: .
-    plan: free
-    autoDeploy: true
-    buildCommand: npm install && npm run build
-    startCommand: npm run start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        sync: false
 
 databases:
   - name: pg-management-db

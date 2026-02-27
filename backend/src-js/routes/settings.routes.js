@@ -5,7 +5,9 @@ const {
   getPropertyRules,
   updatePropertyRules,
   getUserSettings,
-  updateUserSettings
+  updateUserSettings,
+  getDashboardSettings,
+  updateDashboardSettings
 } = require('../controllers/settings.controller');
 const { authenticate } = require('../middleware/auth.middleware');
 
@@ -25,5 +27,9 @@ router.put('/property/:propertyId/rules', updatePropertyRules);
 // User Settings Routes
 router.get('/user', getUserSettings);
 router.put('/user', updateUserSettings);
+
+// Dashboard Settings Routes
+router.get('/dashboard', getDashboardSettings);
+router.put('/dashboard', updateDashboardSettings);
 
 module.exports = router;

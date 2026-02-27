@@ -37,6 +37,7 @@ apiClient.interceptors.response.use(
     // Handle specific error cases
     if (error.response) {
       const { status, data } = error.response;
+      const backendMessage = data?.error?.message || data?.message || 'An error occurred';
       
       // Handle authentication errors
       if (status === 401) {
@@ -51,9 +52,12 @@ apiClient.interceptors.response.use(
         const errorMessage = data.errors.map(err => err.message).join(', ');
         return Promise.reject(new Error(errorMessage));
       }
+      if (status === 400 && Array.isArray(data?.error?.details) && data.error.details.length > 0) {
+        return Promise.reject(new Error(data.error.details.join(', ')));
+      }
 
       // Handle other API errors
-      return Promise.reject(new Error(data.message || 'An error occurred'));
+      return Promise.reject(new Error(backendMessage));
     }
 
     // Handle network errors

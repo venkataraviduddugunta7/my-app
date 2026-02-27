@@ -4,25 +4,74 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { createProperty } from '@/store/slices/propertySlice';
 import { addToast } from '@/store/slices/uiSlice';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Modal, ModalFooter } from '@/components/ui';
-import { Building, Plus } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Modal, ModalFooter, Dropdown } from '@/components/ui';
+import { Building, Plus, Users } from 'lucide-react';
+
+const PROPERTY_TYPE_OPTIONS = [
+  { value: 'Men', label: 'Men Only', icon: Users },
+  { value: 'Women', label: 'Women Only', icon: Users },
+  { value: 'Co-ed', label: 'Co-ed (Mixed)', icon: Users }
+];
+
+const PINCODE_REGEX = /^\d{6}$/;
 
 function PropertyFormModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
     name: '',
+    type: 'Co-ed',
     address: '',
     city: '',
     state: '',
     pincode: '',
-    description: ''
+    description: '',
+    totalBeds: '',
+    monthlyRent: ''
   });
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
-    setFormData({
-      name: '', address: '', city: '', state: '', pincode: '', description: ''
+
+    const nextErrors = {};
+    if (!formData.name.trim()) nextErrors.name = 'Property name is required.';
+    if (!formData.address.trim()) nextErrors.address = 'Address is required.';
+    if (!formData.city.trim()) nextErrors.city = 'City is required.';
+    if (!formData.state.trim()) nextErrors.state = 'State is required.';
+    if (!PINCODE_REGEX.test(formData.pincode.trim())) nextErrors.pincode = 'Pincode must be 6 digits.';
+    if (!Number.isInteger(Number(formData.totalBeds)) || Number(formData.totalBeds) < 1) {
+      nextErrors.totalBeds = 'Total beds must be at least 1.';
+    }
+    if (!Number.isFinite(Number(formData.monthlyRent)) || Number(formData.monthlyRent) <= 0) {
+      nextErrors.monthlyRent = 'Monthly rent must be greater than 0.';
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    onSubmit({
+      name: formData.name.trim(),
+      type: formData.type,
+      address: formData.address.trim(),
+      city: formData.city.trim(),
+      state: formData.state.trim(),
+      pincode: formData.pincode.trim(),
+      description: formData.description.trim() || undefined,
+      totalBeds: Number(formData.totalBeds),
+      monthlyRent: Number(formData.monthlyRent)
     });
+
+    setFormData({
+      name: '',
+      type: 'Co-ed',
+      address: '',
+      city: '',
+      state: '',
+      pincode: '',
+      description: '',
+      totalBeds: '',
+      monthlyRent: ''
+    });
+    setErrors({});
   };
 
   return (
@@ -33,7 +82,15 @@ function PropertyFormModal({ isOpen, onClose, onSubmit }) {
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           placeholder="e.g., Green Valley PG, Sunrise Hostel"
+          error={errors.name}
           required
+        />
+
+        <Dropdown
+          label="Property Type"
+          options={PROPERTY_TYPE_OPTIONS}
+          value={formData.type}
+          onChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
         />
         
         <div>
@@ -46,6 +103,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit }) {
             placeholder="Complete address with landmarks"
             required
           />
+          {errors.address && <p className="mt-1 text-xs text-red-500">{errors.address}</p>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -54,6 +112,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit }) {
             value={formData.city}
             onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
             placeholder="e.g., Bangalore"
+            error={errors.city}
             required
           />
           <Input
@@ -61,6 +120,7 @@ function PropertyFormModal({ isOpen, onClose, onSubmit }) {
             value={formData.state}
             onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
             placeholder="e.g., Karnataka"
+            error={errors.state}
             required
           />
           <Input
@@ -68,6 +128,28 @@ function PropertyFormModal({ isOpen, onClose, onSubmit }) {
             value={formData.pincode}
             onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
             placeholder="e.g., 560001"
+            error={errors.pincode}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Total Beds"
+            type="number"
+            value={formData.totalBeds}
+            onChange={(e) => setFormData(prev => ({ ...prev, totalBeds: e.target.value }))}
+            placeholder="e.g., 40"
+            error={errors.totalBeds}
+            required
+          />
+          <Input
+            label="Monthly Rent (₹)"
+            type="number"
+            value={formData.monthlyRent}
+            onChange={(e) => setFormData(prev => ({ ...prev, monthlyRent: e.target.value }))}
+            placeholder="e.g., 8000"
+            error={errors.monthlyRent}
             required
           />
         </div>

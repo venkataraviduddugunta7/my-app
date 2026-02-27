@@ -121,12 +121,12 @@ export class PropertyService {
   // Get Property Dashboard
   static async getPropertyDashboard(propertyId) {
     try {
-      const response = await api.get(`/properties/${propertyId}/dashboard`);
+      const response = await api.get(`/dashboard/stats`, { propertyId });
       
       if (response.success) {
         return {
           success: true,
-          dashboard: response.data,
+          dashboard: response.data || {},
           message: response.message
         };
       }

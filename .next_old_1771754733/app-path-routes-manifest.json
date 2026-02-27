@@ -1,0 +1,19 @@
+{
+  "/favicon.ico/route": "/favicon.ico",
+  "/admin/page": "/admin",
+  "/documents/page": "/documents",
+  "/analytics/page": "/analytics",
+  "/notices/page": "/notices",
+  "/_not-found/page": "/_not-found",
+  "/page": "/",
+  "/payments/page": "/payments",
+  "/login/page": "/login",
+  "/properties/page": "/properties",
+  "/reports/page": "/reports",
+  "/rooms/page": "/rooms",
+  "/tenants/page": "/tenants",
+  "/settings/page": "/settings",
+  "/signup/page": "/signup",
+  "/test-login/page": "/test-login",
+  "/users/page": "/users"
+}

@@ -3,6 +3,184 @@ const { asyncHandler } = require('../middleware/error.middleware');
 const webSocketService = require('../services/websocket.service');
 
 const prisma = new PrismaClient();
+const VALID_PROPERTY_TYPES = new Set(['Men', 'Women', 'Co-ed']);
+const PINCODE_REGEX = /^\d{6}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[0-9+\-()\s]{7,20}$/;
+
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+const cleanString = (value) => (typeof value === 'string' ? value.trim() : value);
+
+const toInteger = (value) => {
+  if (value === '' || value === null || value === undefined) return undefined;
+  const number = Number(value);
+  if (!Number.isInteger(number)) return null;
+  return number;
+};
+
+const toNumber = (value) => {
+  if (value === '' || value === null || value === undefined) return undefined;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return number;
+};
+
+const normalizeWebsite = (value) => {
+  const text = cleanString(value);
+  if (!text) return null;
+  const candidate = /^https?:\/\//i.test(text) ? text : `https://${text}`;
+  try {
+    return new URL(candidate).toString();
+  } catch (_error) {
+    return undefined;
+  }
+};
+
+const sanitizeAmenities = (amenities) =>
+  Array.isArray(amenities)
+    ? [...new Set(amenities.map((item) => cleanString(item)).filter(Boolean))]
+    : [];
+
+const validatePropertyPayload = (input, options = {}) => {
+  const { isUpdate = false, existingProperty = null } = options;
+  const errors = [];
+  const payload = {};
+
+  const shouldValidate = (field) => !isUpdate || hasOwn(input, field);
+
+  if (shouldValidate('name')) {
+    const name = cleanString(input.name);
+    if (!name) errors.push('Property name is required.');
+    else payload.name = name;
+  }
+
+  if (shouldValidate('type')) {
+    const type = cleanString(input.type);
+    if (!type || !VALID_PROPERTY_TYPES.has(type)) {
+      errors.push('Property type must be Men, Women, or Co-ed.');
+    } else {
+      payload.type = type;
+    }
+  }
+
+  if (shouldValidate('address')) {
+    const address = cleanString(input.address);
+    if (!address) errors.push('Address is required.');
+    else payload.address = address;
+  }
+
+  if (shouldValidate('city')) {
+    const city = cleanString(input.city);
+    if (!city) errors.push('City is required.');
+    else payload.city = city;
+  }
+
+  if (shouldValidate('state')) {
+    const state = cleanString(input.state);
+    if (!state) errors.push('State is required.');
+    else payload.state = state;
+  }
+
+  if (shouldValidate('pincode')) {
+    const pincode = cleanString(input.pincode);
+    if (!pincode) {
+      errors.push('Pincode is required.');
+    } else if (!PINCODE_REGEX.test(pincode)) {
+      errors.push('Pincode must be a 6-digit number.');
+    } else {
+      payload.pincode = pincode;
+    }
+  }
+
+  if (shouldValidate('totalBeds')) {
+    const totalBeds = toInteger(input.totalBeds);
+    if (totalBeds === null || totalBeds < 1) {
+      errors.push('Total beds must be at least 1.');
+    } else {
+      payload.totalBeds = totalBeds;
+    }
+  }
+
+  if (shouldValidate('monthlyRent')) {
+    const monthlyRent = toNumber(input.monthlyRent);
+    if (monthlyRent === null || monthlyRent <= 0) {
+      errors.push('Monthly rent must be greater than 0.');
+    } else {
+      payload.monthlyRent = monthlyRent;
+    }
+  }
+
+  if (shouldValidate('totalFloors')) {
+    const totalFloors = toInteger(input.totalFloors);
+    if (totalFloors === null || totalFloors < 0) {
+      errors.push('Total floors must be 0 or more.');
+    } else if (totalFloors !== undefined) {
+      payload.totalFloors = totalFloors;
+    }
+  }
+
+  if (shouldValidate('totalRooms')) {
+    const totalRooms = toInteger(input.totalRooms);
+    if (totalRooms === null || totalRooms < 0) {
+      errors.push('Total rooms must be 0 or more.');
+    } else if (totalRooms !== undefined) {
+      payload.totalRooms = totalRooms;
+    }
+  }
+
+  if (shouldValidate('securityDeposit')) {
+    const securityDeposit = toNumber(input.securityDeposit);
+    if (securityDeposit === null || securityDeposit < 0) {
+      errors.push('Security deposit cannot be negative.');
+    } else if (securityDeposit !== undefined) {
+      payload.securityDeposit = securityDeposit;
+    }
+  }
+
+  if (shouldValidate('phone')) {
+    const phone = cleanString(input.phone);
+    if (!phone) {
+      payload.phone = null;
+    } else if (!PHONE_REGEX.test(phone)) {
+      errors.push('Phone number format is invalid.');
+    } else {
+      payload.phone = phone;
+    }
+  }
+
+  if (shouldValidate('email')) {
+    const email = cleanString(input.email);
+    if (!email) {
+      payload.email = null;
+    } else if (!EMAIL_REGEX.test(email)) {
+      errors.push('Email format is invalid.');
+    } else {
+      payload.email = email.toLowerCase();
+    }
+  }
+
+  if (shouldValidate('website')) {
+    const normalizedWebsite = normalizeWebsite(input.website);
+    if (normalizedWebsite === undefined) {
+      errors.push('Website URL format is invalid.');
+    } else {
+      payload.website = normalizedWebsite;
+    }
+  }
+
+  if (shouldValidate('description')) {
+    const description = cleanString(input.description);
+    payload.description = description || null;
+  }
+
+  if (shouldValidate('amenities')) {
+    payload.amenities = sanitizeAmenities(input.amenities);
+  } else if (!isUpdate) {
+    payload.amenities = [];
+  }
+
+  return { errors, payload };
+};
 
 // GET /api/properties - Get all properties for authenticated user
 const getProperties = asyncHandler(async (req, res) => {
@@ -97,13 +275,6 @@ const createProperty = asyncHandler(async (req, res) => {
     user: req.user ? { id: req.user.id, email: req.user.email } : 'NO USER'
   });
 
-  const { 
-    name, address, city, state, pincode, description,
-    type, phone, email, website, amenities,
-    monthlyRent, securityDeposit,
-    totalFloors, totalRooms, totalBeds
-  } = req.body;
-  
   // Check if user is authenticated
   if (!req.user || !req.user.id) {
     return res.status(401).json({
@@ -113,34 +284,19 @@ const createProperty = asyncHandler(async (req, res) => {
   }
   
   const userId = req.user.id;
+  const { errors, payload } = validatePropertyPayload(req.body, { isUpdate: false });
 
-  // Validation
-  if (!name || !address || !city || !state || !pincode) {
+  if (errors.length > 0) {
     return res.status(400).json({
       success: false,
-      error: { message: 'Name, address, city, state, and pincode are required' }
+      error: { message: errors[0], details: errors }
     });
   }
 
   try {
     const property = await prisma.property.create({
       data: {
-        name,
-        address,
-        city,
-        state,
-        pincode,
-        description,
-        type: type ?? 'Co-ed',
-        phone,
-        email,
-        website,
-        amenities: Array.isArray(amenities) ? amenities : [],
-        monthlyRent: monthlyRent !== undefined ? Number(monthlyRent) : undefined,
-        securityDeposit: securityDeposit !== undefined ? Number(securityDeposit) : undefined,
-        totalFloors: totalFloors !== undefined ? Number(totalFloors) : undefined,
-        totalRooms: totalRooms !== undefined ? Number(totalRooms) : undefined,
-        totalBeds: totalBeds !== undefined ? Number(totalBeds) : undefined,
+        ...payload,
         ownerId: userId
       }
     });
@@ -170,12 +326,6 @@ const createProperty = asyncHandler(async (req, res) => {
 // PUT /api/properties/:id - Update property
 const updateProperty = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { 
-    name, address, city, state, pincode, description,
-    type, phone, email, website, amenities,
-    monthlyRent, securityDeposit,
-    totalFloors, totalRooms, totalBeds
-  } = req.body;
 
   // Check if user is authenticated
   if (!req.user || !req.user.id) {
@@ -200,27 +350,28 @@ const updateProperty = asyncHandler(async (req, res) => {
     });
   }
 
-  const updateData = {};
-  if (name !== undefined) updateData.name = name;
-  if (address !== undefined) updateData.address = address;
-  if (city !== undefined) updateData.city = city;
-  if (state !== undefined) updateData.state = state;
-  if (pincode !== undefined) updateData.pincode = pincode;
-  if (description !== undefined) updateData.description = description;
-  if (type !== undefined) updateData.type = type;
-  if (phone !== undefined) updateData.phone = phone;
-  if (email !== undefined) updateData.email = email;
-  if (website !== undefined) updateData.website = website;
-  if (amenities !== undefined) updateData.amenities = Array.isArray(amenities) ? amenities : [];
-  if (monthlyRent !== undefined) updateData.monthlyRent = Number(monthlyRent);
-  if (securityDeposit !== undefined) updateData.securityDeposit = Number(securityDeposit);
-  if (totalFloors !== undefined) updateData.totalFloors = Number(totalFloors);
-  if (totalRooms !== undefined) updateData.totalRooms = Number(totalRooms);
-  if (totalBeds !== undefined) updateData.totalBeds = Number(totalBeds);
+  const { errors, payload } = validatePropertyPayload(req.body, {
+    isUpdate: true,
+    existingProperty
+  });
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: { message: errors[0], details: errors }
+    });
+  }
+
+  if (Object.keys(payload).length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'No valid fields provided to update.' }
+    });
+  }
 
   const property = await prisma.property.update({
     where: { id },
-    data: updateData
+    data: payload
   });
 
   // Broadcast property update to all connected clients
