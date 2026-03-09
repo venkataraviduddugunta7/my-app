@@ -10,6 +10,7 @@ import { createRoom, updateRoom, deleteRoom, fetchRooms } from '@/store/slices/r
 import { addBed, updateBed, deleteBed, fetchBeds, assignTenantToBed, vacateBed } from '@/store/slices/bedsSlice';
 import { validateCapacity, getCapacitySummary } from '@/utils/capacityValidation';
 import { CapacityIndicator } from '@/components/ui/CapacityIndicator';
+import PropertyFormModal from '@/components/property/PropertyFormModal';
 
 import { 
   Card, 
@@ -54,179 +55,6 @@ import {
   MapPin,
   Briefcase
 } from 'lucide-react';
-
-const PROPERTY_TYPE_OPTIONS = [
-  { value: 'Men', label: 'Men Only', icon: Users },
-  { value: 'Women', label: 'Women Only', icon: Users },
-  { value: 'Co-ed', label: 'Co-ed (Mixed)', icon: Users }
-];
-
-const PINCODE_REGEX = /^\d{6}$/;
-
-// Property Form Modal
-function PropertyFormModal({ isOpen, onClose, onSubmit }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'Co-ed',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
-    description: '',
-    totalBeds: '',
-    monthlyRent: ''
-  });
-  const [errors, setErrors] = useState({});
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const nextErrors = {};
-    if (!formData.name.trim()) nextErrors.name = 'Property name is required.';
-    if (!formData.address.trim()) nextErrors.address = 'Address is required.';
-    if (!formData.city.trim()) nextErrors.city = 'City is required.';
-    if (!formData.state.trim()) nextErrors.state = 'State is required.';
-    if (!PINCODE_REGEX.test(formData.pincode.trim())) nextErrors.pincode = 'Pincode must be 6 digits.';
-    if (!Number.isInteger(Number(formData.totalBeds)) || Number(formData.totalBeds) < 1) {
-      nextErrors.totalBeds = 'Total beds must be at least 1.';
-    }
-    if (!Number.isFinite(Number(formData.monthlyRent)) || Number(formData.monthlyRent) <= 0) {
-      nextErrors.monthlyRent = 'Monthly rent must be greater than 0.';
-    }
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
-    onSubmit({
-      name: formData.name.trim(),
-      type: formData.type,
-      address: formData.address.trim(),
-      city: formData.city.trim(),
-      state: formData.state.trim(),
-      pincode: formData.pincode.trim(),
-      description: formData.description.trim() || undefined,
-      totalBeds: Number(formData.totalBeds),
-      monthlyRent: Number(formData.monthlyRent)
-    });
-
-    setFormData({
-      name: '',
-      type: 'Co-ed',
-      address: '',
-      city: '',
-      state: '',
-      pincode: '',
-      description: '',
-      totalBeds: '',
-      monthlyRent: ''
-    });
-    setErrors({});
-    onClose();
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Property" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Property Name"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="e.g., Green Valley PG, Sunrise Hostel"
-          error={errors.name}
-          required
-        />
-
-        <Dropdown
-          label="Property Type"
-          options={PROPERTY_TYPE_OPTIONS}
-          value={formData.type}
-          onChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
-        />
-        
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Address</label>
-          <textarea
-            value={formData.address}
-            onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Complete address with landmarks"
-            required
-          />
-          {errors.address && <p className="mt-1 text-xs text-red-500">{errors.address}</p>}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input
-            label="City"
-            value={formData.city}
-            onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-            placeholder="e.g., Bangalore"
-            error={errors.city}
-            required
-          />
-          <Input
-            label="State"
-            value={formData.state}
-            onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-            placeholder="e.g., Karnataka"
-            error={errors.state}
-            required
-          />
-          <Input
-            label="Pincode"
-            value={formData.pincode}
-            onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
-            placeholder="e.g., 560001"
-            error={errors.pincode}
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Total Beds"
-            type="number"
-            value={formData.totalBeds}
-            onChange={(e) => setFormData(prev => ({ ...prev, totalBeds: e.target.value }))}
-            placeholder="e.g., 40"
-            error={errors.totalBeds}
-            required
-          />
-          <Input
-            label="Monthly Rent (₹)"
-            type="number"
-            value={formData.monthlyRent}
-            onChange={(e) => setFormData(prev => ({ ...prev, monthlyRent: e.target.value }))}
-            placeholder="e.g., 8000"
-            error={errors.monthlyRent}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Description (Optional)</label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Brief description about your property"
-          />
-        </div>
-
-        <ModalFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit">
-            Create Property
-          </Button>
-        </ModalFooter>
-      </form>
-    </Modal>
-  );
-}
 
 // Floor Form Modal
 function FloorFormModal({ isOpen, onClose, floor = null, onSubmit, loading = false }) {
@@ -1371,6 +1199,7 @@ export default function RoomsPage() {
 
   const [activeTab, setActiveTab] = useState('floors');
   const [showPropertyModal, setShowPropertyModal] = useState(false);
+  const [propertySubmitting, setPropertySubmitting] = useState(false);
   const [showTenantModal, setShowTenantModal] = useState(false);
   const [editingTenant, setEditingTenant] = useState(null);
 
@@ -1499,6 +1328,7 @@ export default function RoomsPage() {
   // Property handlers
   const handleCreateProperty = async (propertyData) => {
     try {
+      setPropertySubmitting(true);
       const response = await propertyService.createProperty(propertyData);
       if (response.success) {
         // Update Redux store
@@ -1519,6 +1349,8 @@ export default function RoomsPage() {
         description: error.message || 'Failed to create property. Please try again.',
         variant: 'error'
       }));
+    } finally {
+      setPropertySubmitting(false);
     }
   };
 
@@ -2514,6 +2346,9 @@ export default function RoomsPage() {
         isOpen={showPropertyModal}
         onClose={() => setShowPropertyModal(false)}
         onSubmit={handleCreateProperty}
+        loading={propertySubmitting}
+        title="Create Property"
+        submitLabel="Create Property"
       />
 
       <FloorFormModal

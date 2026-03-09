@@ -127,6 +127,31 @@ class ApiService {
     }
   }
 
+  // Build query string from optional params object
+  buildQuery(params = {}) {
+    const searchParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') {
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach((entry) => {
+          if (entry !== undefined && entry !== null && entry !== '') {
+            searchParams.append(key, String(entry));
+          }
+        });
+        return;
+      }
+
+      searchParams.append(key, String(value));
+    });
+
+    const query = searchParams.toString();
+    return query ? `?${query}` : '';
+  }
+
   // HTTP Methods
   async get(endpoint) {
     return this.request(endpoint, { method: 'GET' });
@@ -191,7 +216,7 @@ class ApiService {
 
   // Tenant APIs
   tenants = {
-    getAll: () => this.get('/tenants'),
+    getAll: (params = {}) => this.get(`/tenants${this.buildQuery(params)}`),
     getById: (id) => this.get(`/tenants/${id}`),
     create: (tenantData) => this.post('/tenants', tenantData),
     update: (id, tenantData) => this.put(`/tenants/${id}`, tenantData),
@@ -200,11 +225,13 @@ class ApiService {
 
   // Payment APIs
   payments = {
-    getAll: () => this.get('/payments'),
+    getAll: (params = {}) => this.get(`/payments${this.buildQuery(params)}`),
+    getStats: (params = {}) => this.get(`/payments/stats${this.buildQuery(params)}`),
     getById: (id) => this.get(`/payments/${id}`),
     create: (paymentData) => this.post('/payments', paymentData),
     update: (id, paymentData) => this.put(`/payments/${id}`, paymentData),
     delete: (id) => this.delete(`/payments/${id}`),
+    markPaid: (id, payload = {}) => this.put(`/payments/${id}/mark-paid`, payload),
   };
 
   // Dashboard endpoints
@@ -257,6 +284,31 @@ class ApiService {
     getRevenue: (propertyId, startDate, endDate) => this.get(`/analytics/revenue/${propertyId}?startDate=${startDate}&endDate=${endDate}`),
     getTenants: (propertyId, startDate, endDate) => this.get(`/analytics/tenants/${propertyId}?startDate=${startDate}&endDate=${endDate}`),
     getInsights: (propertyId, period = '30d') => this.get(`/analytics/insights/${propertyId}?period=${period}`)
+  };
+
+  // Property-scoped Document APIs
+  documents = {
+    getAll: (propertyId, params = {}) =>
+      this.get(`/properties/${propertyId}/documents${this.buildQuery(params)}`),
+    create: (propertyId, data) => this.post(`/properties/${propertyId}/documents`, data),
+    update: (propertyId, documentId, data) =>
+      this.put(`/properties/${propertyId}/documents/${documentId}`, data),
+    delete: (propertyId, documentId) =>
+      this.delete(`/properties/${propertyId}/documents/${documentId}`),
+  };
+
+  // Property-scoped Notice APIs
+  notices = {
+    getAll: (propertyId, params = {}) =>
+      this.get(`/properties/${propertyId}/documents/notices${this.buildQuery(params)}`),
+    create: (propertyId, data) =>
+      this.post(`/properties/${propertyId}/documents/notices`, data),
+    update: (propertyId, noticeId, data) =>
+      this.put(`/properties/${propertyId}/documents/notices/${noticeId}`, data),
+    delete: (propertyId, noticeId) =>
+      this.delete(`/properties/${propertyId}/documents/notices/${noticeId}`),
+    markRead: (propertyId, noticeId, tenantId) =>
+      this.post(`/properties/${propertyId}/documents/notices/${noticeId}/read`, { tenantId }),
   };
 }
 

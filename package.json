@@ -6,8 +6,12 @@
     "dev": "next dev",
     "dev:clean": "rm -rf .next node_modules/.cache .turbo && next dev",
     "build": "next build",
+    "prestart": "next build",
     "start": "next start",
     "lint": "next lint"
+  },
+  "engines": {
+    "node": ">=20 <24"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

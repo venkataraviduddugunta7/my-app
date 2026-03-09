@@ -7,8 +7,7 @@ import propertyService from "@/services/propertyService";
 import { fetchFloors } from "@/store/slices/floorsSlice";
 import { fetchRooms } from "@/store/slices/roomsSlice";
 import { fetchBeds } from "@/store/slices/bedsSlice";
-import { validateCapacityUpdate, getCapacitySummary } from '@/utils/capacityValidation';
-import { CapacityIndicator } from '@/components/ui/CapacityIndicator';
+import { validateCapacityUpdate } from '@/utils/capacityValidation';
 import {
   Building2,
   Plus,
@@ -19,77 +18,20 @@ import {
   Users,
   DollarSign,
   Check,
-  X,
   Home,
   Phone,
-  Mail,
-  Calendar,
-  Shield,
-  Wifi,
-  Car,
-  Coffee,
-  Dumbbell,
-  ShowerHead,
-  Tv,
-  Wind,
-  ChefHat,
-  ShieldCheck,
-  Sparkles,
   Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { Dropdown } from "@/components/ui/Dropdown";
+import PropertyFormModal from "@/components/property/PropertyFormModal";
 import { addToast } from "@/store/slices/uiSlice";
 import {
   setSelectedProperty,
 } from "@/store/slices/propertySlice";
 import { formatCurrency } from "@/lib/utils";
-
-// Default property structure for form initialization
-const DEFAULT_PROPERTY = {
-  name: "",
-  address: "",
-  city: "",
-  state: "",
-  pincode: "",
-  description: "",
-  totalFloors: "",
-  totalRooms: "",
-  totalBeds: "",
-  monthlyRent: "",
-  securityDeposit: "",
-  amenities: [],
-  phone: "",
-  email: "",
-  type: "Co-ed",
-};
-
-const AMENITY_OPTIONS = [
-  { value: "WiFi", label: "WiFi", icon: Wifi },
-  { value: "AC", label: "Air Conditioning", icon: Wind },
-  { value: "Parking", label: "Parking", icon: Car },
-  { value: "Gym", label: "Gym", icon: Dumbbell },
-  { value: "Hot Water", label: "Hot Water", icon: ShowerHead },
-  { value: "TV", label: "Television", icon: Tv },
-  { value: "Kitchen", label: "Kitchen", icon: ChefHat },
-  { value: "Security", label: "24/7 Security", icon: ShieldCheck },
-  { value: "Laundry", label: "Laundry", icon: Coffee },
-  { value: "CCTV", label: "CCTV Surveillance", icon: Shield },
-];
-
-const PROPERTY_TYPE_OPTIONS = [
-  { value: "Men", label: "Men Only", icon: Users },
-  { value: "Women", label: "Women Only", icon: Users },
-  { value: "Co-ed", label: "Co-ed (Mixed)", icon: Users },
-];
-
-const PROPERTY_TYPE_VALUES = new Set(PROPERTY_TYPE_OPTIONS.map((option) => option.value));
-const PINCODE_REGEX = /^\d{6}$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^[0-9+\-()\s]{7,20}$/;
 
 export default function PropertiesPage() {
   const dispatch = useDispatch();
@@ -107,9 +49,6 @@ export default function PropertiesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
-
-  const [formData, setFormData] = useState(DEFAULT_PROPERTY);
-  const [formErrors, setFormErrors] = useState({});
 
   // Fetch properties on component mount
   useEffect(() => {
@@ -193,135 +132,12 @@ export default function PropertiesPage() {
 
   const handleAddProperty = () => {
     setEditingProperty(null);
-    setFormData(DEFAULT_PROPERTY);
-    setFormErrors({});
     setShowModal(true);
   };
 
   const handleEditProperty = (property) => {
     setEditingProperty(property);
-    setFormData({
-      name: property.name || "",
-      address: property.address || "",
-      city: property.city || "",
-      state: property.state || "",
-      pincode: property.pincode || "",
-      description: property.description || "",
-      totalFloors: property.totalFloors ?? "",
-      totalRooms: property.totalRooms ?? "",
-      totalBeds: property.totalBeds ?? "",
-      monthlyRent: property.monthlyRent ?? "",
-      securityDeposit: property.securityDeposit ?? "",
-      amenities: property.amenities || [],
-      phone: property.phone || "",
-      email: property.email || "",
-      type: property.type || "Co-ed",
-    });
-    setFormErrors({});
     setShowModal(true);
-  };
-
-  const updateField = (field, value) => {
-    setFormData((previous) => ({ ...previous, [field]: value }));
-    setFormErrors((previous) => {
-      if (!previous[field]) return previous;
-      const next = { ...previous };
-      delete next[field];
-      return next;
-    });
-  };
-
-  const validatePropertyForm = () => {
-    const nextErrors = {};
-
-    const name = formData.name.trim();
-    const address = formData.address.trim();
-    const city = formData.city.trim();
-    const stateValue = formData.state.trim();
-    const pincode = formData.pincode.trim();
-    const propertyType = formData.type;
-    const phone = formData.phone.trim();
-    const email = formData.email.trim();
-
-    const totalBeds = Number(formData.totalBeds);
-    const monthlyRent = Number(formData.monthlyRent);
-    const totalFloors =
-      formData.totalFloors === "" || formData.totalFloors === null || formData.totalFloors === undefined
-        ? undefined
-        : Number(formData.totalFloors);
-    const totalRooms =
-      formData.totalRooms === "" || formData.totalRooms === null || formData.totalRooms === undefined
-        ? undefined
-        : Number(formData.totalRooms);
-    const securityDeposit =
-      formData.securityDeposit === "" || formData.securityDeposit === null || formData.securityDeposit === undefined
-        ? undefined
-        : Number(formData.securityDeposit);
-
-    if (!name) nextErrors.name = "Property name is required.";
-    if (!PROPERTY_TYPE_VALUES.has(propertyType)) nextErrors.type = "Select a valid property type.";
-    if (!address) nextErrors.address = "Street address is required.";
-    if (!city) nextErrors.city = "City is required.";
-    if (!stateValue) nextErrors.state = "State is required.";
-    if (!pincode) {
-      nextErrors.pincode = "Pincode is required.";
-    } else if (!PINCODE_REGEX.test(pincode)) {
-      nextErrors.pincode = "Pincode must be a 6-digit number.";
-    }
-
-    if (!Number.isInteger(totalBeds) || totalBeds < 1) {
-      nextErrors.totalBeds = "Total beds must be at least 1.";
-    }
-
-    if (!Number.isFinite(monthlyRent) || monthlyRent <= 0) {
-      nextErrors.monthlyRent = "Monthly rent must be greater than 0.";
-    }
-
-    if (totalFloors !== undefined && (!Number.isInteger(totalFloors) || totalFloors < 0)) {
-      nextErrors.totalFloors = "Total floors must be 0 or more.";
-    }
-
-    if (totalRooms !== undefined && (!Number.isInteger(totalRooms) || totalRooms < 0)) {
-      nextErrors.totalRooms = "Total rooms must be 0 or more.";
-    }
-
-    if (securityDeposit !== undefined && (!Number.isFinite(securityDeposit) || securityDeposit < 0)) {
-      nextErrors.securityDeposit = "Security deposit cannot be negative.";
-    }
-
-    if (phone && !PHONE_REGEX.test(phone)) {
-      nextErrors.phone = "Enter a valid phone number.";
-    }
-
-    if (email && !EMAIL_REGEX.test(email)) {
-      nextErrors.email = "Enter a valid email address.";
-    }
-
-    setFormErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length > 0) {
-      return null;
-    }
-
-    return {
-      name,
-      type: propertyType,
-      address,
-      city,
-      state: stateValue,
-      pincode,
-      description: formData.description.trim() || undefined,
-      totalBeds,
-      monthlyRent,
-      totalFloors,
-      totalRooms,
-      securityDeposit,
-      amenities: Array.isArray(formData.amenities)
-        ? [...new Set(formData.amenities.map((item) => item.trim()).filter(Boolean))]
-        : [],
-      phone: phone || undefined,
-      email: email || undefined,
-    };
   };
 
   const handleDeleteProperty = (propertyId) => {
@@ -373,21 +189,7 @@ export default function PropertiesPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const payload = validatePropertyForm();
-
-    if (!payload) {
-      dispatch(
-        addToast({
-          title: "Validation failed",
-          description: "Please fix the highlighted fields before saving.",
-          variant: "warning",
-        })
-      );
-      return;
-    }
-
+  const handlePropertyFormSubmit = async (payload) => {
     // Validate capacity update if editing
     if (editingProperty) {
       const capacityValidation = validateCapacityUpdate(editingProperty, payload);
@@ -441,15 +243,6 @@ export default function PropertiesPage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const toggleAmenity = (amenity) => {
-    setFormData((prev) => ({
-      ...prev,
-      amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter((a) => a !== amenity)
-        : [...prev.amenities, amenity],
-    }));
   };
 
   // Filter properties based on search and filter criteria
@@ -820,265 +613,15 @@ export default function PropertiesPage() {
       )}
 
       {/* Add/Edit Modal */}
-      <Modal
+      <PropertyFormModal
         isOpen={showModal}
-        onClose={() => {
-          setShowModal(false);
-          setFormErrors({});
-        }}
+        onClose={() => setShowModal(false)}
+        onSubmit={handlePropertyFormSubmit}
+        initialValues={editingProperty}
+        loading={submitting}
         title={editingProperty ? "Edit Property" : "Add New Property"}
-        size="xl"
-      >
-        <div className="max-h-[80vh] flex flex-col">
-          <div className="flex-1 overflow-y-auto p-1">
-            <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
-                <Building2 className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Basic Information
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Property Name"
-                required
-                value={formData.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                placeholder="e.g., Sunrise PG"
-                error={formErrors.name}
-              />
-              <Dropdown
-                label="Property Type"
-                options={PROPERTY_TYPE_OPTIONS}
-                value={formData.type}
-                onChange={(value) => updateField("type", value)}
-                placeholder="Select property type..."
-                premium
-                error={formErrors.type}
-              />
-            </div>
-          </div>
-
-          {/* Address */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <MapPin className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Address
-              </h3>
-            </div>
-            <div className="space-y-4">
-              <Input
-                label="Street Address"
-                required
-                value={formData.address}
-                onChange={(e) => updateField("address", e.target.value)}
-                placeholder="e.g., 123 Main Street"
-                error={formErrors.address}
-              />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
-                  label="City"
-                  required
-                  value={formData.city}
-                  onChange={(e) => updateField("city", e.target.value)}
-                  placeholder="e.g., Bangalore"
-                  error={formErrors.city}
-                />
-                <Input
-                  label="State"
-                  required
-                  value={formData.state}
-                  onChange={(e) => updateField("state", e.target.value)}
-                  placeholder="e.g., Karnataka"
-                  error={formErrors.state}
-                />
-                <Input
-                  label="Pincode"
-                  required
-                  value={formData.pincode}
-                  onChange={(e) => updateField("pincode", e.target.value)}
-                  placeholder="e.g., 560001"
-                  error={formErrors.pincode}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Property Details */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                <Home className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Property Details
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label="Total Floors"
-                type="number"
-                value={formData.totalFloors || ''}
-                onChange={(e) => updateField("totalFloors", e.target.value)}
-                placeholder="e.g., 4"
-                error={formErrors.totalFloors}
-              />
-              <Input
-                label="Total Rooms"
-                type="number"
-                value={formData.totalRooms || ''}
-                onChange={(e) => updateField("totalRooms", e.target.value)}
-                placeholder="e.g., 16"
-                error={formErrors.totalRooms}
-              />
-              <Input
-                label="Total Beds"
-                type="number"
-                required
-                value={formData.totalBeds || ''}
-                onChange={(e) => updateField("totalBeds", e.target.value)}
-                placeholder="e.g., 48"
-                error={formErrors.totalBeds}
-              />
-            </div>
-          </div>
-
-          {/* Pricing */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Pricing
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Monthly Rent (₹)"
-                type="number"
-                required
-                value={formData.monthlyRent || ''}
-                onChange={(e) => updateField("monthlyRent", e.target.value)}
-                placeholder="e.g., 8000"
-                error={formErrors.monthlyRent}
-              />
-              <Input
-                label="Security Deposit (₹)"
-                type="number"
-                value={formData.securityDeposit || ''}
-                onChange={(e) => updateField("securityDeposit", e.target.value)}
-                placeholder="e.g., 16000"
-                error={formErrors.securityDeposit}
-              />
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                <Phone className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Contact Information
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
-                placeholder="+91 9876543210"
-                icon={Phone}
-                error={formErrors.phone}
-              />
-              <Input
-                label="Email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => updateField("email", e.target.value)}
-                placeholder="property@example.com"
-                icon={Mail}
-                error={formErrors.email}
-              />
-            </div>
-          </div>
-
-          {/* Amenities */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Amenities
-              </h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {AMENITY_OPTIONS.map((amenity) => {
-                const Icon = amenity.icon;
-                const isSelected = formData.amenities.includes(amenity.value);
-                return (
-                  <button
-                    key={amenity.value}
-                    type="button"
-                    onClick={() => toggleAmenity(amenity.value)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      isSelected
-                        ? "border-primary-500 bg-primary-50 text-primary-700 shadow-sm"
-                        : "border-gray-200 hover:border-primary-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        {amenity.label}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-            {/* Actions */}
-            <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 ">
-              <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowModal(false);
-                  setFormErrors({});
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {editingProperty ? "Updating..." : "Adding..."}
-                  </>
-                ) : (
-                  editingProperty ? "Update Property" : "Add Property"
-                )}
-              </Button>
-              </div>
-            </div>
-          </form>
-          </div>
-        </div>
-      </Modal>
+        submitLabel={editingProperty ? "Update Property" : "Add Property"}
+      />
 
       {/* Delete Confirmation Modal */}
       <Modal

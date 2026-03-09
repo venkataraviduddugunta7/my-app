@@ -1,368 +1,323 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle,
-  Button,
-  Dropdown
-} from '@/components/ui';
+import apiService from '@/services/api';
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
-  BarChart3,
   Download,
-  FileText,
+  FileBarChart,
+  Loader2,
+  RefreshCw,
   TrendingUp,
-  Calendar,
-  DollarSign,
-  Users,
-  Building,
-  PieChart,
-  Filter
 } from 'lucide-react';
 
-// Mock report data
-const monthlyRevenue = [
-  { month: 'Jan 2024', revenue: 25000, occupancy: 85 },
-  { month: 'Feb 2024', revenue: 28000, occupancy: 90 },
-  { month: 'Mar 2024', revenue: 26500, occupancy: 88 },
-  { month: 'Apr 2024', revenue: 30000, occupancy: 95 },
-  { month: 'May 2024', revenue: 32000, occupancy: 100 },
-  { month: 'Jun 2024', revenue: 31000, occupancy: 97 }
+const PERIOD_OPTIONS = [
+  { value: '30d', label: 'Last 30 days' },
+  { value: '90d', label: 'Last 90 days' },
+  { value: '1y', label: 'Last 1 year' },
 ];
 
-const expenseData = [
-  { category: 'Maintenance', amount: 5000, percentage: 25 },
-  { category: 'Utilities', amount: 8000, percentage: 40 },
-  { category: 'Cleaning', amount: 3000, percentage: 15 },
-  { category: 'Security', amount: 2000, percentage: 10 },
-  { category: 'Others', amount: 2000, percentage: 10 }
+const REPORT_TYPES = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'collections', label: 'Collections' },
+  { value: 'occupancy', label: 'Occupancy' },
+  { value: 'tenants', label: 'Tenants' },
 ];
 
-function RevenueChart() {
-  const maxRevenue = Math.max(...monthlyRevenue.map(m => m.revenue));
-  
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <BarChart3 className="w-5 h-5" />
-          <span>Monthly Revenue Trend</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {monthlyRevenue.map((data, index) => (
-            <div key={data.month} className="flex items-center space-x-4">
-              <div className="w-16 text-sm font-medium text-gray-600">
-                {data.month.split(' ')[0]}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-gray-700">{formatCurrency(data.revenue)}</span>
-                  <span className="text-sm text-gray-500">{data.occupancy}% occupied</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${(data.revenue / maxRevenue) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 flex items-center justify-between text-sm text-gray-600">
-          <span>Total Revenue (6 months): {formatCurrency(monthlyRevenue.reduce((sum, m) => sum + m.revenue, 0))}</span>
-          <span>Avg Occupancy: {Math.round(monthlyRevenue.reduce((sum, m) => sum + m.occupancy, 0) / monthlyRevenue.length)}%</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ExpenseBreakdown() {
-  const totalExpenses = expenseData.reduce((sum, exp) => sum + exp.amount, 0);
-  
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <PieChart className="w-5 h-5" />
-          <span>Expense Breakdown</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {expenseData.map((expense, index) => (
-            <div key={expense.category} className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div 
-                  className="w-4 h-4 rounded-full"
-                  style={{ 
-                    backgroundColor: [
-                      '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
-                    ][index] 
-                  }}
-                ></div>
-                <span className="text-sm font-medium text-gray-700">{expense.category}</span>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-semibold">{formatCurrency(expense.amount)}</div>
-                <div className="text-xs text-gray-500">{expense.percentage}%</div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-900">Total Expenses</span>
-            <span className="font-bold text-lg">{formatCurrency(totalExpenses)}</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function QuickStats() {
-  const { rooms } = useSelector((state) => state.rooms);
-  const { tenants } = useSelector((state) => state.tenants);
-  
-  const occupiedRooms = rooms.filter(room => room.status === 'occupied').length;
-  const totalRevenue = rooms.filter(room => room.status === 'occupied')
-    .reduce((sum, room) => sum + room.rent, 0);
-  const avgRent = totalRevenue / occupiedRooms || 0;
-  const occupancyRate = ((occupiedRooms / rooms.length) * 100).toFixed(1);
-
-  const stats = [
-    {
-      title: "Monthly Revenue",
-      value: formatCurrency(totalRevenue),
-      icon: DollarSign,
-      color: "text-green-600 bg-green-50"
-    },
-    {
-      title: "Occupancy Rate",
-      value: `${occupancyRate}%`,
-      icon: Building,
-      color: "text-blue-600 bg-blue-50"
-    },
-    {
-      title: "Active Tenants",
-      value: tenants.filter(t => t.status === 'active').length,
-      icon: Users,
-      color: "text-purple-600 bg-purple-50"
-    },
-    {
-      title: "Avg Rent/Room",
-      value: formatCurrency(avgRent),
-      icon: TrendingUp,
-      color: "text-yellow-600 bg-yellow-50"
-    }
-  ];
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat, index) => {
-        const Icon = stat.icon;
-        return (
-          <Card key={index}>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${stat.color}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">{stat.title}</p>
-                  <p className="text-xl font-bold">{stat.value}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
+const toNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 export default function ReportsPage() {
+  const { selectedProperty } = useSelector((state) => state.property);
+
+  const [period, setPeriod] = useState('30d');
   const [reportType, setReportType] = useState('overview');
-  const [dateRange, setDateRange] = useState('6months');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [payments, setPayments] = useState([]);
 
-  const reportOptions = [
-    { value: 'overview', label: 'Overview Report' },
-    { value: 'revenue', label: 'Revenue Report' },
-    { value: 'occupancy', label: 'Occupancy Report' },
-    { value: 'expenses', label: 'Expense Report' },
-    { value: 'tenant', label: 'Tenant Report' }
-  ];
+  const loadReportData = useCallback(async () => {
+    if (!selectedProperty?.id) return;
 
-  const dateOptions = [
-    { value: '1month', label: 'Last Month' },
-    { value: '3months', label: 'Last 3 Months' },
-    { value: '6months', label: 'Last 6 Months' },
-    { value: '1year', label: 'Last Year' },
-    { value: 'custom', label: 'Custom Range' }
-  ];
+    setLoading(true);
+    setError('');
 
-  const handleExportReport = () => {
-    // Mock export functionality
-    alert(`Exporting ${reportOptions.find(r => r.value === reportType)?.label} for ${dateOptions.find(d => d.value === dateRange)?.label}`);
+    try {
+      const [analyticsResponse, paymentsResponse] = await Promise.all([
+        apiService.analytics.getDashboard(selectedProperty.id, period),
+        apiService.payments.getAll({ propertyId: selectedProperty.id }),
+      ]);
+
+      setAnalyticsData(analyticsResponse.data || null);
+      setPayments(paymentsResponse.data || []);
+    } catch (err) {
+      setError(err.message || 'Failed to load reports');
+      setAnalyticsData(null);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [period, selectedProperty?.id]);
+
+  useEffect(() => {
+    loadReportData();
+  }, [loadReportData]);
+
+  const metrics = useMemo(() => {
+    const kpis = analyticsData?.kpis || {};
+
+    const totalRevenue = payments
+      .filter((payment) => payment.status === 'PAID')
+      .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+
+    const outstanding = payments
+      .filter((payment) => payment.status === 'PENDING' || payment.status === 'OVERDUE' || payment.status === 'PARTIAL')
+      .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+
+    const totalPayments = payments.length;
+    const paidPayments = payments.filter((payment) => payment.status === 'PAID').length;
+    const collectionRate = totalPayments > 0 ? (paidPayments / totalPayments) * 100 : 0;
+
+    return {
+      occupancyRate: toNumber(kpis.occupancyRate),
+      avgMonthlyRevenue: toNumber(kpis.monthlyRevenue),
+      outstandingAmount: toNumber(kpis.outstandingAmount) || outstanding,
+      tenantRetentionRate: toNumber(kpis.tenantRetentionRate),
+      averageStayDuration: toNumber(kpis.averageStayDuration),
+      totalRevenue,
+      outstanding,
+      collectionRate,
+      totalPayments,
+      paidPayments,
+      pendingPayments: payments.filter((payment) => payment.status === 'PENDING').length,
+      overduePayments: payments.filter((payment) => payment.status === 'OVERDUE').length,
+    };
+  }, [analyticsData, payments]);
+
+  const reportRows = useMemo(() => {
+    const rows = [
+      {
+        metric: 'Collection Rate',
+        value: `${metrics.collectionRate.toFixed(1)}%`,
+        note: `${metrics.paidPayments} of ${metrics.totalPayments} payments collected`,
+      },
+      {
+        metric: 'Total Collected Revenue',
+        value: formatCurrency(metrics.totalRevenue),
+        note: 'Paid entries in current dataset',
+      },
+      {
+        metric: 'Outstanding Balance',
+        value: formatCurrency(metrics.outstandingAmount),
+        note: 'Pending + overdue dues',
+      },
+      {
+        metric: 'Occupancy',
+        value: `${metrics.occupancyRate.toFixed(1)}%`,
+        note: 'Average occupancy for selected period',
+      },
+      {
+        metric: 'Tenant Retention',
+        value: `${metrics.tenantRetentionRate.toFixed(1)}%`,
+        note: `Average stay ${Math.round(metrics.averageStayDuration)} days`,
+      },
+    ];
+
+    if (reportType === 'collections') {
+      return rows.slice(0, 3);
+    }
+
+    if (reportType === 'occupancy') {
+      return rows.filter((row) => row.metric === 'Occupancy' || row.metric === 'Tenant Retention');
+    }
+
+    if (reportType === 'tenants') {
+      return rows.filter((row) => row.metric === 'Tenant Retention' || row.metric === 'Outstanding Balance');
+    }
+
+    return rows;
+  }, [metrics, reportType]);
+
+  const exportCsv = () => {
+    const lines = [
+      ['Metric', 'Value', 'Note'].join(','),
+      ...reportRows.map((row) => [row.metric, row.value, row.note].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(',')),
+    ];
+
+    const csvContent = lines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `pg-report-${selectedProperty?.id || 'property'}-${period}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
+  if (!selectedProperty) {
+    return (
+      <div className="space-y-6 p-6">
+        <Card hover={false} className="border-gray-200 bg-white/85">
+          <CardContent className="p-10 text-center text-gray-600">
+            Select a property to generate reports.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600 mt-2">Comprehensive insights into your PG performance</p>
+          <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Decision-focused report view for <span className="font-medium">{selectedProperty.name}</span>
+          </p>
+          {analyticsData?.startDate && analyticsData?.endDate && (
+            <p className="mt-1 text-xs text-gray-500">
+              Reporting window: {formatDate(analyticsData.startDate)} - {formatDate(analyticsData.endDate)}
+            </p>
+          )}
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline" onClick={handleExportReport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={reportType}
+            onChange={(event) => setReportType(event.target.value)}
+            className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          >
+            {REPORT_TYPES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={period}
+            onChange={(event) => setPeriod(event.target.value)}
+            className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <Button variant="outline" onClick={loadReportData} loading={loading}>
+            {!loading && <RefreshCw className="h-4 w-4" />}
+            <span>Refresh</span>
           </Button>
-          <Button>
-            <FileText className="w-4 h-4 mr-2" />
-            Generate PDF
+
+          <Button onClick={exportCsv} disabled={reportRows.length === 0}>
+            <Download className="h-4 w-4" />
+            <span>Export CSV</span>
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="p-1 border border-gray-200 rounded-2xl">
-        <div className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <Dropdown
-                options={reportOptions}
-                value={reportType}
-                onChange={setReportType}
-                placeholder="Select report type"
-              />
-            </div>
-            <div className="flex-1">
-              <Dropdown
-                options={dateOptions}
-                value={dateRange}
-                onChange={setDateRange}
-                placeholder="Select date range"
-              />
-            </div>
-            <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
-              Advanced Filters
-            </Button>
-          </div>
-        </div>
+      {error && (
+        <Card hover={false} className="border-red-200 bg-red-50/70">
+          <CardContent className="p-4 text-sm text-red-700">{error}</CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
+          <CardContent className="p-5">
+            <p className="text-sm text-gray-600">Collection Rate</p>
+            <p className="mt-1 text-2xl font-semibold text-gray-900">{metrics.collectionRate.toFixed(1)}%</p>
+          </CardContent>
+        </Card>
+        <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
+          <CardContent className="p-5">
+            <p className="text-sm text-gray-600">Total Revenue</p>
+            <p className="mt-1 text-2xl font-semibold text-gray-900">{formatCurrency(metrics.totalRevenue)}</p>
+          </CardContent>
+        </Card>
+        <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
+          <CardContent className="p-5">
+            <p className="text-sm text-gray-600">Outstanding</p>
+            <p className="mt-1 text-2xl font-semibold text-gray-900">{formatCurrency(metrics.outstandingAmount)}</p>
+          </CardContent>
+        </Card>
+        <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
+          <CardContent className="p-5">
+            <p className="text-sm text-gray-600">Occupancy</p>
+            <p className="mt-1 text-2xl font-semibold text-gray-900">{metrics.occupancyRate.toFixed(1)}%</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Quick Stats */}
-      <QuickStats />
-
-      {/* Charts and Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RevenueChart />
-        <ExpenseBreakdown />
-      </div>
-
-      {/* Detailed Reports Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Detailed Analysis</CardTitle>
+      <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileBarChart className="h-4 w-4" />
+            Report Snapshot
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left p-3 font-medium text-gray-700">Metric</th>
-                  <th className="text-left p-3 font-medium text-gray-700">Current Period</th>
-                  <th className="text-left p-3 font-medium text-gray-700">Previous Period</th>
-                  <th className="text-left p-3 font-medium text-gray-700">Change</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="p-3 font-medium">Total Revenue</td>
-                  <td className="p-3">{formatCurrency(32000)}</td>
-                  <td className="p-3">{formatCurrency(30000)}</td>
-                  <td className="p-3 text-green-600">+6.7%</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-medium">Occupancy Rate</td>
-                  <td className="p-3">97%</td>
-                  <td className="p-3">95%</td>
-                  <td className="p-3 text-green-600">+2.1%</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-medium">Average Rent</td>
-                  <td className="p-3">{formatCurrency(8200)}</td>
-                  <td className="p-3">{formatCurrency(8000)}</td>
-                  <td className="p-3 text-green-600">+2.5%</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-medium">Total Expenses</td>
-                  <td className="p-3">{formatCurrency(20000)}</td>
-                  <td className="p-3">{formatCurrency(22000)}</td>
-                  <td className="p-3 text-green-600">-9.1%</td>
-                </tr>
-                <tr>
-                  <td className="p-3 font-medium">Net Profit</td>
-                  <td className="p-3">{formatCurrency(12000)}</td>
-                  <td className="p-3">{formatCurrency(8000)}</td>
-                  <td className="p-3 text-green-600">+50%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-600">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Generating report...</span>
+            </div>
+          ) : reportRows.length === 0 ? (
+            <p className="py-8 text-center text-sm text-gray-600">No report data available.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+                    <th className="px-3 py-2">Metric</th>
+                    <th className="px-3 py-2">Value</th>
+                    <th className="px-3 py-2">Interpretation</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {reportRows.map((row) => (
+                    <tr key={row.metric}>
+                      <td className="px-3 py-3 font-medium text-gray-900">{row.metric}</td>
+                      <td className="px-3 py-3 text-gray-900">{row.value}</td>
+                      <td className="px-3 py-3 text-gray-600">{row.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Key Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Key Insights & Recommendations</CardTitle>
+      <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TrendingUp className="h-4 w-4" />
+            Action Guidance
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-green-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-green-900">Revenue Growth</h4>
-                <p className="text-sm text-green-700 mt-1">
-                  Monthly revenue has increased by 6.7% compared to last month. The occupancy rate improvement is the main driver.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg">
-              <Building className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-blue-900">High Occupancy</h4>
-                <p className="text-sm text-blue-700 mt-1">
-                  With 97% occupancy rate, consider increasing rent prices for new tenants or adding premium amenities.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3 p-4 bg-yellow-50 rounded-lg">
-              <DollarSign className="w-5 h-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-yellow-900">Cost Optimization</h4>
-                <p className="text-sm text-yellow-700 mt-1">
-                  Utility costs are 40% of expenses. Consider energy-efficient appliances or solar panels for long-term savings.
-                </p>
-              </div>
-            </div>
-          </div>
+        <CardContent className="space-y-2 text-sm text-gray-700">
+          <p>
+            1. Keep collection rate above 90% by following up pending payments before due date.
+          </p>
+          <p>
+            2. Track overdue dues weekly; escalate if tenant dues cross one month rent.
+          </p>
+          <p>
+            3. Monitor occupancy and retention together to avoid short-term revenue spikes with high churn.
+          </p>
         </CardContent>
       </Card>
     </div>
   );
-} 
+}
