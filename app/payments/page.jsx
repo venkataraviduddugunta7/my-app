@@ -397,49 +397,81 @@ export default function PaymentsPage() {
           ) : payments.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-600">No payment records found for the selected filters.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
-                    <th className="px-3 py-2">Payment</th>
-                    <th className="px-3 py-2">Tenant</th>
-                    <th className="px-3 py-2">Type</th>
-                    <th className="px-3 py-2">Due Date</th>
-                    <th className="px-3 py-2">Amount</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {payments.map((payment) => (
-                    <tr key={payment.id} className="align-top">
-                      <td className="px-3 py-3">
-                        <p className="font-medium text-gray-900">{payment.paymentId}</p>
+            <>
+              <div className="space-y-3 md:hidden">
+                {payments.map((payment) => (
+                  <div key={payment.id} className="rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{payment.paymentId}</p>
                         <p className="text-xs text-gray-500">{payment.paymentMethod?.replace('_', ' ') || 'NA'}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className="font-medium text-gray-900">{payment.tenant?.fullName || 'Unknown tenant'}</p>
-                        <p className="text-xs text-gray-500">{payment.tenant?.tenantId || '-'}</p>
-                      </td>
-                      <td className="px-3 py-3 text-gray-700">{String(payment.paymentType || '').replace(/_/g, ' ')}</td>
-                      <td className="px-3 py-3 text-gray-700">{payment.dueDate ? formatDate(payment.dueDate) : '-'}</td>
-                      <td className="px-3 py-3 font-medium text-gray-900">{formatCurrency(toNumber(payment.amount))}</td>
-                      <td className="px-3 py-3">{getStatusBadge(payment.status)}</td>
-                      <td className="px-3 py-3 text-right">
-                        {(payment.status === 'PENDING' || payment.status === 'OVERDUE' || payment.status === 'PARTIAL') ? (
-                          <Button size="sm" variant="outline" onClick={() => markAsPaid(payment)}>
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>Mark Paid</span>
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-gray-400">No action</span>
-                        )}
-                      </td>
+                      </div>
+                      {getStatusBadge(payment.status)}
+                    </div>
+                    <div className="mt-3 space-y-1.5 text-sm text-gray-700">
+                      <p><span className="font-medium text-gray-900">Tenant:</span> {payment.tenant?.fullName || 'Unknown tenant'}</p>
+                      <p><span className="font-medium text-gray-900">Type:</span> {String(payment.paymentType || '').replace(/_/g, ' ')}</p>
+                      <p><span className="font-medium text-gray-900">Due:</span> {payment.dueDate ? formatDate(payment.dueDate) : '-'}</p>
+                      <p><span className="font-medium text-gray-900">Amount:</span> {formatCurrency(toNumber(payment.amount))}</p>
+                    </div>
+                    <div className="mt-3">
+                      {(payment.status === 'PENDING' || payment.status === 'OVERDUE' || payment.status === 'PARTIAL') ? (
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => markAsPaid(payment)}>
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>Mark Paid</span>
+                        </Button>
+                      ) : (
+                        <p className="text-center text-xs text-gray-400">No action</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto rounded-2xl border border-gray-200/80 bg-white md:block">
+                <table className="min-w-[760px] w-full text-sm">
+                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100/70">
+                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
+                      <th className="px-4 py-3">Payment</th>
+                      <th className="px-4 py-3">Tenant</th>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Due Date</th>
+                      <th className="px-4 py-3">Amount</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {payments.map((payment) => (
+                      <tr key={payment.id} className="align-top">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900">{payment.paymentId}</p>
+                          <p className="text-xs text-gray-500">{payment.paymentMethod?.replace('_', ' ') || 'NA'}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900">{payment.tenant?.fullName || 'Unknown tenant'}</p>
+                          <p className="text-xs text-gray-500">{payment.tenant?.tenantId || '-'}</p>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{String(payment.paymentType || '').replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-3 text-gray-700">{payment.dueDate ? formatDate(payment.dueDate) : '-'}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{formatCurrency(toNumber(payment.amount))}</td>
+                        <td className="px-4 py-3">{getStatusBadge(payment.status)}</td>
+                        <td className="px-4 py-3 text-right">
+                          {(payment.status === 'PENDING' || payment.status === 'OVERDUE' || payment.status === 'PARTIAL') ? (
+                            <Button size="sm" variant="outline" onClick={() => markAsPaid(payment)}>
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>Mark Paid</span>
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-gray-400">No action</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

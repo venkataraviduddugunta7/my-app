@@ -504,34 +504,34 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9 }}
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="flex items-center text-2xl font-bold text-slate-900">
-              <Eye className="w-6 h-6 mr-3 text-primary-600" />
+            <h2 className="flex items-center text-xl font-bold text-slate-900 sm:text-2xl">
+              <Eye className="mr-2 h-5 w-5 text-primary-600 sm:mr-3 sm:h-6 sm:w-6" />
               Live Bed Status
             </h2>
-            <p className="mt-1 text-slate-600">
+            <p className="mt-1 text-sm text-slate-600 sm:text-base">
               Real-time occupancy monitoring with instant updates
             </p>
           </div>
 
-          <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:gap-3 sm:text-sm">
+            <div className="flex items-center space-x-2 rounded-full border border-slate-200 bg-white/60 px-2.5 py-1">
               <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
               <span className="text-slate-600">Occupied</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 rounded-full border border-slate-200 bg-white/60 px-2.5 py-1">
               <div className="h-3 w-3 rounded-full bg-blue-500"></div>
               <span className="text-slate-600">Available</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 rounded-full border border-slate-200 bg-white/60 px-2.5 py-1">
               <div className="h-3 w-3 rounded-full bg-gray-500"></div>
               <span className="text-slate-600">Maintenance</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
           {displayBeds.length > 0 ? (
             displayBeds.map((bed, index) => (
               <EnhancedBedStatusCard
@@ -542,12 +542,12 @@ export default function Dashboard() {
               />
             ))
           ) : (
-            <div className="col-span-full text-center py-12">
-              <Bed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="mb-2 text-lg font-semibold text-slate-900">
+            <div className="col-span-full py-12 text-center">
+              <Bed className="mx-auto mb-4 h-10 w-10 text-gray-400 sm:h-12 sm:w-12" />
+              <h3 className="mb-2 text-base font-semibold text-slate-900 sm:text-lg">
                 No Beds Found
               </h3>
-              <p className="mb-4 text-slate-600">
+              <p className="mb-4 text-sm text-slate-600 sm:text-base">
                 No beds are available for this property yet.
               </p>
               <button

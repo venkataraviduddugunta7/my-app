@@ -1890,20 +1890,22 @@ export default function RoomsPage() {
         </div>
       ) : (
         <>
-          <nav className="flex space-x-8 border-b border-gray-200">
-            {['floors', 'rooms', 'beds'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${
-                  activeTab === tab
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+          <nav className="border-b border-gray-200">
+            <div className="flex min-w-max space-x-6 overflow-x-auto px-1">
+              {['floors', 'rooms', 'beds'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`border-b-2 px-1 py-3.5 text-sm font-medium capitalize whitespace-nowrap ${
+                    activeTab === tab
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
           </nav>
 
           {/* Tab Content */}
@@ -1911,8 +1913,8 @@ export default function RoomsPage() {
             {/* Floors Tab */}
             {activeTab === 'floors' && (
               <div className="space-y-6">
-             <div className="flex flex-col gap-4 border border-gray-200 rounded-xl p-1">
-             <div className="flex flex-row justify-between  p-4 items-center">
+             <div className="rounded-xl border border-gray-200 bg-white/80 p-4">
+             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 
                   <h2 className="text-xl font-semibold">
                     Floors
@@ -1931,7 +1933,7 @@ export default function RoomsPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       {/* View Mode Toggle */}
                       {floors.length > 0 && (
                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -1944,7 +1946,7 @@ export default function RoomsPage() {
                             }`}
                           >
                             <List className="w-4 h-4" />
-                            <span>Table</span>
+                            <span className="hidden sm:inline">Table</span>
                           </button>
                           <button
                             onClick={() => setFloorViewMode('cards')}
@@ -1955,12 +1957,12 @@ export default function RoomsPage() {
                             }`}
                           >
                             <Grid3X3 className="w-4 h-4" />
-                            <span>Cards</span>
+                            <span className="hidden sm:inline">Cards</span>
                           </button>
                         </div>
                       )}
                       
-                      <Button onClick={handleAddFloor}>
+                      <Button onClick={handleAddFloor} className="w-full sm:w-auto">
                         <Plus className="w-4 h-4 mr-2" />
                         Add Floor
                       </Button>
@@ -2037,8 +2039,8 @@ export default function RoomsPage() {
             {/* Rooms Tab */}
             {activeTab === 'rooms' && (
               <div className="space-y-6">
-                    <div className="flex flex-col gap-4 border border-gray-200 rounded-xl p-1">
-                    <div className="flex flex-row justify-between  p-4 items-center">
+                    <div className="rounded-xl border border-gray-200 bg-white/80 p-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <h2 className="text-xl font-semibold">
                     Rooms
                   </h2>
@@ -2066,7 +2068,7 @@ export default function RoomsPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       {/* View Mode Toggle */}
                       {rooms.length > 0 && (
                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -2079,7 +2081,7 @@ export default function RoomsPage() {
                             }`}
                           >
                             <List className="w-4 h-4" />
-                            <span>Table</span>
+                            <span className="hidden sm:inline">Table</span>
                           </button>
                           <button
                             onClick={() => setRoomViewMode('cards')}
@@ -2090,12 +2092,12 @@ export default function RoomsPage() {
                             }`}
                           >
                             <Grid3X3 className="w-4 h-4" />
-                            <span>Cards</span>
+                            <span className="hidden sm:inline">Cards</span>
                           </button>
                         </div>
                       )}
                       
-                      <Button onClick={handleAddRoom} disabled={floors.length === 0}>
+                      <Button onClick={handleAddRoom} disabled={floors.length === 0} className="w-full sm:w-auto">
                         <Plus className="w-4 h-4 mr-2" />
                         Add Room
                       </Button>
@@ -2188,8 +2190,8 @@ export default function RoomsPage() {
             {activeTab === 'beds' && (
               <div className="space-y-6">
                
-               <div className="flex flex-col gap-4 border border-gray-200 rounded-xl p-1">
-               <div className="flex flex-row justify-between items-center p-4">
+               <div className="rounded-xl border border-gray-200 bg-white/80 p-4">
+               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <h2 className="text-xl font-semibold">
                     Beds
                   </h2>
@@ -2227,7 +2229,7 @@ export default function RoomsPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       {/* View Mode Toggle */}
                       {beds.length > 0 && (
                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -2240,7 +2242,7 @@ export default function RoomsPage() {
                             }`}
                           >
                             <List className="w-4 h-4" />
-                            <span>Table</span>
+                            <span className="hidden sm:inline">Table</span>
                           </button>
                           <button
                             onClick={() => setBedViewMode('cards')}
@@ -2251,12 +2253,12 @@ export default function RoomsPage() {
                             }`}
                           >
                             <Grid3X3 className="w-4 h-4" />
-                            <span>Cards</span>
+                            <span className="hidden sm:inline">Cards</span>
                           </button>
                         </div>
                       )}
                       
-                      <Button onClick={handleAddBed} disabled={rooms.length === 0}>
+                      <Button onClick={handleAddBed} disabled={rooms.length === 0} className="w-full sm:w-auto">
                         <Plus className="w-4 h-4 mr-2" />
                         Add Bed
                       </Button>

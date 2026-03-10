@@ -275,26 +275,38 @@ export default function ReportsPage() {
           ) : reportRows.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-600">No report data available.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
-                    <th className="px-3 py-2">Metric</th>
-                    <th className="px-3 py-2">Value</th>
-                    <th className="px-3 py-2">Interpretation</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {reportRows.map((row) => (
-                    <tr key={row.metric}>
-                      <td className="px-3 py-3 font-medium text-gray-900">{row.metric}</td>
-                      <td className="px-3 py-3 text-gray-900">{row.value}</td>
-                      <td className="px-3 py-3 text-gray-600">{row.note}</td>
+            <>
+              <div className="space-y-3 md:hidden">
+                {reportRows.map((row) => (
+                  <div key={row.metric} className="rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm">
+                    <p className="text-sm font-semibold text-gray-900">{row.metric}</p>
+                    <p className="mt-1 text-base font-semibold text-gray-900">{row.value}</p>
+                    <p className="mt-2 text-sm text-gray-600">{row.note}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto rounded-2xl border border-gray-200/80 bg-white md:block">
+                <table className="min-w-[720px] w-full text-sm">
+                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100/70">
+                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
+                      <th className="px-4 py-3">Metric</th>
+                      <th className="px-4 py-3">Value</th>
+                      <th className="px-4 py-3">Interpretation</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {reportRows.map((row) => (
+                      <tr key={row.metric}>
+                        <td className="px-4 py-3 font-medium text-gray-900">{row.metric}</td>
+                        <td className="px-4 py-3 text-gray-900">{row.value}</td>
+                        <td className="px-4 py-3 text-gray-600">{row.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

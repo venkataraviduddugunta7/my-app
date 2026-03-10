@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -55,10 +55,27 @@ export function DataTable({
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
+  const [isMobile, setIsMobile] = useState(false);
   const [paginationState, setPagination] = useState({
     pageIndex: 0,
     pageSize: pageSize,
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const media = window.matchMedia('(max-width: 767px)');
+    const sync = (event) => setIsMobile(event.matches);
+    setIsMobile(media.matches);
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', sync);
+      return () => media.removeEventListener('change', sync);
+    }
+
+    media.addListener(sync);
+    return () => media.removeListener(sync);
+  }, []);
 
   const table = useReactTable({
     data,
@@ -81,13 +98,21 @@ export function DataTable({
     debugTable: false,
   });
 
+  const resolvedViewMode = useMemo(() => {
+    if (isMobile && cardComponent) {
+      return 'cards';
+    }
+
+    return viewMode;
+  }, [isMobile, cardComponent, viewMode]);
+
   // Card view
-  if (viewMode === 'cards' && cardComponent) {
+  if (resolvedViewMode === 'cards' && cardComponent) {
     const CardComponent = cardComponent;
   return (
     <div className={`space-y-6 ${className}`}>
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
           {table.getRowModel().rows.map((row, index) => (
             <div
               key={row.id}
@@ -116,8 +141,8 @@ export function DataTable({
 
         {/* Pagination */}
         {pagination && table.getPageCount() > 1 && (
-          <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-200 shadow-elegant p-6">
-            <div className="text-sm text-gray-600 font-medium">
+          <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-elegant sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="text-xs font-medium text-gray-600 sm:text-sm">
               Showing <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
               <span className="text-primary-600 font-semibold">
                 {Math.min(
@@ -127,7 +152,7 @@ export function DataTable({
               </span>{' '}
               of <span className="text-primary-600 font-semibold">{table.getFilteredRowModel().rows.length}</span> results
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-between gap-2 sm:justify-start sm:space-x-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -137,8 +162,8 @@ export function DataTable({
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <div className="flex items-center space-x-2 bg-gray-50 rounded-xl px-4 py-2">
-                <span className="text-sm font-medium text-gray-700">
+              <div className="flex items-center space-x-2 rounded-xl bg-gray-50 px-3 py-2 sm:px-4">
+                <span className="text-xs font-medium text-gray-700 sm:text-sm">
                   Page <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex + 1}</span> of{' '}
                   <span className="text-primary-600 font-semibold">{table.getPageCount()}</span>
                 </span>
@@ -163,16 +188,21 @@ export function DataTable({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Table Container */}
-      <div className="bg-white border border-gray-200 overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white/90 shadow-sm">
+        {isMobile && !cardComponent && (
+          <div className="border-b border-gray-200 bg-gray-50/80 px-4 py-2 text-xs font-medium text-gray-500">
+            Swipe horizontally to view all columns
+          </div>
+        )}
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50">
+          <table className="min-w-[760px] w-full text-sm">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100/70">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200/50"
+                      className="border-b border-gray-200/70 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600"
                     >
                       {header.isPlaceholder ? null : (
                         <div
@@ -215,7 +245,7 @@ export function DataTable({
                   onClick={() => onRowClick && onRowClick(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-6 py-5 whitespace-nowrap">
+                    <td key={cell.id} className="whitespace-nowrap px-4 py-3.5">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -243,8 +273,8 @@ export function DataTable({
 
       {/* Pagination */}
       {pagination && table.getPageCount() > 1 && (
-        <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-200 shadow-elegant p-6">
-          <div className="text-sm text-gray-600 font-medium">
+        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-elegant sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="text-xs font-medium text-gray-600 sm:text-sm">
             Showing <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
             <span className="text-primary-600 font-semibold">
               {Math.min(
@@ -254,7 +284,7 @@ export function DataTable({
             </span>{' '}
             of <span className="text-primary-600 font-semibold">{table.getFilteredRowModel().rows.length}</span> results
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center justify-between gap-2 sm:justify-start sm:space-x-3">
             <Button
               variant="outline"
               size="sm"
@@ -264,8 +294,8 @@ export function DataTable({
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <div className="flex items-center space-x-2 bg-gray-50 rounded-xl px-4 py-2">
-              <span className="text-sm font-medium text-gray-700">
+            <div className="flex items-center space-x-2 rounded-xl bg-gray-50 px-3 py-2 sm:px-4">
+              <span className="text-xs font-medium text-gray-700 sm:text-sm">
                 Page <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex + 1}</span> of{' '}
                 <span className="text-primary-600 font-semibold">{table.getPageCount()}</span>
               </span>
