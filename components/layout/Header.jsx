@@ -310,7 +310,7 @@ export function Header({ onOpenSidebar }) {
             <motion.button
               type="button"
               onClick={() => setShowPropertyMenu((value) => !value)}
-              className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-3 py-2 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10)] transition-all duration-200 hover:border-white/25 hover:bg-white/[0.11]"
+              className="flex h-10 items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.10)] transition-all duration-200 hover:border-white/25 hover:bg-white/[0.11]"
               aria-expanded={showPropertyMenu}
               aria-haspopup="menu"
             >
@@ -422,7 +422,7 @@ export function Header({ onOpenSidebar }) {
                 autoCorrect="off"
                 spellCheck={false}
                 name="tenant-global-search"
-                className="w-full rounded-2xl border border-white/15 bg-white/[0.07] py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-slate-300 transition-all duration-200 focus:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/20"
+                className="h-10 w-full rounded-2xl border border-white/15 bg-white/[0.07] pl-10 pr-10 text-sm text-white placeholder:text-slate-300 transition-all duration-200 focus:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/20"
                 aria-label="Search tenants by name"
               />
               {searchQuery ? (
@@ -501,7 +501,7 @@ export function Header({ onOpenSidebar }) {
           <button
             type="button"
             onClick={() => setShowMobileSearch((value) => !value)}
-            className="rounded-xl border border-white/10 p-2 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white md:hidden"
             aria-label="Toggle tenant search"
           >
             <Search className="h-4 w-4" />
@@ -511,7 +511,7 @@ export function Header({ onOpenSidebar }) {
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             onClick={handleHeaderRefresh}
-            className="rounded-xl border border-white/10 p-2 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
             aria-label="Refresh data"
             type="button"
           >
@@ -523,7 +523,7 @@ export function Header({ onOpenSidebar }) {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               onClick={handleNotificationOpen}
-              className="relative rounded-xl border border-white/10 p-2 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-slate-200 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
               aria-expanded={showNotifications}
               aria-haspopup="menu"
               type="button"
@@ -621,16 +621,13 @@ export function Header({ onOpenSidebar }) {
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-3 pl-1">
-            <div className="hidden text-right sm:block">
+          <div className="flex h-10 items-center gap-2 rounded-2xl bg-transparent px-0 shadow-none sm:gap-3 sm:bg-white/[0.05] sm:px-3 sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <div className="hidden min-w-0 text-right sm:block">
               <p className="max-w-[180px] truncate text-sm font-semibold text-white">
                 {user?.fullName || 'User'}
               </p>
-              <p className="max-w-[180px] truncate text-xs text-slate-200/90">
-                {user?.email || 'No email'}
-              </p>
             </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-transparent text-sm font-semibold text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-sm font-semibold text-white sm:h-8 sm:w-8 sm:text-xs">
               {getUserInitials(user?.fullName)}
             </div>
           </div>
@@ -660,7 +657,7 @@ export function Header({ onOpenSidebar }) {
                 autoCorrect="off"
                 spellCheck={false}
                 name="tenant-global-search-mobile"
-                className="w-full rounded-2xl border border-white/15 bg-white/[0.08] py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-slate-300 focus:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/20"
+                className="h-10 w-full rounded-2xl border border-white/15 bg-white/[0.08] pl-10 pr-10 text-sm text-white placeholder:text-slate-300 focus:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/20"
               />
               {searchQuery ? (
                 <button
