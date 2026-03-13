@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const {
   getTenants,
+  searchTenantsByName,
   getTenant,
   createTenant,
   updateTenant,
@@ -14,6 +15,9 @@ const router = Router();
 
 // Apply authentication to all routes
 router.use(authenticate);
+
+// GET /api/tenants/search - Search tenants by name
+router.get('/search', searchTenantsByName);
 
 // GET /api/tenants - Get all tenants
 router.get('/', getTenants);

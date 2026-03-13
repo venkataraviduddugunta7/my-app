@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchTenants, createTenant, updateTenant, deleteTenant, assignTenantToBed, vacateTenant } from '@/store/slices/tenantsSlice';
 import { fetchFloors } from '@/store/slices/floorsSlice';
@@ -986,6 +987,7 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
 
 export default function TenantsPage() {
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
   const { tenants, loading, error } = useSelector((state) => state.tenants);
   const { floors } = useSelector((state) => state.floors);
   const { rooms } = useSelector((state) => state.rooms);
@@ -1000,6 +1002,11 @@ export default function TenantsPage() {
   const [viewMode, setViewMode] = useState('table');
   const [showVacateModal, setShowVacateModal] = useState(false);
   const [vacatingTenant, setVacatingTenant] = useState(null);
+
+  useEffect(() => {
+    const searchValue = searchParams.get('search') || '';
+    setSearchTerm(searchValue);
+  }, [searchParams]);
 
   // Calculate tenant statistics
   const tenantStats = {
@@ -1040,9 +1047,9 @@ export default function TenantsPage() {
 
   // Filter tenants based on search and status
   const filteredTenants = tenants.filter(tenant => {
-    const matchesSearch = tenant.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tenant.phone?.includes(searchTerm) ||
-                         tenant.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const matchesSearch = !normalizedSearchTerm ||
+      tenant.fullName?.toLowerCase().includes(normalizedSearchTerm);
     
     const matchesStatus = statusFilter === 'all' || tenant.status === statusFilter;
     
@@ -1253,9 +1260,12 @@ export default function TenantsPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
-                  placeholder="Search tenants by name, phone, or email..."
+                  placeholder="Search tenants by name..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                  name="tenant-list-search"
                   className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

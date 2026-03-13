@@ -7,6 +7,7 @@ import floorsReducer from './slices/floorsSlice';
 import bedsReducer from './slices/bedsSlice';
 import authReducer from './slices/authSlice';
 import propertyReducer from './slices/propertySlice';
+import notificationsReducer from './slices/notificationsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     ui: uiReducer,
     floors: floorsReducer,
     beds: bedsReducer,
+    notifications: notificationsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

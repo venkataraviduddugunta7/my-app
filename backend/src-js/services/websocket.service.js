@@ -34,7 +34,7 @@ class WebSocketService {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await prisma.user.findUnique({
-          where: { id: decoded.id },
+          where: { id: decoded.userId },
           select: { id: true, email: true, fullName: true, role: true, isActive: true }
         });
 
@@ -125,6 +125,13 @@ class WebSocketService {
       socket.on('unsubscribe-properties', () => {
         socket.leave('properties');
         console.log(`🏠 User unsubscribed from property updates`);
+      });
+
+      socket.on('refresh-data', ({ propertyId } = {}) => {
+        socket.emit('data-refresh-requested', {
+          propertyId: propertyId || null,
+          timestamp: new Date().toISOString()
+        });
       });
 
       // Handle disconnection

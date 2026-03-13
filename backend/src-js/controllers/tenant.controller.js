@@ -2,17 +2,25 @@ const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/error.middleware');
 const webSocketService = require('../services/websocket.service');
 const logger = require('../services/logger.service');
+const appNotificationService = require('../services/app-notification.service');
 
 const prisma = new PrismaClient();
 
 // GET /api/tenants - Get all tenants
 const getTenants = asyncHandler(async (req, res) => {
-  const { propertyId, status, bedId } = req.query;
+  const { propertyId, status, bedId, search } = req.query;
   
-  const where = {};
+  const where = {
+    property: {
+      ownerId: req.user.id
+    }
+  };
   
   if (propertyId) {
-    where.propertyId = propertyId;
+    where.property = {
+      ...where.property,
+      id: propertyId
+    };
   }
   
   if (status) {
@@ -22,6 +30,13 @@ const getTenants = asyncHandler(async (req, res) => {
   if (bedId) {
     where.bed = {
       id: bedId
+    };
+  }
+
+  if (search) {
+    where.fullName = {
+      contains: String(search).trim(),
+      mode: 'insensitive'
     };
   }
 
@@ -70,6 +85,78 @@ const getTenants = asyncHandler(async (req, res) => {
       { status: 'asc' },
       { joiningDate: 'desc' }
     ]
+  });
+
+  res.status(200).json({
+    success: true,
+    data: tenants,
+    count: tenants.length
+  });
+});
+
+// GET /api/tenants/search - Search tenants by full name
+const searchTenantsByName = asyncHandler(async (req, res) => {
+  const { propertyId, query = '', limit = 6 } = req.query;
+  const normalizedQuery = String(query).trim();
+  const pageSize = Math.min(Math.max(parseInt(limit, 10) || 6, 1), 20);
+
+  if (!normalizedQuery || normalizedQuery.length < 2) {
+    return res.status(200).json({
+      success: true,
+      data: [],
+      count: 0
+    });
+  }
+
+  const where = {
+    fullName: {
+      contains: normalizedQuery,
+      mode: 'insensitive'
+    },
+    property: {
+      ownerId: req.user.id
+    }
+  };
+
+  if (propertyId) {
+    where.property = {
+      ...where.property,
+      id: propertyId
+    };
+  }
+
+  const tenants = await prisma.tenant.findMany({
+    where,
+    select: {
+      id: true,
+      tenantId: true,
+      fullName: true,
+      status: true,
+      phone: true,
+      propertyId: true,
+      property: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
+      bed: {
+        select: {
+          id: true,
+          bedNumber: true,
+          room: {
+            select: {
+              roomNumber: true
+            }
+          }
+        }
+      }
+    },
+    orderBy: [
+      { isActive: 'desc' },
+      { fullName: 'asc' }
+    ],
+    take: pageSize
   });
 
   res.status(200).json({
@@ -314,6 +401,21 @@ const createTenant = asyncHandler(async (req, res) => {
     data: { tenantId: tenant.id, bedId }
   });
 
+  await appNotificationService.notifyPropertyOwner(propertyId, {
+    title: 'New tenant added',
+    message: `${tenant.fullName} has been added${tenant.bed ? ` to Room ${tenant.bed.room?.roomNumber || ''}` : ''}.`.trim(),
+    type: 'SUCCESS',
+    category: 'TENANT',
+    actionUrl: '/tenants',
+    entityType: 'tenant',
+    entityId: tenant.id,
+    metadata: {
+      tenantId: tenant.tenantId,
+      fullName: tenant.fullName,
+      bedId: bedId || null,
+    },
+  });
+
   res.status(201).json({
     success: true,
     data: tenant,
@@ -397,6 +499,20 @@ const updateTenant = asyncHandler(async (req, res) => {
 
   // Broadcast tenant update
   webSocketService.broadcastTenantUpdate(updatedTenant.propertyId, updatedTenant, 'update');
+
+  await appNotificationService.notifyPropertyOwner(updatedTenant.propertyId, {
+    title: 'Tenant profile updated',
+    message: `${updatedTenant.fullName} details were updated.`,
+    type: 'INFO',
+    category: 'TENANT',
+    actionUrl: '/tenants',
+    entityType: 'tenant',
+    entityId: updatedTenant.id,
+    metadata: {
+      fieldsChanged: Object.keys(req.body),
+      fullName: updatedTenant.fullName,
+    },
+  });
 
   res.status(200).json({
     success: true,
@@ -795,6 +911,21 @@ const vacateTenant = asyncHandler(async (req, res) => {
     }
   });
 
+  await appNotificationService.notifyPropertyOwner(tenant.propertyId, {
+    title: 'Tenant vacated',
+    message: `${tenant.fullName} has been vacated${bedInfo ? ` and ${bedInfo.location} is now available` : ''}.`,
+    type: pendingPayments.length > 0 ? 'WARNING' : 'INFO',
+    category: 'TENANT',
+    actionUrl: '/tenants',
+    entityType: 'tenant',
+    entityId: tenant.id,
+    metadata: {
+      tenantId: tenant.tenantId,
+      pendingPayments: pendingPayments.length,
+      totalPendingAmount,
+    },
+  });
+
   // Prepare response with warnings if there are pending payments
   const warnings = [];
   if (pendingPayments.length > 0) {
@@ -835,6 +966,7 @@ const vacateTenant = asyncHandler(async (req, res) => {
 
 module.exports = {
   getTenants,
+  searchTenantsByName,
   getTenant,
   createTenant,
   updateTenant,

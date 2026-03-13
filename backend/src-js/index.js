@@ -25,6 +25,7 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const settingsRoutes = require('./routes/settings.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const documentRoutes = require('./routes/document.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 // Import middleware
 const { errorHandler } = require('./middleware/error.middleware');
@@ -169,6 +170,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/properties/:propertyId/documents', documentRoutes);
 
 // Error handling middleware

@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 import { store } from '@/store';
 import { addToast } from '@/store/slices/uiSlice';
+import { prependNotification } from '@/store/slices/notificationsSlice';
 import { 
   updateLocalStats, 
   addActivity 
@@ -56,15 +57,19 @@ class WebSocketService {
     // Connection events
     this.socket.on('connect', () => {
       console.log('🔌 WebSocket connected');
+      const wasReconnecting = this.reconnectAttempts > 0;
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      this.restoreSubscriptions();
       this.notifyStatusChange();
-      
-      store.dispatch(addToast({
-        title: 'Connected',
-        description: 'Real-time updates enabled',
-        variant: 'success'
-      }));
+
+      if (wasReconnecting) {
+        store.dispatch(addToast({
+          title: 'Realtime reconnected',
+          description: 'Live updates are active again.',
+          variant: 'success'
+        }));
+      }
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -196,6 +201,15 @@ class WebSocketService {
     // Notifications
     this.socket.on('notification', (notification) => {
       console.log('🔔 Notification received:', notification);
+      const existingNotification = store
+        .getState()
+        .notifications.items.find((item) => item.id === notification.id);
+
+      if (existingNotification) {
+        return;
+      }
+
+      store.dispatch(prependNotification(notification));
       store.dispatch(addToast({
         title: notification.title || 'Notification',
         description: notification.message,
@@ -262,59 +276,78 @@ class WebSocketService {
 
   // Subscription methods
   joinProperty(propertyId) {
-    if (this.socket?.connected && propertyId) {
+    if (!propertyId) return;
+    this.subscriptions.add(`property:${propertyId}`);
+
+    if (this.socket?.connected) {
       this.socket.emit('join-property', propertyId);
-      this.subscriptions.add(`property:${propertyId}`);
-      this.notifyStatusChange();
     }
+
+    this.notifyStatusChange();
   }
 
   leaveProperty(propertyId) {
-    if (this.socket?.connected && propertyId) {
+    if (!propertyId) return;
+    this.subscriptions.delete(`property:${propertyId}`);
+
+    if (this.socket?.connected) {
       this.socket.emit('leave-property', propertyId);
-      this.subscriptions.delete(`property:${propertyId}`);
-      this.notifyStatusChange();
     }
+
+    this.notifyStatusChange();
   }
 
   subscribeToDashboard(propertyId) {
-    if (this.socket?.connected && propertyId) {
+    if (!propertyId) return;
+    this.subscriptions.add(`dashboard:${propertyId}`);
+
+    if (this.socket?.connected) {
       this.socket.emit('subscribe-dashboard', propertyId);
-      this.subscriptions.add(`dashboard:${propertyId}`);
-      this.notifyStatusChange();
     }
+
+    this.notifyStatusChange();
   }
 
   subscribeToBeds(propertyId) {
-    if (this.socket?.connected && propertyId) {
+    if (!propertyId) return;
+    this.subscriptions.add(`beds:${propertyId}`);
+
+    if (this.socket?.connected) {
       this.socket.emit('subscribe-beds', propertyId);
-      this.subscriptions.add(`beds:${propertyId}`);
-      this.notifyStatusChange();
     }
+
+    this.notifyStatusChange();
   }
 
   subscribeToPayments(propertyId) {
-    if (this.socket?.connected && propertyId) {
+    if (!propertyId) return;
+    this.subscriptions.add(`payments:${propertyId}`);
+
+    if (this.socket?.connected) {
       this.socket.emit('subscribe-payments', propertyId);
-      this.subscriptions.add(`payments:${propertyId}`);
-      this.notifyStatusChange();
     }
+
+    this.notifyStatusChange();
   }
 
   subscribeToProperties() {
+    this.subscriptions.add('properties');
+
     if (this.socket?.connected) {
       this.socket.emit('subscribe-properties');
-      this.subscriptions.add('properties');
-      this.notifyStatusChange();
     }
+
+    this.notifyStatusChange();
   }
 
   unsubscribeFromProperties() {
+    this.subscriptions.delete('properties');
+
     if (this.socket?.connected) {
       this.socket.emit('unsubscribe-properties');
-      this.subscriptions.delete('properties');
-      this.notifyStatusChange();
     }
+
+    this.notifyStatusChange();
   }
 
   // Utility methods
@@ -347,6 +380,34 @@ class WebSocketService {
     return () => {
       this.statusListeners.delete(listener);
     };
+  }
+
+  restoreSubscriptions() {
+    this.subscriptions.forEach((subscription) => {
+      if (subscription === 'properties') {
+        this.socket.emit('subscribe-properties');
+        return;
+      }
+
+      const [channel, propertyId] = subscription.split(':');
+      if (!propertyId) return;
+
+      if (channel === 'property') {
+        this.socket.emit('join-property', propertyId);
+      }
+
+      if (channel === 'dashboard') {
+        this.socket.emit('subscribe-dashboard', propertyId);
+      }
+
+      if (channel === 'beds') {
+        this.socket.emit('subscribe-beds', propertyId);
+      }
+
+      if (channel === 'payments') {
+        this.socket.emit('subscribe-payments', propertyId);
+      }
+    });
   }
 
   disconnect() {

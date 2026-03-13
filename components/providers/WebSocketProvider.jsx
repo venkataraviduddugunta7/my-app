@@ -1,9 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import webSocketService from '@/services/websocket';
-import { addToast } from '@/store/slices/uiSlice';
 
 const WebSocketContext = createContext(null);
 
@@ -16,7 +15,6 @@ export const useWebSocket = () => {
 };
 
 export default function WebSocketProvider({ children }) {
-  const dispatch = useDispatch();
   const { isAuthenticated, token } = useSelector((state) => state.auth);
   const { selectedProperty } = useSelector((state) => state.property);
   const isInitialized = useRef(false);
@@ -37,14 +35,6 @@ export default function WebSocketProvider({ children }) {
 
       // Subscribe to properties updates
       webSocketService.subscribeToProperties();
-
-      // Show connection status
-      dispatch(addToast({
-        title: 'Connecting',
-        description: 'Establishing real-time connection...',
-        variant: 'info',
-        duration: 2000
-      }));
     }
 
     // Cleanup on logout
@@ -55,7 +45,7 @@ export default function WebSocketProvider({ children }) {
       isInitialized.current = false;
       currentPropertyId.current = null;
     }
-  }, [isAuthenticated, token, dispatch]);
+  }, [isAuthenticated, token]);
 
   // Handle property changes
   useEffect(() => {
@@ -78,15 +68,8 @@ export default function WebSocketProvider({ children }) {
       webSocketService.subscribeToPayments(propertyId);
       
       currentPropertyId.current = propertyId;
-
-      dispatch(addToast({
-        title: 'Property Connected',
-        description: `Real-time updates enabled for ${selectedProperty.name}`,
-        variant: 'success',
-        duration: 3000
-      }));
     }
-  }, [selectedProperty, isAuthenticated, dispatch]);
+  }, [selectedProperty, isAuthenticated]);
 
   // Cleanup on unmount
   useEffect(() => {

@@ -217,6 +217,8 @@ class ApiService {
   // Tenant APIs
   tenants = {
     getAll: (params = {}) => this.get(`/tenants${this.buildQuery(params)}`),
+    searchByName: (propertyId, query, limit = 6) =>
+      this.get(`/tenants/search${this.buildQuery({ propertyId, query, limit })}`),
     getById: (id) => this.get(`/tenants/${id}`),
     create: (tenantData) => this.post('/tenants', tenantData),
     update: (id, tenantData) => this.put(`/tenants/${id}`, tenantData),
@@ -284,6 +286,13 @@ class ApiService {
     getRevenue: (propertyId, startDate, endDate) => this.get(`/analytics/revenue/${propertyId}?startDate=${startDate}&endDate=${endDate}`),
     getTenants: (propertyId, startDate, endDate) => this.get(`/analytics/tenants/${propertyId}?startDate=${startDate}&endDate=${endDate}`),
     getInsights: (propertyId, period = '30d') => this.get(`/analytics/insights/${propertyId}?period=${period}`)
+  };
+
+  notifications = {
+    getAll: (params = {}) => this.get(`/notifications${this.buildQuery(params)}`),
+    getUnreadCount: (params = {}) => this.get(`/notifications/unread-count${this.buildQuery(params)}`),
+    markRead: (id) => this.put(`/notifications/${id}/read`, {}),
+    markAllRead: (propertyId = null) => this.put('/notifications/read-all', { propertyId }),
   };
 
   // Property-scoped Document APIs

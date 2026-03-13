@@ -1,5 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/error.middleware');
+const webSocketService = require('../services/websocket.service');
+const appNotificationService = require('../services/app-notification.service');
+const logger = require('../services/logger.service');
 
 const prisma = new PrismaClient();
 
@@ -292,6 +295,40 @@ const createPayment = asyncHandler(async (req, res) => {
     }
   });
 
+  logger.business('payment_created', {
+    paymentId: payment.id,
+    paymentCustomId: payment.paymentId,
+    propertyId,
+    tenantId,
+    createdBy: req.user.id,
+  });
+
+  webSocketService.broadcastPaymentUpdate(propertyId, payment, 'create');
+  webSocketService.broadcastActivity(propertyId, {
+    type: 'payment_created',
+    message: `${payment.paymentType} charge created for ${payment.tenant.fullName}`,
+    data: {
+      paymentId: payment.id,
+      tenantId,
+      amount: payment.amount,
+    },
+  });
+
+  await appNotificationService.notifyPropertyOwner(propertyId, {
+    title: 'Payment entry created',
+    message: `${payment.tenant.fullName} now has a ${payment.paymentType.toLowerCase()} charge of Rs ${payment.amount}.`,
+    type: status === 'PAID' ? 'SUCCESS' : 'INFO',
+    category: 'PAYMENT',
+    actionUrl: '/payments',
+    entityType: 'payment',
+    entityId: payment.id,
+    metadata: {
+      paymentId: payment.paymentId,
+      tenantName: payment.tenant.fullName,
+      status: payment.status,
+    },
+  });
+
   res.status(201).json({
     success: true,
     data: payment,
@@ -463,8 +500,47 @@ const markPaymentPaid = asyncHandler(async (req, res) => {
             }
           }
         }
+      },
+      property: {
+        select: {
+          id: true,
+          name: true
+        }
       }
     }
+  });
+
+  logger.business('payment_marked_paid', {
+    paymentId: id,
+    propertyId: updatedPayment.property.id,
+    tenantId: updatedPayment.tenant.id,
+    markedBy: req.user.id,
+  });
+
+  webSocketService.broadcastPaymentUpdate(updatedPayment.property.id, updatedPayment, 'paid');
+  webSocketService.broadcastActivity(updatedPayment.property.id, {
+    type: 'payment_received',
+    message: `Payment received from ${updatedPayment.tenant.fullName}`,
+    data: {
+      paymentId: updatedPayment.id,
+      tenantId: updatedPayment.tenant.id,
+      amount: updatedPayment.amount,
+    },
+  });
+
+  await appNotificationService.notifyPropertyOwner(updatedPayment.property.id, {
+    title: 'Payment received',
+    message: `${updatedPayment.tenant.fullName} paid Rs ${updatedPayment.amount}.`,
+    type: 'SUCCESS',
+    category: 'PAYMENT',
+    actionUrl: '/payments',
+    entityType: 'payment',
+    entityId: updatedPayment.id,
+    metadata: {
+      paymentId: updatedPayment.paymentId,
+      tenantName: updatedPayment.tenant.fullName,
+      bedNumber: updatedPayment.bed?.bedNumber || null,
+    },
   });
 
   res.status(200).json({

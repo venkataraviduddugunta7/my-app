@@ -25,16 +25,16 @@ import { Logo } from '@/components/ui';
 import { logoutUser } from '@/store/slices/authSlice';
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/', badge: null },
-  { id: 'properties', label: 'Properties', icon: Building2, href: '/properties', badge: null },
-  { id: 'tenants', label: 'Tenants', icon: Users, href: '/tenants', badge: 'new' },
-  { id: 'rooms', label: 'Rooms & Beds', icon: Bed, href: '/rooms', badge: null },
-  { id: 'payments', label: 'Payments', icon: CreditCard, href: '/payments', badge: '5' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics', badge: null },
-  { id: 'reports', label: 'Reports', icon: BarChart3, href: '/reports', badge: null },
-  { id: 'notices', label: 'Notices', icon: Bell, href: '/notices', badge: null },
-  { id: 'documents', label: 'Documents', icon: FileText, href: '/documents', badge: null },
-  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings', badge: null },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/' },
+  { id: 'properties', label: 'Properties', icon: Building2, href: '/properties' },
+  { id: 'tenants', label: 'Tenants', icon: Users, href: '/tenants' },
+  { id: 'rooms', label: 'Rooms & Beds', icon: Bed, href: '/rooms' },
+  { id: 'payments', label: 'Payments', icon: CreditCard, href: '/payments' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
+  { id: 'reports', label: 'Reports', icon: BarChart3, href: '/reports' },
+  { id: 'notices', label: 'Notices', icon: Bell, href: '/notices' },
+  { id: 'documents', label: 'Documents', icon: FileText, href: '/documents' },
+  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
 ];
 
 export function Sidebar({ isMobileOpen = false, onCloseMobile }) {

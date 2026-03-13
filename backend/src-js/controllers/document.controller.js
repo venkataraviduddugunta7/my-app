@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/error.middleware');
+const appNotificationService = require('../services/app-notification.service');
 
 const prisma = new PrismaClient();
 
@@ -224,6 +225,20 @@ const createDocument = asyncHandler(async (req, res) => {
           email: true,
         },
       },
+    },
+  });
+
+  await appNotificationService.notifyPropertyOwner(propertyId, {
+    title: 'Document added',
+    message: `${document.title} was uploaded to ${property.name}.`,
+    type: 'INFO',
+    category: 'DOCUMENT',
+    actionUrl: '/documents',
+    entityType: 'document',
+    entityId: document.id,
+    metadata: {
+      documentType: document.documentType,
+      fileName: document.fileName,
     },
   });
 
@@ -600,6 +615,21 @@ const createNotice = asyncHandler(async (req, res) => {
           fullName: true,
         },
       },
+    },
+  });
+
+  await appNotificationService.notifyPropertyOwner(propertyId, {
+    title: 'Notice published',
+    message: `${notice.title} was ${notice.isPublished ? 'published' : 'saved'} for ${property.name}.`,
+    type: normalizedPriority === 'URGENT' ? 'WARNING' : 'INFO',
+    category: 'NOTICE',
+    actionUrl: '/notices',
+    entityType: 'notice',
+    entityId: notice.id,
+    metadata: {
+      noticeType: notice.noticeType,
+      priority: notice.priority,
+      targetCount: notice.targetTenants.length,
     },
   });
 

@@ -38,6 +38,7 @@ model User {
   createdPayments Payment[] @relation("CreatedBy")
   createdNotices Notice[] @relation("CreatedBy")
   createdDocuments Document[] @relation("CreatedBy")
+  notifications Notification[]
   userSettings UserSettings?
   dashboardSettings DashboardSettings?
 
@@ -182,6 +183,7 @@ model Property {
   payments  Payment[]
   notices   Notice[]
   documents Document[]
+  notifications Notification[]
   settings  PropertySettings?
 
   @@map("properties")
@@ -413,6 +415,24 @@ enum PaymentStatus {
   CANCELLED
 }
 
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum NotificationCategory {
+  SYSTEM
+  TENANT
+  PAYMENT
+  PROPERTY
+  NOTICE
+  DOCUMENT
+  MAINTENANCE
+  AUTH
+}
+
 // Notice Management
 model Notice {
   id          String      @id @default(cuid())
@@ -480,6 +500,32 @@ model Document {
   createdById String
 
   @@map("documents")
+}
+
+model Notification {
+  id          String               @id @default(cuid())
+  title       String
+  message     String
+  type        NotificationType     @default(INFO)
+  category    NotificationCategory @default(SYSTEM)
+  isRead      Boolean              @default(false)
+  readAt      DateTime?
+  actionUrl   String?
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  propertyId String?
+
+  @@index([userId, isRead, createdAt])
+  @@index([propertyId, createdAt])
+  @@map("notifications")
 }
 
 enum DocumentType {
