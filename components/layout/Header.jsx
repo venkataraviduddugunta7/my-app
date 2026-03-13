@@ -235,8 +235,8 @@ export function Header({ onOpenSidebar }) {
     ]);
     dispatch(
       addToast({
-        title: 'Data refreshed',
-        description: 'Properties, notifications, and current page data were refreshed.',
+        title: 'Quick refresh complete',
+        description: 'Properties and notifications were refreshed.',
         variant: 'success',
       })
     );
@@ -315,14 +315,9 @@ export function Header({ onOpenSidebar }) {
               aria-haspopup="menu"
             >
               <Building2 className="h-4 w-4 text-cyan-200" />
-              <div className="hidden min-w-0 text-left sm:block">
-                <p className="max-w-[168px] truncate text-sm font-medium text-white">
-                  {selectedProperty?.name || 'Select Property'}
-                </p>
-                <p className="max-w-[168px] truncate text-[11px] text-slate-300">
-                  {selectedProperty?.city || 'Choose a property to scope data'}
-                </p>
-              </div>
+              <span className="hidden max-w-[168px] truncate text-left text-sm font-medium text-white sm:block">
+                {selectedProperty?.name || 'Select Property'}
+              </span>
               <ChevronDown
                 className={`h-4 w-4 text-slate-200 transition-transform duration-200 ${
                   showPropertyMenu ? 'rotate-180' : ''
