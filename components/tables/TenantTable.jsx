@@ -9,90 +9,120 @@ const columnHelper = createColumnHelper();
 
 // Tenant table columns
 export const createTenantColumns = (onEdit, onDelete, onVacate) => [
-  columnTypes.icon('fullName', 'Tenant Details', iconConfigs.tenantIcons, {
+  columnTypes.icon('fullName', 'Tenant', iconConfigs.tenantIcons, {
+    meta: {
+      headerClassName: 'w-[24%]',
+      cellClassName: 'w-[24%]',
+    },
     cell: ({ getValue, row }) => {
       const fullName = getValue();
       const tenantId = row.original.tenantId;
       
       return (
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center mr-4 shadow-elegant">
-            <User className="w-5 h-5 text-primary-600" />
+        <div className="flex min-w-[10.5rem] items-center gap-2.5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-sky-200/80 bg-sky-100/80 text-sky-700 shadow-[0_10px_20px_rgba(56,189,248,0.12)]">
+            <User className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-900">
-              {fullName}
-            </div>
-            <div className="text-xs text-gray-500">
-              ID: {tenantId}
-            </div>
+            <div className="text-sm font-semibold text-slate-900">{fullName}</div>
+            <div className="mt-1 text-xs font-medium text-slate-500">ID: {tenantId}</div>
           </div>
         </div>
       );
     }
   }),
   
-  columnTypes.text('contact', 'Contact Information', {
+  columnTypes.text('contact', 'Contact', {
+    meta: {
+      headerClassName: 'w-[20%]',
+      cellClassName: 'w-[20%]',
+    },
     cell: ({ row }) => {
       const email = row.original.email;
       const phone = row.original.phone;
       
       return (
-        <div>
-          <div className="flex items-center text-sm text-gray-900 mb-1">
-            <Phone className="w-3 h-3 mr-2 text-gray-400" />
-            {phone || 'No phone'}
+        <div className="min-w-[9rem] space-y-1.5">
+          <div className="flex items-center gap-2 text-sm text-slate-900">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200/80 bg-emerald-50 text-emerald-700">
+              <Phone className="h-3.5 w-3.5" />
+            </span>
+            <span className="font-medium">{phone || 'No phone'}</span>
           </div>
-          <div className="flex items-center text-sm text-gray-500">
-            <Mail className="w-3 h-3 mr-2 text-gray-400" />
-            {email || 'No email'}
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-violet-200/80 bg-violet-50 text-violet-700">
+              <Mail className="h-3.5 w-3.5" />
+            </span>
+            <span className="truncate">{email || 'No email'}</span>
           </div>
         </div>
       );
     }
   }),
   
-  columnTypes.text('accommodation', 'Accommodation', {
+  columnTypes.text('accommodation', 'Stay', {
+    meta: {
+      headerClassName: 'w-[20%]',
+      cellClassName: 'w-[20%]',
+    },
     cell: ({ row }) => {
       const bed = row.original.bed;
       const room = bed?.room;
       const floor = room?.floor;
       
       return (
-        <div>
-          <div className="flex items-center text-sm text-gray-900 mb-1">
-            <Bed className="w-3 h-3 mr-2 text-gray-400" />
-            Bed {bed?.bedNumber || 'N/A'}
-          </div>
-          <div className="flex items-center text-sm text-gray-500 mb-1">
-            <Home className="w-3 h-3 mr-2 text-gray-400" />
-            Room {room?.roomNumber || 'N/A'}
-          </div>
-          <div className="flex items-center text-sm text-gray-500">
-            <Building className="w-3 h-3 mr-2 text-gray-400" />
-            {floor?.name || `Floor ${floor?.floorNumber}` || 'N/A'}
-          </div>
+        <div className="min-w-[9.5rem] space-y-1.5">
+          {bed ? (
+            <>
+              <div className="flex items-center gap-2 text-sm text-slate-900">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-sky-200/80 bg-sky-50 text-sky-700">
+                  <Bed className="h-3.5 w-3.5" />
+                </span>
+                <span className="font-medium">Bed {bed?.bedNumber || 'N/A'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50 text-slate-600">
+                  <Home className="h-3.5 w-3.5" />
+                </span>
+                <span>Room {room?.roomNumber || 'N/A'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50 text-slate-600">
+                  <Building className="h-3.5 w-3.5" />
+                </span>
+                <span>{floor?.name || `Floor ${floor?.floorNumber}` || 'N/A'}</span>
+              </div>
+            </>
+          ) : (
+            <span className="inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+              Bed not assigned
+            </span>
+          )}
         </div>
       );
     }
   }),
   
-  columnTypes.text('rental', 'Rental Information', {
+  columnTypes.text('rental', 'Rent', {
+    meta: {
+      headerClassName: 'w-[16%]',
+      cellClassName: 'w-[16%]',
+    },
     cell: ({ row }) => {
       const rent = row.original.rent;
       const deposit = row.original.deposit;
       const moveInDate = row.original.moveInDate;
       
       return (
-        <div>
-          <div className="text-sm font-semibold text-primary-600 mb-1">
+        <div className="min-w-[8.5rem]">
+          <div className="text-sm font-semibold text-slate-900 mb-1">
             ₹{rent?.toLocaleString() || '0'}/month
           </div>
-          <div className="text-sm text-gray-500 mb-1">
+          <div className="text-sm text-slate-500 mb-1">
             Deposit: ₹{deposit?.toLocaleString() || '0'}
           </div>
           {moveInDate && (
-            <div className="flex items-center text-xs text-gray-500">
+            <div className="flex items-center text-xs text-slate-500">
               <Calendar className="w-3 h-3 mr-1" />
               {new Date(moveInDate).toLocaleDateString()}
             </div>
@@ -102,29 +132,39 @@ export const createTenantColumns = (onEdit, onDelete, onVacate) => [
     }
   }),
   
-  columnTypes.status('status', 'Status', statusConfigs.tenantStatus),
+  columnTypes.status('status', 'Status', statusConfigs.tenantStatus, {
+    meta: {
+      headerClassName: 'w-[7rem]',
+      cellClassName: 'w-[7rem]',
+    },
+  }),
   
   columnTypes.actions([
     {
       icon: Edit,
       onClick: onEdit,
       title: 'Edit tenant',
-      className: 'text-blue-600 hover:text-blue-900'
+      className: 'text-sky-700 hover:text-sky-800 hover:bg-sky-50 hover:border-sky-200/80'
     },
     {
       icon: UserMinus,
       onClick: onVacate,
       title: 'Mark as vacated',
-      className: 'text-orange-600 hover:text-orange-900',
+      className: 'text-amber-700 hover:text-amber-800 hover:bg-amber-50 hover:border-amber-200/80',
       condition: (tenant) => tenant.status === 'ACTIVE'
     },
     {
       icon: Trash2,
       onClick: onDelete,
       title: 'Delete tenant',
-      className: 'text-red-600 hover:text-red-900',
+      className: 'text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200/80',
     }
-  ])
+  ], {
+    meta: {
+      headerClassName: 'w-[9rem] min-w-[9rem]',
+      cellClassName: 'w-[9rem] min-w-[9rem]',
+    },
+  })
 ];
 
 // Tenant card component
@@ -283,6 +323,10 @@ export function TenantTable({
       emptyMessage="No tenants found. Add tenants to start managing your PG residents."
       emptyIcon={User}
       viewMode={viewMode}
+      tableClassName="w-full min-w-[760px] table-fixed"
+      headerCellClassName="px-3.5 py-3"
+      cellClassName="px-3.5 py-3"
+      firstColumnClassName=""
       cardComponent={(props) => <TenantCard {...props} onEdit={onEdit} onDelete={onDelete} onVacate={onVacate} onAssignBed={onAssignBed} />}
       loading={loading}
     />

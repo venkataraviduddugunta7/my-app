@@ -844,14 +844,10 @@ export default function PropertiesPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_18%,rgba(56,189,248,0.16),transparent_22%),radial-gradient(circle_at_10%_85%,rgba(16,185,129,0.12),transparent_20%)]" />
         <div className="relative flex flex-col gap-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Properties</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
-                Clear property setup, live inventory, one view.
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
+                Properties
               </h1>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
-                Set planned capacity, then track real rooms, beds, and occupancy as they go live.
-              </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">

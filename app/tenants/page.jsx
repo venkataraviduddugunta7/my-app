@@ -47,8 +47,8 @@ const DEFAULT_TENANT_FORM = {
   idProofNumber: '',
   occupation: '',
   company: '',
-  monthlyIncome: '',
   emergencyContact: '',
+  emergencyContactPhone: '',
   floorId: '',
   roomId: '',
   bedId: '',
@@ -60,6 +60,49 @@ const DEFAULT_TENANT_FORM = {
 
 const PHONE_REGEX = /^(?:\+91[\s-]?)?[6-9]\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMERGENCY_PHONE_EXTRACT_REGEX = /(?:\+91[\s-]?)?[6-9]\d{9}/;
+
+const parseEmergencyContact = (value = '') => {
+  const normalizedValue = String(value || '').trim();
+
+  if (!normalizedValue) {
+    return {
+      emergencyContact: '',
+      emergencyContactPhone: '',
+    };
+  }
+
+  const phoneMatch = normalizedValue.match(EMERGENCY_PHONE_EXTRACT_REGEX);
+
+  if (!phoneMatch) {
+    return {
+      emergencyContact: normalizedValue,
+      emergencyContactPhone: '',
+    };
+  }
+
+  const emergencyContactPhone = phoneMatch[0].trim();
+  const emergencyContact = normalizedValue
+    .replace(phoneMatch[0], '')
+    .replace(/^[\s,;:()/-]+|[\s,;:()/-]+$/g, '')
+    .trim();
+
+  return {
+    emergencyContact,
+    emergencyContactPhone,
+  };
+};
+
+const formatEmergencyContact = ({ emergencyContact, emergencyContactPhone }) => {
+  const name = String(emergencyContact || '').trim();
+  const phone = String(emergencyContactPhone || '').trim();
+
+  if (name && phone) {
+    return `${name} - ${phone}`;
+  }
+
+  return name || phone || '';
+};
 
 const METRIC_CARD_STYLES = {
   blue: 'border-sky-200/80 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(255,255,255,0.92))] text-sky-700',
@@ -98,14 +141,15 @@ function TenantFormSection({ icon: Icon, title, description, children, tone = 's
     emerald: 'border-emerald-200/80 bg-emerald-50/70',
     amber: 'border-amber-200/80 bg-amber-50/70',
   };
+  const hasDescription = Boolean(description);
 
   return (
     <section className={`overflow-visible rounded-[1.5rem] border p-4 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:p-5 ${toneClasses[tone]}`}>
-      <div className="mb-4 flex items-start gap-3">
+      <div className={`flex gap-3 ${hasDescription ? 'mb-4 items-start' : 'mb-3 items-center'}`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-slate-700">
           <Icon className="h-4.5 w-4.5" />
         </div>
-        <div>
+        <div className={hasDescription ? '' : 'flex min-h-10 items-center'}>
           <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
           {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
         </div>
@@ -182,6 +226,8 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
   // Update form data when tenant prop changes (for editing)
   useEffect(() => {
     if (tenant) {
+      const parsedEmergencyContact = parseEmergencyContact(tenant.emergencyContact);
+
       setFormData({
         ...DEFAULT_TENANT_FORM,
         fullName: tenant.fullName || '',
@@ -193,8 +239,8 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
         idProofNumber: tenant.idProofNumber || '',
         occupation: tenant.occupation || '',
         company: tenant.company || '',
-        monthlyIncome: tenant.monthlyIncome || '',
-        emergencyContact: tenant.emergencyContact || '',
+        emergencyContact: parsedEmergencyContact.emergencyContact,
+        emergencyContactPhone: parsedEmergencyContact.emergencyContactPhone,
         floorId: tenant.bed?.room?.floorId || '',
         roomId: tenant.bed?.roomId || '',
         bedId: tenant.bed?.id || '',
@@ -446,6 +492,10 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
       nextErrors.alternatePhone = 'Enter a valid alternate mobile number.';
     }
 
+    if (formData.emergencyContactPhone && !PHONE_REGEX.test(formData.emergencyContactPhone.replace(/\s+/g, ''))) {
+      nextErrors.emergencyContactPhone = 'Enter a valid emergency mobile number.';
+    }
+
     if (formData.email && !EMAIL_REGEX.test(formData.email)) {
       nextErrors.email = 'Enter a valid email address.';
     }
@@ -480,10 +530,6 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
       nextErrors.advanceRent = 'Advance rent is required.';
     }
 
-    if (formData.monthlyIncome && Number(formData.monthlyIncome) < 0) {
-      nextErrors.monthlyIncome = 'Monthly income cannot be negative.';
-    }
-
     if (formData.securityDeposit && Number(formData.securityDeposit) < 0) {
       nextErrors.securityDeposit = 'Security deposit cannot be negative.';
     }
@@ -514,12 +560,14 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
 
     const tenantData = {
       ...formData,
-      monthlyIncome: formData.monthlyIncome ? parseFloat(formData.monthlyIncome) : null,
+      emergencyContact: formatEmergencyContact(formData),
       securityDeposit: formData.securityDeposit ? parseFloat(formData.securityDeposit) : 0,
       advanceRent: formData.advanceRent ? parseFloat(formData.advanceRent) : 0,
       joiningDate: new Date().toISOString(),
       termsAcceptedAt: new Date().toISOString()
     };
+
+    delete tenantData.emergencyContactPhone;
 
     setLoading(true);
     
@@ -544,33 +592,13 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
         isOpen={isOpen}
         onClose={onClose}
         title={tenant ? 'Edit tenant' : 'Add tenant'}
-        description="Capture resident details, assign the bed, and confirm the initial payment setup."
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="max-h-[72vh] space-y-5 overflow-y-auto pr-1">
-            <div className="grid gap-3 md:grid-cols-3">
-              <TenantMiniStat
-                label="Property"
-                value={selectedProperty?.name || 'No property selected'}
-                helper="New tenants will be added into this active property context."
-              />
-              <TenantMiniStat
-                label="Available beds"
-                value={availableBeds.length}
-                helper="Live inventory still open for immediate move-in."
-              />
-              <TenantMiniStat
-                label="Rules status"
-                value={termsAndConditions.length > 0 ? `${termsAndConditions.length} rules available` : 'No rules configured'}
-                helper="You can review the current property rules before saving."
-              />
-            </div>
-
             <TenantFormSection
               icon={User}
               title="Resident details"
-              description="Capture the tenant profile exactly as it should appear in operations and payment records."
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <Input
@@ -599,7 +627,6 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                   placeholder="9876543210"
                   required
                   error={errors.phone}
-                  hint="Use the tenant's active Indian mobile number."
                 />
                 <Input
                   premium
@@ -615,7 +642,6 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
             <TenantFormSection
               icon={MapPin}
               title="Address and identity"
-              description="Store the permanent address and one verified identity proof for compliance."
             >
               <div className="space-y-4">
                 <PremiumTextarea
@@ -654,9 +680,8 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
             <TenantFormSection
               icon={Briefcase}
               title="Work and emergency details"
-              description="These fields stay optional, but they help the team manage communication and resident context."
             >
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <Input
                   premium
                   label="Occupation"
@@ -671,32 +696,32 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                   onChange={(e) => updateField('company', e.target.value)}
                   placeholder="Company or employer"
                 />
-                <Input
-                  premium
-                  label="Monthly income"
-                  type="number"
-                  min="0"
-                  value={formData.monthlyIncome}
-                  onChange={(e) => updateField('monthlyIncome', e.target.value)}
-                  placeholder="0"
-                  error={errors.monthlyIncome}
-                />
               </div>
               <div className="mt-4">
-                <Input
-                  premium
-                  label="Emergency contact"
-                  value={formData.emergencyContact}
-                  onChange={(e) => updateField('emergencyContact', e.target.value)}
-                  placeholder="Name and phone number"
-                />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    premium
+                    label="Emergency contact name"
+                    value={formData.emergencyContact}
+                    onChange={(e) => updateField('emergencyContact', e.target.value)}
+                    placeholder="Parent, sibling, or guardian name"
+                  />
+                  <Input
+                    premium
+                    label="Emergency contact number"
+                    value={formData.emergencyContactPhone}
+                    onChange={(e) => updateField('emergencyContactPhone', e.target.value.replace(/[^\d+\s-]/g, ''))}
+                    placeholder="9876543210"
+                    error={errors.emergencyContactPhone}
+                    hint="Optional, but recommended for move-out or urgent follow-up."
+                  />
+                </div>
               </div>
             </TenantFormSection>
 
             <TenantFormSection
               icon={Home}
               title="Bed assignment and payment setup"
-              description="Choose the bed first. Deposit and advance values can then follow the selected rent."
               tone="sky"
             >
               <div className="grid gap-4 md:grid-cols-3">
@@ -827,7 +852,6 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
             <TenantFormSection
               icon={FileText}
               title="Admission confirmation"
-              description="Keep this acknowledgement step, but avoid fake rules. If the property has configured house rules, they can be reviewed here."
               tone="amber"
             >
               <div className="space-y-4">
@@ -891,33 +915,9 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
       </Modal>
 
       {/* Terms and Conditions Modal */}
-      <Modal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} title="House Rules and Confirmation" size="lg">
+      <Modal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} title="House rules" size="lg">
         <div className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <TenantMiniStat
-              label="Property"
-              value={selectedProperty?.name || 'Current property'}
-              helper="Rules shown here belong to the active property."
-            />
-            <TenantMiniStat
-              label="Rules"
-              value={termsAndConditions.length > 0 ? termsAndConditions.length : 'Not configured'}
-              helper="These are the terms reviewed during tenant admission."
-            />
-            <TenantMiniStat
-              label="Confirmation"
-              value="Required"
-              helper="The tenant form still asks for explicit admission confirmation."
-            />
-          </div>
-
           <div className="max-h-96 overflow-y-auto rounded-[1.5rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.98))] p-6">
-            <div className="mb-6 rounded-[1.35rem] border border-slate-200/80 bg-white/90 px-5 py-4">
-              <h3 className="text-lg font-semibold text-slate-950">Admission terms</h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Review the active property rules before confirming the tenant record. This keeps the admission step deliberate and consistent.
-              </p>
-            </div>
             <div className="space-y-3">
               {termsAndConditions.length > 0 ? (
                 termsAndConditions.map((term, index) => (
@@ -1332,22 +1332,8 @@ export default function TenantsPage() {
     <div className="app-shell min-h-screen space-y-6 p-4 sm:p-6">
       <section className="app-surface rounded-[2rem] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Residents</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Tenants</h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-500">
-                Keep resident records, active occupancy, and move-out actions aligned with the property selected in the header.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <span className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1.5">
-                {selectedProperty ? `${availableBeds.length} beds available for new move-ins` : 'Select a property to start'}
-              </span>
-              <span className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1.5">
-                Search is limited to tenant name for faster lookup
-              </span>
-            </div>
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Tenants</h1>
           </div>
 
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
@@ -1453,20 +1439,6 @@ export default function TenantsPage() {
               </button>
             </div>
           </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5">
-            Showing {filteredTenants.length} {filteredTenants.length === 1 ? 'tenant' : 'tenants'}
-          </span>
-          <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5">
-            Status: {statusOptions.find((option) => option.value === statusFilter)?.label || 'All Status'}
-          </span>
-          {selectedProperty ? (
-            <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5">
-              Property: {selectedProperty.name}
-            </span>
-          ) : null}
         </div>
       </section>
 

@@ -32,6 +32,7 @@ import {
 import { Button } from './Button';
 import { Input } from './Input';
 import { Dropdown } from './Dropdown';
+import { cn } from '@/lib/utils';
 
 // Reusable DataTable component
 export function DataTable({
@@ -46,6 +47,10 @@ export function DataTable({
   className = "",
   headerClassName = "",
   rowClassName = "",
+  tableClassName = "",
+  headerCellClassName = "",
+  cellClassName = "",
+  firstColumnClassName = "min-w-[12.5rem]",
   loading = false,
   actions = null, // Custom actions component
   viewMode = 'table', // 'table' or 'cards'
@@ -141,16 +146,16 @@ export function DataTable({
 
         {/* Pagination */}
         {pagination && table.getPageCount() > 1 && (
-          <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-elegant sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <div className="text-xs font-medium text-gray-600 sm:text-sm">
-              Showing <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
-              <span className="text-primary-600 font-semibold">
+          <div className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/92 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.05)] sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="text-xs font-medium text-slate-500 sm:text-sm">
+              Showing <span className="font-semibold text-slate-900">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
+              <span className="font-semibold text-slate-900">
                 {Math.min(
                   (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
                   table.getFilteredRowModel().rows.length
                 )}
               </span>{' '}
-              of <span className="text-primary-600 font-semibold">{table.getFilteredRowModel().rows.length}</span> results
+              of <span className="font-semibold text-slate-900">{table.getFilteredRowModel().rows.length}</span> results
             </div>
             <div className="flex items-center justify-between gap-2 sm:justify-start sm:space-x-3">
               <Button
@@ -158,14 +163,14 @@ export function DataTable({
                 size="sm"
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
-                className="rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+                className="rounded-xl border border-slate-200/80 bg-white text-slate-600 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <div className="flex items-center space-x-2 rounded-xl bg-gray-50 px-3 py-2 sm:px-4">
-                <span className="text-xs font-medium text-gray-700 sm:text-sm">
-                  Page <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex + 1}</span> of{' '}
-                  <span className="text-primary-600 font-semibold">{table.getPageCount()}</span>
+              <div className="flex items-center space-x-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 sm:px-4">
+                <span className="text-xs font-medium text-slate-600 sm:text-sm">
+                  Page <span className="font-semibold text-slate-900">{table.getState().pagination.pageIndex + 1}</span> of{' '}
+                  <span className="font-semibold text-slate-900">{table.getPageCount()}</span>
                 </span>
               </div>
               <Button
@@ -173,7 +178,7 @@ export function DataTable({
                 size="sm"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
-                className="rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+                className="rounded-xl border border-slate-200/80 bg-white text-slate-600 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -188,67 +193,86 @@ export function DataTable({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Table Container */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white/90 shadow-sm">
+      <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] shadow-[0_18px_40px_rgba(15,23,42,0.05)] backdrop-blur">
         {isMobile && !cardComponent && (
-          <div className="border-b border-gray-200 bg-gray-50/80 px-4 py-2 text-xs font-medium text-gray-500">
+          <div className="border-b border-slate-200/80 bg-slate-50/90 px-4 py-2 text-xs font-medium text-slate-500">
             Swipe horizontally to view all columns
           </div>
         )}
         <div className="overflow-x-auto">
-          <table className="min-w-[760px] w-full text-sm">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100/70">
+          <table className={cn("min-w-[760px] w-full text-sm", tableClassName)}>
+            <thead className="bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.96))]">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="border-b border-gray-200/70 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600"
-                    >
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={`flex items-center space-x-2 group ${
-                            header.column.getCanSort() ? 'cursor-pointer select-none hover:text-primary-600' : ''
-                          } transition-colors duration-200`}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          <span className="font-medium">
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </span>
-                          {header.column.getCanSort() && (
-                            <div className="flex flex-col opacity-60 group-hover:opacity-100 transition-opacity duration-200">
-                              <ChevronUp 
-                                className={`w-3 h-3 transition-colors duration-200 ${
-                                  header.column.getIsSorted() === 'asc' ? 'text-primary-600' : 'text-gray-400'
-                                }`} 
-                              />
-                              <ChevronDown 
-                                className={`w-3 h-3 -mt-1 transition-colors duration-200 ${
-                                  header.column.getIsSorted() === 'desc' ? 'text-primary-600' : 'text-gray-400'
-                                }`} 
-                              />
-                            </div>
+                  {headerGroup.headers.map((header) => {
+                    const meta = header.column.columnDef.meta || {};
+
+                    return (
+                      <th
+                        key={header.id}
+                        className={cn(
+                          "border-b border-slate-200/80 px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500",
+                          headerCellClassName,
+                          meta.headerClassName
                         )}
-                      </div>
-                      )}
-                    </th>
-                  ))}
+                      >
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={`flex items-center space-x-2 group ${
+                              header.column.getCanSort() ? 'cursor-pointer select-none hover:text-slate-900' : ''
+                            } transition-colors duration-200`}
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            <span className="font-medium">
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </span>
+                            {header.column.getCanSort() && (
+                              <div className="flex flex-col opacity-60 group-hover:opacity-100 transition-opacity duration-200">
+                                <ChevronUp
+                                  className={`w-3 h-3 transition-colors duration-200 ${
+                                    header.column.getIsSorted() === 'asc' ? 'text-slate-900' : 'text-slate-400'
+                                  }`}
+                                />
+                                <ChevronDown
+                                  className={`w-3 h-3 -mt-1 transition-colors duration-200 ${
+                                    header.column.getIsSorted() === 'desc' ? 'text-slate-900' : 'text-slate-400'
+                                  }`}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               ))}
               </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-200/70">
               {table.getRowModel().rows.map((row, index) => (
                 <tr
                   key={row.id}
-                  className={`group hover:bg-gradient-to-r hover:from-primary-50/30 hover:to-transparent transition-all duration-300 ${
+                  className={`group transition-all duration-200 ${
                     onRowClick ? 'cursor-pointer' : ''
-                  } ${rowClassName} ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
+                  } ${rowClassName} ${index % 2 === 0 ? 'bg-white/95' : 'bg-slate-50/35'} hover:bg-sky-50/45`}
                   onClick={() => onRowClick && onRowClick(row.original)}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="whitespace-nowrap px-4 py-3.5">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+                  {row.getVisibleCells().map((cell, cellIndex) => {
+                    const meta = cell.column.columnDef.meta || {};
+
+                    return (
+                      <td
+                        key={cell.id}
+                        className={cn(
+                          `whitespace-nowrap px-5 py-4 align-top ${cellIndex === 0 ? firstColumnClassName : ''}`,
+                          cellClassName,
+                          meta.cellClassName
+                        )}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
                 </tr>
                 ))}
               </tbody>
@@ -259,30 +283,30 @@ export function DataTable({
       {/* Empty State */}
       {table.getRowModel().rows.length === 0 && (
         <div className="text-center py-16">
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 border border-gray-200 shadow-elegant">
+          <div className="rounded-[1.75rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-12 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
             {EmptyIcon && (
-              <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-elegant">
-                <EmptyIcon className="w-8 h-8 text-primary-600" />
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[1.35rem] border border-sky-200/80 bg-sky-100/80 shadow-[0_12px_24px_rgba(56,189,248,0.14)]">
+                <EmptyIcon className="h-8 w-8 text-sky-700" />
               </div>
             )}
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">No data found</h3>
-            <p className="text-gray-600 max-w-md mx-auto">{emptyMessage}</p>
+            <h3 className="mb-3 text-xl font-semibold text-slate-900">No data found</h3>
+            <p className="mx-auto max-w-md text-slate-500">{emptyMessage}</p>
           </div>
         </div>
       )}
 
       {/* Pagination */}
       {pagination && table.getPageCount() > 1 && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-elegant sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <div className="text-xs font-medium text-gray-600 sm:text-sm">
-            Showing <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
-            <span className="text-primary-600 font-semibold">
+        <div className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/92 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.05)] sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="text-xs font-medium text-slate-500 sm:text-sm">
+            Showing <span className="font-semibold text-slate-900">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
+            <span className="font-semibold text-slate-900">
               {Math.min(
                 (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
                 table.getFilteredRowModel().rows.length
               )}
             </span>{' '}
-            of <span className="text-primary-600 font-semibold">{table.getFilteredRowModel().rows.length}</span> results
+            of <span className="font-semibold text-slate-900">{table.getFilteredRowModel().rows.length}</span> results
           </div>
           <div className="flex items-center justify-between gap-2 sm:justify-start sm:space-x-3">
             <Button
@@ -290,14 +314,14 @@ export function DataTable({
               size="sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+              className="rounded-xl border border-slate-200/80 bg-white text-slate-600 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <div className="flex items-center space-x-2 rounded-xl bg-gray-50 px-3 py-2 sm:px-4">
-              <span className="text-xs font-medium text-gray-700 sm:text-sm">
-                Page <span className="text-primary-600 font-semibold">{table.getState().pagination.pageIndex + 1}</span> of{' '}
-                <span className="text-primary-600 font-semibold">{table.getPageCount()}</span>
+            <div className="flex items-center space-x-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 sm:px-4">
+              <span className="text-xs font-medium text-slate-600 sm:text-sm">
+                Page <span className="font-semibold text-slate-900">{table.getState().pagination.pageIndex + 1}</span> of{' '}
+                <span className="font-semibold text-slate-900">{table.getPageCount()}</span>
               </span>
             </div>
             <Button
@@ -305,7 +329,7 @@ export function DataTable({
               size="sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+              className="rounded-xl border border-slate-200/80 bg-white text-slate-600 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -326,7 +350,7 @@ export const columnTypes = {
     accessorKey,
     header,
     cell: ({ getValue }) => (
-      <span className="text-sm font-medium text-gray-900">{getValue() || '-'}</span>
+      <span className="text-sm font-medium text-slate-900">{getValue() || '-'}</span>
     ),
     ...options,
   }),
@@ -336,7 +360,7 @@ export const columnTypes = {
     accessorKey,
     header,
     cell: ({ getValue }) => (
-      <span className="text-sm font-semibold text-gray-900">{getValue()?.toLocaleString() || '0'}</span>
+      <span className="text-sm font-semibold text-slate-900">{getValue()?.toLocaleString() || '0'}</span>
     ),
     ...options,
   }),
@@ -346,7 +370,7 @@ export const columnTypes = {
     accessorKey,
     header,
     cell: ({ getValue }) => (
-      <span className="text-sm font-semibold text-primary-600">
+      <span className="text-sm font-semibold text-slate-900">
         ₹{getValue()?.toLocaleString() || '0'}
       </span>
     ),
@@ -367,7 +391,7 @@ export const columnTypes = {
       const IconComponent = config.icon;
       
       return (
-        <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${config.color}`}>
+        <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${config.color}`}>
           <IconComponent className="w-3 h-3 mr-1.5" />
           {config.label}
         </span>
@@ -388,7 +412,7 @@ export const columnTypes = {
       };
       
       return (
-        <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${config.color}`}>
+        <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${config.color}`}>
           {config.label}
         </span>
       );
@@ -401,24 +425,26 @@ export const columnTypes = {
     id: 'actions',
     header: 'Actions',
     cell: ({ row }) => (
-      <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
-        {actions.map((action, index) => {
+      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        {actions
+          .filter((action) => !action.condition || action.condition(row.original))
+          .map((action, index) => {
           const IconComponent = action.icon;
-                  return (
+          return (
             <Button
               key={index}
               variant={action.variant || 'outline'}
-              size="sm"
+              size="icon"
               onClick={() => action.onClick(row.original)}
               disabled={action.disabled?.(row.original)}
-              className={`rounded-xl border-2 transition-all duration-200 ${action.className || ''}`}
+              className={`rounded-xl border border-slate-200/80 bg-white text-slate-500 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 ${action.className || ''}`}
               title={action.title}
             >
               <IconComponent className="w-4 h-4" />
             </Button>
-                  );
-                })}
-              </div>
+          );
+        })}
+      </div>
     ),
     ...options,
   }),
@@ -438,14 +464,14 @@ export const columnTypes = {
       
       return (
         <div className="flex items-center">
-          <div className={`w-10 h-10 ${config.bgColor} rounded-xl flex items-center justify-center mr-4 shadow-elegant`}>
+          <div className={`mr-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/70 ${config.bgColor} shadow-[0_10px_20px_rgba(15,23,42,0.05)]`}>
             <IconComponent className={`w-5 h-5 ${config.color}`} />
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-900">
+            <div className="text-sm font-semibold text-slate-900">
               {row.original[header.toLowerCase().replace(/\s+/g, '')] || value}
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-slate-500">
               {row.original.description || 'No description'}
             </div>
           </div>
@@ -466,8 +492,8 @@ export const columnTypes = {
       const date = new Date(value);
       return (
         <div className="text-sm">
-          <div className="font-semibold text-gray-900">{date.toLocaleDateString()}</div>
-          <div className="text-xs text-gray-500">{date.toLocaleTimeString()}</div>
+          <div className="font-semibold text-slate-900">{date.toLocaleDateString()}</div>
+          <div className="text-xs text-slate-500">{date.toLocaleTimeString()}</div>
         </div>
       );
     },
@@ -494,7 +520,7 @@ export const columnTypes = {
               style={{ width: `${percentage}%` }}
             />
           </div>
-          <span className="text-xs font-semibold text-gray-600 min-w-[3rem] text-right">{Math.round(percentage)}%</span>
+          <span className="min-w-[3rem] text-right text-xs font-semibold text-slate-600">{Math.round(percentage)}%</span>
         </div>
       );
     },
@@ -507,17 +533,17 @@ export const statusConfigs = {
   // Bed status
   bedStatus: {
     Available: {
-      color: 'bg-gradient-to-r from-success-50 to-success-100 text-success-700 border border-success-200',
+      color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
       icon: CheckCircle,
       label: 'Available'
     },
     Occupied: {
-      color: 'bg-gradient-to-r from-error-50 to-error-100 text-error-700 border border-error-200',
+      color: 'border-rose-200/80 bg-rose-50 text-rose-700',
       icon: User,
       label: 'Occupied'
     },
     Maintenance: {
-      color: 'bg-gradient-to-r from-warning-50 to-warning-100 text-warning-700 border border-warning-200',
+      color: 'border-amber-200/80 bg-amber-50 text-amber-700',
       icon: AlertCircle,
       label: 'Maintenance'
     }
@@ -526,17 +552,17 @@ export const statusConfigs = {
   // Room status
   roomStatus: {
     available: {
-      color: 'bg-gradient-to-r from-success-50 to-success-100 text-success-700 border border-success-200',
+      color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
       icon: CheckCircle,
       label: 'Available'
     },
     occupied: {
-      color: 'bg-gradient-to-r from-error-50 to-error-100 text-error-700 border border-error-200',
+      color: 'border-rose-200/80 bg-rose-50 text-rose-700',
       icon: User,
       label: 'Occupied'
     },
     maintenance: {
-      color: 'bg-gradient-to-r from-warning-50 to-warning-100 text-warning-700 border border-warning-200',
+      color: 'border-amber-200/80 bg-amber-50 text-amber-700',
       icon: AlertCircle,
       label: 'Maintenance'
     }
@@ -545,12 +571,12 @@ export const statusConfigs = {
   // Floor status
   floorStatus: {
     active: {
-      color: 'bg-gradient-to-r from-success-50 to-success-100 text-success-700 border border-success-200',
+      color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
       icon: CheckCircle,
       label: 'Active'
     },
     inactive: {
-      color: 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200',
+      color: 'border-slate-200/80 bg-slate-50 text-slate-700',
       icon: AlertCircle,
       label: 'Inactive'
     }
@@ -559,17 +585,17 @@ export const statusConfigs = {
   // Tenant status
   tenantStatus: {
     ACTIVE: {
-      color: 'bg-gradient-to-r from-success-50 to-success-100 text-success-700 border border-success-200',
+      color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
       icon: CheckCircle,
       label: 'Active'
     },
     VACATED: {
-      color: 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200',
+      color: 'border-slate-200/80 bg-slate-50 text-slate-700',
       icon: AlertCircle,
       label: 'Vacated'
     },
     PENDING: {
-      color: 'bg-gradient-to-r from-warning-50 to-warning-100 text-warning-700 border border-warning-200',
+      color: 'border-amber-200/80 bg-amber-50 text-amber-700',
       icon: Clock,
       label: 'Pending'
     }
