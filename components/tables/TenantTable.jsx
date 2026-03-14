@@ -132,77 +132,95 @@ export const TenantCard = ({ data: tenant, onEdit, onDelete, onVacate, onAssignB
   const bed = tenant.bed;
   const room = bed?.room;
   const floor = room?.floor;
-  
-  const statusConfig = statusConfigs.tenantStatus[tenant.status] || {
-    color: 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200',
-    icon: AlertCircle,
-    label: tenant.status
-  };
-  const StatusIcon = statusConfig.icon;
+  const statusTone = {
+    ACTIVE: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
+    VACATED: 'border-slate-200/80 bg-slate-50 text-slate-700',
+    PENDING: 'border-amber-200/80 bg-amber-50 text-amber-700',
+  }[tenant.status] || 'border-slate-200/80 bg-slate-50 text-slate-700';
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-elegant-lg transition-all duration-200 group h-full flex flex-col">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center shadow-elegant transition-all duration-200">
-            <User className="w-6 h-6 text-primary-600" />
+    <div className="group flex h-full flex-col rounded-[1.75rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_rgba(15,23,42,0.08)]">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-sky-200/80 bg-sky-100/80 text-sky-700 shadow-[0_12px_24px_rgba(56,189,248,0.14)]">
+            <User className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 text-lg">{tenant.fullName}</h3>
-            <p className="text-sm text-gray-500 font-medium">ID: {tenant.tenantId}</p>
+            <h3 className="text-lg font-semibold tracking-tight text-slate-950">{tenant.fullName}</h3>
+            <p className="text-sm font-medium text-slate-500">ID: {tenant.tenantId}</p>
           </div>
         </div>
-        <div className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${statusConfig.color}`}>
-          <StatusIcon className="w-3 h-3 mr-1.5" />
-          <span>{statusConfig.label}</span>
-        </div>
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusTone}`}>
+          {tenant.status}
+        </span>
       </div>
       
-      <div className="space-y-4 flex-1">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-            <span className="text-sm font-medium text-gray-600">Phone:</span>
-            <span className="text-sm font-semibold text-primary-600">{tenant.phone || 'N/A'}</span>
-          </div>
-          <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-            <span className="text-sm font-medium text-gray-600">Email:</span>
-            <span className="text-sm font-semibold text-primary-600">{tenant.email || 'N/A'}</span>
-          </div>
-          <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-            <span className="text-sm font-medium text-gray-600">Rent:</span>
-            <span className="text-sm font-semibold text-primary-600">₹{tenant.rent || 0}/month</span>
-          </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Phone</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">{tenant.phone || 'Not added'}</p>
         </div>
-        
-        {bed && (
-          <div className="pt-4 border-t border-gray-200 mt-auto">
-            <div className="text-sm font-medium text-gray-600 mb-3">Accommodation:</div>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-accent-100 to-accent-200 rounded-lg flex items-center justify-center">
-                  <Bed className="w-4 h-4 text-accent-600" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    Bed {bed.bedNumber}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Room {room?.roomNumber} • {floor?.name || `Floor ${floor?.floorNumber}`}
-                  </div>
-                </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Email</p>
+          <p className="mt-2 truncate text-sm font-medium text-slate-900">{tenant.email || 'Not added'}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Monthly rent</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">₹{tenant.rent || 0}/month</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Move-in date</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">
+            {tenant.moveInDate ? new Date(tenant.moveInDate).toLocaleDateString() : 'Not assigned'}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 flex-1 rounded-[1.35rem] border border-slate-200/80 bg-white/85 p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-slate-900">Accommodation</p>
+          {!bed ? (
+            <span className="rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+              Bed not assigned
+            </span>
+          ) : null}
+        </div>
+
+        {bed ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-sky-200/80 bg-sky-100/80 text-sky-700">
+                <Bed className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-900">Bed {bed.bedNumber}</p>
+                <p className="text-xs text-slate-500">{bed.bedType}</p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Room</p>
+                <p className="mt-1 text-sm font-medium text-slate-900">Room {room?.roomNumber || 'N/A'}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Floor</p>
+                <p className="mt-1 text-sm font-medium text-slate-900">{floor?.name || `Floor ${floor?.floorNumber || 'N/A'}`}</p>
               </div>
             </div>
           </div>
+        ) : (
+          <p className="text-sm text-slate-500">
+            Use the assign-bed action to place this tenant into live occupancy.
+          </p>
         )}
       </div>
       
-      {/* Action buttons at the bottom */}
-      <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center space-x-2">
+      <div className="mt-6 flex items-center justify-between border-t border-slate-200/80 pt-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
           {!tenant.bed && (
             <button
               onClick={() => onAssignBed && onAssignBed(tenant)}
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-success-50 to-success-100 text-success-700 text-xs font-semibold rounded-xl border border-success-200 hover:from-success-100 hover:to-success-200 transition-all duration-200"
+              className="inline-flex items-center rounded-xl border border-sky-200/80 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100"
               title="Assign bed"
             >
               <UserPlus className="w-3 h-3 mr-1.5" />
@@ -213,7 +231,7 @@ export const TenantCard = ({ data: tenant, onEdit, onDelete, onVacate, onAssignB
           {tenant.status === 'ACTIVE' && (
             <button
               onClick={() => onVacate && onVacate(tenant)}
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-warning-50 to-warning-100 text-warning-700 text-xs font-semibold rounded-xl border border-warning-200 hover:from-warning-100 hover:to-warning-200 transition-all duration-200"
+              className="inline-flex items-center rounded-xl border border-amber-200/80 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100"
               title="Mark as vacated"
             >
               <UserMinus className="w-3 h-3 mr-1.5" />
@@ -222,17 +240,17 @@ export const TenantCard = ({ data: tenant, onEdit, onDelete, onVacate, onAssignB
           )}
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => onEdit && onEdit(tenant)}
-            className="p-2.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all duration-200"
+            className="rounded-xl p-2.5 text-slate-400 transition-all duration-200 hover:bg-sky-50 hover:text-sky-700"
             title="Edit tenant"
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onDelete && onDelete(tenant.id)}
-            className="p-2.5 text-gray-400 hover:text-error-600 hover:bg-error-50 rounded-xl transition-all duration-200"
+            onClick={() => onDelete && onDelete(tenant)}
+            className="rounded-xl p-2.5 text-slate-400 transition-all duration-200 hover:bg-red-50 hover:text-red-600"
             title="Delete tenant"
           >
             <Trash2 className="w-4 h-4" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -90,6 +91,8 @@ const AMENITY_META = {
   "Study Area": { icon: BookOpen, chip: "text-blue-700" },
 };
 
+const AMENITY_GAP_PX = 8;
+
 const derivePropertyMetrics = (property) => {
   const floors = Array.isArray(property?.floors) ? property.floors : [];
 
@@ -174,25 +177,210 @@ function SummaryCard({ icon: Icon, label, value, helper, tone = "blue" }) {
   );
 }
 
-function TooltipChip({ label, tooltip, icon: Icon, muted = false }) {
+function AmenityChipLabel({ label, icon: Icon, muted = false, labelProps = {} }) {
   const baseClasses = muted ? "text-slate-500" : "text-slate-600";
   const iconTone = muted ? "text-slate-400" : "text-slate-500";
 
   return (
-    <div className="group relative">
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-medium ${baseClasses}`}
+    >
+      {Icon ? <Icon className={`h-3.5 w-3.5 ${iconTone}`} /> : null}
+      <span {...labelProps}>{label}</span>
+    </span>
+  );
+}
+
+function TooltipChip({ label, tooltip, icon: Icon, muted = false }) {
+  const buttonRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0, placement: "top" });
+
+  useEffect(() => {
+    if (!isOpen || !buttonRef.current) return;
+
+    const updatePosition = () => {
+      if (!buttonRef.current) return;
+
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const tooltipHalfWidth = 112;
+      const left = Math.min(
+        viewportWidth - 16 - tooltipHalfWidth,
+        Math.max(16 + tooltipHalfWidth, rect.left + rect.width / 2)
+      );
+
+      const showBelow = rect.top < 72;
+
+      setTooltipPosition({
+        left,
+        top: showBelow ? rect.bottom + 10 : rect.top - 10,
+        placement: showBelow ? "bottom" : "top",
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isOpen]);
+
+  return (
+    <>
       <button
         type="button"
-        className={`rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300 ${baseClasses}`}
+        ref={buttonRef}
+        className="rounded-full focus:outline-none focus:ring-2 focus:ring-slate-300"
         aria-label={tooltip}
+        onMouseEnter={() => setIsOpen(true)}
+        onMouseLeave={() => setIsOpen(false)}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setIsOpen(false)}
       >
-        <span className="flex items-center gap-1.5">
-          {Icon ? <Icon className={`h-3.5 w-3.5 ${iconTone}`} /> : null}
-          <span>{label}</span>
-        </span>
+        <AmenityChipLabel label={label} icon={Icon} muted={muted} />
       </button>
-      <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[14rem] -translate-x-1/2 rounded-xl bg-slate-950 px-3 py-2 text-center text-[11px] font-medium leading-5 text-white opacity-0 shadow-[0_18px_40px_rgba(15,23,42,0.28)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-        <div className="whitespace-normal">{tooltip}</div>
-        <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-slate-950" />
+      {isOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="pointer-events-none fixed z-[9999] w-max max-w-[14rem] rounded-xl bg-slate-950 px-3 py-2 text-center text-[11px] font-medium leading-5 text-white shadow-[0_18px_40px_rgba(15,23,42,0.28)]"
+              style={{
+                left: tooltipPosition.left,
+                top: tooltipPosition.top,
+                transform:
+                  tooltipPosition.placement === "top"
+                    ? "translate(-50%, calc(-100% - 2px))"
+                    : "translate(-50%, 2px)",
+              }}
+            >
+              <div className="whitespace-normal">{tooltip}</div>
+            </div>,
+            document.body
+          )
+        : null}
+    </>
+  );
+}
+
+function AmenitiesPreview({ amenities }) {
+  const measureRef = useRef(null);
+  const [visibleCount, setVisibleCount] = useState(amenities.length);
+
+  useEffect(() => {
+    if (!measureRef.current || amenities.length === 0) {
+      setVisibleCount(amenities.length);
+      return;
+    }
+
+    let animationFrameId;
+
+    const updateVisibleCount = () => {
+      if (!measureRef.current) return;
+
+      const chips = Array.from(measureRef.current.querySelectorAll("[data-amenity-chip='true']"));
+      const overflowChip = measureRef.current.querySelector("[data-overflow-chip='true']");
+      const overflowLabel = measureRef.current.querySelector("[data-overflow-label='true']");
+      const availableWidth = measureRef.current.clientWidth;
+
+      if (!overflowChip || !overflowLabel || availableWidth === 0) {
+        setVisibleCount(amenities.length);
+        return;
+      }
+
+      if (chips.length === 0) {
+        setVisibleCount(0);
+        return;
+      }
+
+      let usedWidth = 0;
+      let count = 0;
+
+      for (let index = 0; index < chips.length; index += 1) {
+        const chipWidth = chips[index].offsetWidth;
+        const nextUsedWidth = usedWidth + (count > 0 ? AMENITY_GAP_PX : 0) + chipWidth;
+        const hiddenCount = amenities.length - (index + 1);
+
+        let totalWidth = nextUsedWidth;
+        if (hiddenCount > 0) {
+          overflowLabel.textContent = `+${hiddenCount} more`;
+          totalWidth += AMENITY_GAP_PX + overflowChip.offsetWidth;
+        }
+
+        if (totalWidth <= availableWidth || count === 0) {
+          usedWidth = nextUsedWidth;
+          count += 1;
+          continue;
+        }
+
+        break;
+      }
+
+      setVisibleCount(Math.max(1, Math.min(count, amenities.length)));
+    };
+
+    const runMeasurement = () => {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = window.requestAnimationFrame(updateVisibleCount);
+    };
+
+    runMeasurement();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(runMeasurement);
+      observer.observe(measureRef.current);
+      return () => {
+        cancelAnimationFrame(animationFrameId);
+        observer.disconnect();
+      };
+    }
+
+    window.addEventListener("resize", runMeasurement);
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", runMeasurement);
+    };
+  }, [amenities]);
+
+  const visibleAmenities = amenities.slice(0, visibleCount);
+  const hiddenAmenities = amenities.slice(visibleCount);
+
+  return (
+    <div className="relative mt-5">
+      <div ref={measureRef} className="pointer-events-none absolute inset-x-0 top-0 -z-10 flex items-start gap-2 opacity-0">
+        {amenities.map((amenity) => {
+          const amenityMeta = AMENITY_META[amenity] || {};
+
+          return (
+            <div key={`measure-${amenity}`} data-amenity-chip="true">
+              <AmenityChipLabel label={amenity} icon={amenityMeta.icon} />
+            </div>
+          );
+        })}
+        <div data-overflow-chip="true">
+          <AmenityChipLabel label="+0 more" muted labelProps={{ "data-overflow-label": "true" }} />
+        </div>
+      </div>
+
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+          {visibleAmenities.map((amenity) => {
+            const amenityMeta = AMENITY_META[amenity] || {};
+
+            return <AmenityChipLabel key={amenity} label={amenity} icon={amenityMeta.icon} />;
+          })}
+        </div>
+        {hiddenAmenities.length > 0 ? (
+          <div className="shrink-0">
+            <TooltipChip
+              label={`+${hiddenAmenities.length} more`}
+              tooltip={hiddenAmenities.join(", ")}
+              muted
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -372,27 +560,7 @@ function PropertyCard({
         </div>
 
         {Array.isArray(property.amenities) && property.amenities.length > 0 ? (
-          <div className="mt-5 flex flex-wrap gap-2">
-            {property.amenities.slice(0, 4).map((amenity) => {
-              const amenityMeta = AMENITY_META[amenity] || {};
-
-              return (
-                <TooltipChip
-                  key={amenity}
-                  label={amenity}
-                  tooltip={amenity}
-                  icon={amenityMeta.icon}
-                />
-              );
-            })}
-            {property.amenities.length > 4 ? (
-              <TooltipChip
-                label={`+${property.amenities.length - 4} more`}
-                tooltip={property.amenities.slice(4).join(", ")}
-                muted
-              />
-            ) : null}
-          </div>
+          <AmenitiesPreview amenities={property.amenities} />
         ) : null}
 
         <div className="mt-6 flex flex-wrap gap-3 border-t border-slate-200/80 pt-5">

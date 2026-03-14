@@ -3,30 +3,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchTenants, createTenant, updateTenant, deleteTenant, assignTenantToBed, vacateTenant } from '@/store/slices/tenantsSlice';
+import { fetchTenants, createTenant, updateTenant, deleteTenant, vacateTenant } from '@/store/slices/tenantsSlice';
 import { fetchFloors } from '@/store/slices/floorsSlice';
 import { fetchRooms } from '@/store/slices/roomsSlice';
 import { fetchBeds } from '@/store/slices/bedsSlice';
 import { fetchProperties } from '@/store/slices/propertySlice';
 import { addToast } from '@/store/slices/uiSlice';
 import apiService from '@/services/api';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle
-} from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Dropdown } from '@/components/ui/Dropdown';
-import { Modal, ModalFooter } from '@/components/ui/Modal';
+import { Modal } from '@/components/ui/Modal';
 import { TenantTable } from '@/components/tables/TenantTable';
-import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   Users,
   Plus,
-  Edit,
-  Trash2,
   Eye,
   Phone,
   Mail,
@@ -41,42 +32,134 @@ import {
   User,
   Home,
   Briefcase,
-  UserPlus,
   UserMinus,
   Search
 } from 'lucide-react';
 import { Drawer } from '@/components/ui';
 
+const DEFAULT_TENANT_FORM = {
+  fullName: '',
+  email: '',
+  phone: '',
+  alternatePhone: '',
+  address: '',
+  idProofType: 'AADHAR',
+  idProofNumber: '',
+  occupation: '',
+  company: '',
+  monthlyIncome: '',
+  emergencyContact: '',
+  floorId: '',
+  roomId: '',
+  bedId: '',
+  securityDeposit: '',
+  advanceRent: '',
+  paymentMode: 'CASH',
+  termsAccepted: false
+};
+
+const PHONE_REGEX = /^(?:\+91[\s-]?)?[6-9]\d{9}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const METRIC_CARD_STYLES = {
+  blue: 'border-sky-200/80 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(255,255,255,0.92))] text-sky-700',
+  emerald: 'border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,0.92))] text-emerald-700',
+  amber: 'border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(255,255,255,0.92))] text-amber-700',
+  slate: 'border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.92))] text-slate-700',
+};
+
+function TenantMetricCard({ icon: Icon, label, value, helper, tone = 'blue', active = false, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-[1.5rem] border px-4 py-3.5 text-left shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-all duration-200 ${METRIC_CARD_STYLES[tone]} ${
+        active ? 'ring-2 ring-slate-900/10' : 'hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+          <p className="mt-1.5 text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
+          <p className="mt-1.5 text-xs text-slate-500">{helper}</p>
+        </div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-[1.1rem] border border-white/70 bg-white/80">
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function TenantFormSection({ icon: Icon, title, description, children, tone = 'slate' }) {
+  const toneClasses = {
+    slate: 'border-slate-200/80 bg-white/90',
+    sky: 'border-sky-200/80 bg-sky-50/70',
+    emerald: 'border-emerald-200/80 bg-emerald-50/70',
+    amber: 'border-amber-200/80 bg-amber-50/70',
+  };
+
+  return (
+    <section className={`overflow-visible rounded-[1.5rem] border p-4 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:p-5 ${toneClasses[tone]}`}>
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-slate-700">
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+          {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PremiumTextarea({ label, value, onChange, placeholder, rows = 3, error, hint, required = false }) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700">
+        {label}
+        {required ? <span className="ml-1 text-red-500">*</span> : null}
+      </label>
+      <textarea
+        value={value}
+        onChange={onChange}
+        rows={rows}
+        className={`w-full rounded-xl border bg-white px-4 py-3 text-sm shadow-elegant transition-all duration-200 focus:outline-none ${
+          error
+            ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/15'
+            : 'border-gray-200 hover:border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15'
+        }`}
+        placeholder={placeholder}
+      />
+      {error ? <p className="text-xs text-red-500">{error}</p> : hint ? <p className="text-xs text-gray-500">{hint}</p> : null}
+    </div>
+  );
+}
+
+function TenantMiniStat({ label, value, helper }) {
+  return (
+    <div className="rounded-[1.2rem] border border-slate-200/80 bg-white/88 px-4 py-3 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <p className="mt-1.5 text-sm font-semibold text-slate-950">{value}</p>
+      {helper ? <p className="mt-1 text-xs text-slate-500">{helper}</p> : null}
+    </div>
+  );
+}
+
 // Tenant Form Modal with Terms and Conditions
 function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBeds = [] }) {
+  const dispatch = useDispatch();
   const { floors } = useSelector((state) => state.floors);
   const { rooms } = useSelector((state) => state.rooms);
-  const { properties, selectedProperty } = useSelector((state) => state.property);
+  const { selectedProperty } = useSelector((state) => state.property);
   
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    alternatePhone: '',
-    address: '',
-    idProofType: 'AADHAR',
-    idProofNumber: '',
-    occupation: '',
-    company: '',
-    monthlyIncome: '',
-    emergencyContact: '',
-    floorId: '',
-    roomId: '',
-    bedId: '',
-    securityDeposit: '',
-    advanceRent: '',
-    paymentMode: 'CASH',
-    termsAccepted: false
-  });
-
+  const [formData, setFormData] = useState(DEFAULT_TENANT_FORM);
   const [termsAndConditions, setTermsAndConditions] = useState([]);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   // Fetch terms and conditions when modal opens
   useEffect(() => {
@@ -92,21 +175,15 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
       setTermsAndConditions(settings.rules || []);
     } catch (error) {
       console.error('Error fetching terms and conditions:', error);
-      setTermsAndConditions([
-        "The tenant agrees to pay rent on or before the 5th of every month.",
-        "No smoking or consumption of alcohol is allowed on the premises.",
-        "Visitors are allowed only between 9:00 AM to 9:00 PM.",
-        "The tenant must maintain cleanliness in their room and common areas.",
-        "Any damage to property will be charged from the security deposit."
-      ]);
+      setTermsAndConditions([]);
     }
   };
 
   // Update form data when tenant prop changes (for editing)
   useEffect(() => {
     if (tenant) {
-      console.log('🔧 Editing tenant, populating form with:', tenant);
       setFormData({
+        ...DEFAULT_TENANT_FORM,
         fullName: tenant.fullName || '',
         email: tenant.email || '',
         phone: tenant.phone || '',
@@ -127,28 +204,9 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
         termsAccepted: true // Assume existing tenants have accepted terms
       });
     } else {
-      console.log('🔧 Creating new tenant, resetting form');
-      setFormData({
-        fullName: '',
-        email: '',
-        phone: '',
-        alternatePhone: '',
-        address: '',
-        idProofType: 'AADHAR',
-        idProofNumber: '',
-        occupation: '',
-        company: '',
-        monthlyIncome: '',
-        emergencyContact: '',
-        floorId: '',
-        roomId: '',
-        bedId: '',
-        securityDeposit: '',
-        advanceRent: '',
-        paymentMode: 'CASH',
-        termsAccepted: false
-      });
+      setFormData(DEFAULT_TENANT_FORM);
     }
+    setErrors({});
   }, [tenant]);
 
   // Auto-populate financial data when bed is selected
@@ -156,8 +214,6 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
     if (formData.bedId && availableBeds.length > 0) {
       const selectedBed = availableBeds.find(bed => bed.id === formData.bedId);
       if (selectedBed) {
-        console.log('🔧 Auto-populating financial data for bed:', selectedBed);
-        
         // Auto-populate rent-based deposits
         const suggestedSecurityDeposit = selectedBed.rent * 2; // 2 months rent
         const suggestedAdvanceRent = selectedBed.rent; // 1 month advance
@@ -365,40 +421,94 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
     value = value.slice(0, currentIdProofConfig.maxLength);
     
     setFormData(prev => ({ ...prev, idProofNumber: value }));
+    setErrors(prev => ({ ...prev, idProofNumber: undefined }));
+  };
+
+  const updateField = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const validateForm = () => {
+    const nextErrors = {};
+
+    if (!formData.fullName.trim()) {
+      nextErrors.fullName = 'Tenant name is required.';
+    }
+
+    if (!formData.phone.trim()) {
+      nextErrors.phone = 'Primary phone number is required.';
+    } else if (!PHONE_REGEX.test(formData.phone.replace(/\s+/g, ''))) {
+      nextErrors.phone = 'Enter a valid Indian mobile number.';
+    }
+
+    if (formData.alternatePhone && !PHONE_REGEX.test(formData.alternatePhone.replace(/\s+/g, ''))) {
+      nextErrors.alternatePhone = 'Enter a valid alternate mobile number.';
+    }
+
+    if (formData.email && !EMAIL_REGEX.test(formData.email)) {
+      nextErrors.email = 'Enter a valid email address.';
+    }
+
+    if (!formData.address.trim()) {
+      nextErrors.address = 'Address is required.';
+    }
+
+    if (!formData.idProofNumber.trim()) {
+      nextErrors.idProofNumber = `${currentIdProofConfig.label} number is required.`;
+    } else if (!validateIdProof(formData.idProofNumber)) {
+      nextErrors.idProofNumber = `Use this format: ${currentIdProofConfig.helpText}`;
+    }
+
+    if (!formData.floorId) {
+      nextErrors.floorId = 'Select a floor.';
+    }
+
+    if (!formData.roomId) {
+      nextErrors.roomId = 'Select a room.';
+    }
+
+    if (!formData.bedId) {
+      nextErrors.bedId = 'Select a bed.';
+    }
+
+    if (!formData.securityDeposit) {
+      nextErrors.securityDeposit = 'Security deposit is required.';
+    }
+
+    if (!formData.advanceRent) {
+      nextErrors.advanceRent = 'Advance rent is required.';
+    }
+
+    if (formData.monthlyIncome && Number(formData.monthlyIncome) < 0) {
+      nextErrors.monthlyIncome = 'Monthly income cannot be negative.';
+    }
+
+    if (formData.securityDeposit && Number(formData.securityDeposit) < 0) {
+      nextErrors.securityDeposit = 'Security deposit cannot be negative.';
+    }
+
+    if (formData.advanceRent && Number(formData.advanceRent) < 0) {
+      nextErrors.advanceRent = 'Advance rent cannot be negative.';
+    }
+
+    if (!formData.termsAccepted) {
+      nextErrors.termsAccepted = 'Confirmation is required before saving the tenant.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation
-    if (!formData.fullName.trim()) {
-      alert('Please enter tenant full name');
-      return;
-    }
-    
-    if (!formData.phone.trim()) {
-      alert('Please enter phone number');
-      return;
-    }
-    
-    if (!formData.address.trim()) {
-      alert('Please enter address');
-      return;
-    }
 
-    if (!formData.bedId) {
-      alert('Please select a bed for the tenant');
-      return;
-    }
-
-    // Validate ID proof if provided
-    if (formData.idProofNumber && !validateIdProof(formData.idProofNumber)) {
-      alert(`Please enter a valid ${currentIdProofConfig.label} number. Format: ${currentIdProofConfig.helpText}`);
-      return;
-    }
-
-    if (!formData.termsAccepted) {
-      alert('Please accept the terms and conditions to proceed');
+    if (!validateForm()) {
+      dispatch(addToast({
+        title: 'Complete the required fields',
+        description: 'Review the highlighted tenant details before saving.',
+        variant: 'warning'
+      }));
       return;
     }
 
@@ -411,7 +521,6 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
       termsAcceptedAt: new Date().toISOString()
     };
 
-    console.log('🔧 Submitting tenant data:', tenantData);
     setLoading(true);
     
     try {
@@ -419,6 +528,11 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
       onClose();
     } catch (error) {
       console.error('Error submitting tenant:', error);
+      dispatch(addToast({
+        title: tenant ? 'Unable to update tenant' : 'Unable to add tenant',
+        description: error || 'Please review the tenant details and try again.',
+        variant: 'error'
+      }));
     } finally {
       setLoading(false);
     }
@@ -426,356 +540,410 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} title={tenant ? 'Edit Tenant' : 'Add New Tenant'} size="xl">
-        <div className="max-h-[80vh] overflow-y-auto">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Personal Information Section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2 text-blue-600" />
-                Personal Information
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Full Name *"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                  placeholder="Enter full name"
-                  required
-                />
-                <Input
-                  label="Email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter email address"
-                />
-                <Input
-                  label="Phone Number *"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Enter phone number"
-                  required
-                />
-                <Input
-                  label="Alternate Phone"
-                  value={formData.alternatePhone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, alternatePhone: e.target.value }))}
-                  placeholder="Enter alternate phone"
-                />
-              </div>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={tenant ? 'Edit tenant' : 'Add tenant'}
+        description="Capture resident details, assign the bed, and confirm the initial payment setup."
+        size="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="max-h-[72vh] space-y-5 overflow-y-auto pr-1">
+            <div className="grid gap-3 md:grid-cols-3">
+              <TenantMiniStat
+                label="Property"
+                value={selectedProperty?.name || 'No property selected'}
+                helper="New tenants will be added into this active property context."
+              />
+              <TenantMiniStat
+                label="Available beds"
+                value={availableBeds.length}
+                helper="Live inventory still open for immediate move-in."
+              />
+              <TenantMiniStat
+                label="Rules status"
+                value={termsAndConditions.length > 0 ? `${termsAndConditions.length} rules available` : 'No rules configured'}
+                helper="You can review the current property rules before saving."
+              />
             </div>
 
-            {/* Address & ID Proof Section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <MapPin className="w-5 h-5 mr-2 text-green-600" />
-                Address & Identification
-              </h4>
+            <TenantFormSection
+              icon={User}
+              title="Resident details"
+              description="Capture the tenant profile exactly as it should appear in operations and payment records."
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  premium
+                  label="Full name"
+                  value={formData.fullName}
+                  onChange={(e) => updateField('fullName', e.target.value)}
+                  placeholder="Enter full name"
+                  required
+                  error={errors.fullName}
+                />
+                <Input
+                  premium
+                  label="Email address"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => updateField('email', e.target.value)}
+                  placeholder="name@example.com"
+                  error={errors.email}
+                />
+                <Input
+                  premium
+                  label="Primary phone"
+                  value={formData.phone}
+                  onChange={(e) => updateField('phone', e.target.value.replace(/[^\d+\s-]/g, ''))}
+                  placeholder="9876543210"
+                  required
+                  error={errors.phone}
+                  hint="Use the tenant's active Indian mobile number."
+                />
+                <Input
+                  premium
+                  label="Alternate phone"
+                  value={formData.alternatePhone}
+                  onChange={(e) => updateField('alternatePhone', e.target.value.replace(/[^\d+\s-]/g, ''))}
+                  placeholder="Optional backup contact"
+                  error={errors.alternatePhone}
+                />
+              </div>
+            </TenantFormSection>
+
+            <TenantFormSection
+              icon={MapPin}
+              title="Address and identity"
+              description="Store the permanent address and one verified identity proof for compliance."
+            >
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Complete Address *</label>
-                  <textarea
-                    value={formData.address}
-                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter complete permanent address"
-                    required
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <PremiumTextarea
+                  label="Complete address"
+                  value={formData.address}
+                  onChange={(e) => updateField('address', e.target.value)}
+                  placeholder="Enter the tenant's permanent address"
+                  required
+                  error={errors.address}
+                />
+                <div className="grid gap-4 md:grid-cols-2">
                   <Dropdown
-                    label="ID Proof Type"
+                    premium
+                    label="ID proof type"
                     options={idProofOptions}
                     value={formData.idProofType}
-                    onChange={(value) => setFormData(prev => ({ ...prev, idProofType: value }))}
+                    onChange={(value) => updateField('idProofType', value)}
+                    error={errors.idProofType}
                   />
                   <Input
-                    label="ID Proof Number"
+                    premium
+                    label="ID proof number"
                     value={formData.idProofNumber}
                     onChange={handleIdProofChange}
                     placeholder={currentIdProofConfig.placeholder}
-                    helpText={
-                      formData.idProofNumber 
-                        ? (validateIdProof(formData.idProofNumber) 
-                          ? `✅ Valid ${currentIdProofConfig.label} number` 
-                          : `❌ Invalid format. ${currentIdProofConfig.helpText}`)
-                        : currentIdProofConfig.helpText
-                    }
-                    className={
-                      formData.idProofNumber 
-                        ? (validateIdProof(formData.idProofNumber) 
-                          ? 'border-green-300 focus:border-green-500' 
-                          : 'border-red-300 focus:border-red-500')
-                        : ''
-                    }
-                    maxLength={currentIdProofConfig.maxLength}
                     required
+                    maxLength={currentIdProofConfig.maxLength}
+                    error={errors.idProofNumber}
+                    hint={errors.idProofNumber ? undefined : currentIdProofConfig.helpText}
+                    success={formData.idProofNumber && validateIdProof(formData.idProofNumber) ? `${currentIdProofConfig.label} format looks valid.` : undefined}
                   />
                 </div>
               </div>
-            </div>
+            </TenantFormSection>
 
-            {/* Occupation Details Section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <Briefcase className="w-5 h-5 mr-2 text-purple-600" />
-                Occupation Details
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <TenantFormSection
+              icon={Briefcase}
+              title="Work and emergency details"
+              description="These fields stay optional, but they help the team manage communication and resident context."
+            >
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <Input
+                  premium
                   label="Occupation"
                   value={formData.occupation}
-                  onChange={(e) => setFormData(prev => ({ ...prev, occupation: e.target.value }))}
-                  placeholder="e.g., Software Engineer"
+                  onChange={(e) => updateField('occupation', e.target.value)}
+                  placeholder="Software engineer"
                 />
                 <Input
+                  premium
                   label="Company"
                   value={formData.company}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                  placeholder="Company name"
+                  onChange={(e) => updateField('company', e.target.value)}
+                  placeholder="Company or employer"
                 />
                 <Input
-                  label="Monthly Income (₹)"
+                  premium
+                  label="Monthly income"
                   type="number"
                   min="0"
                   value={formData.monthlyIncome}
-                  onChange={(e) => setFormData(prev => ({ ...prev, monthlyIncome: e.target.value }))}
-                  placeholder="Enter monthly income"
+                  onChange={(e) => updateField('monthlyIncome', e.target.value)}
+                  placeholder="0"
+                  error={errors.monthlyIncome}
                 />
               </div>
-              
               <div className="mt-4">
                 <Input
-                  label="Emergency Contact"
+                  premium
+                  label="Emergency contact"
                   value={formData.emergencyContact}
-                  onChange={(e) => setFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
-                  placeholder="Emergency contact name and phone"
+                  onChange={(e) => updateField('emergencyContact', e.target.value)}
+                  placeholder="Name and phone number"
                 />
               </div>
-            </div>
+            </TenantFormSection>
 
-            {/* Bed Assignment & Financial Section */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <Home className="w-5 h-5 mr-2 text-blue-600" />
-                Bed Assignment & Financial Details
-              </h4>
-              
-              <div className="space-y-4">
-                {/* Floor Selection */}
+            <TenantFormSection
+              icon={Home}
+              title="Bed assignment and payment setup"
+              description="Choose the bed first. Deposit and advance values can then follow the selected rent."
+              tone="sky"
+            >
+              <div className="grid gap-4 md:grid-cols-3">
                 <Dropdown
-                  label="Select Floor *"
+                  premium
+                  label="Floor"
                   options={floorOptions}
                   value={formData.floorId}
-                  onChange={(value) => setFormData(prev => ({ ...prev, floorId: value }))}
+                  onChange={(value) => updateField('floorId', value)}
                   placeholder="Choose a floor"
-                  helpText="Select floor to see available rooms"
+                  helpText="Only floors with available beds are enabled."
+                  error={errors.floorId}
                 />
-
-                {/* Room Selection */}
-                {formData.floorId && (
-                  <Dropdown
-                    label="Select Room *"
-                    options={roomOptions}
-                    value={formData.roomId}
-                    onChange={(value) => setFormData(prev => ({ ...prev, roomId: value }))}
-                    placeholder="Choose a room"
-                    helpText="Select room to see available beds"
-                  />
-                )}
-
-                {/* Bed Selection */}
-                {formData.roomId && (
-                  <Dropdown
-                    label="Select Bed *"
-                    options={allBedOptions}
-                    value={formData.bedId}
-                    onChange={(value) => setFormData(prev => ({ ...prev, bedId: value }))}
-                    placeholder="Choose a bed"
-                    helpText="Select bed to assign to tenant"
-                  />
-                )}
-
-                {/* Selected Bed Details */}
-                {selectedBed && (
-                  <div className="mt-3 p-3 bg-white rounded-lg border border-blue-200">
-                    <h5 className="font-medium text-gray-900 mb-2">Selected Bed Details</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-700">Bed:</span> {selectedBed.bedNumber} ({selectedBed.bedType})
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Room:</span> {selectedBed.room?.roomNumber} ({selectedBed.room?.type})
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Floor:</span> {selectedBed.room?.floor?.name}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Monthly Rent:</span> ₹{selectedBed.rent}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Bed Deposit:</span> ₹{selectedBed.deposit}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Room Amenities:</span> {selectedBed.room?.amenities?.join(', ') || 'None'}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Financial Fields */}
-                {selectedBed && (
-                  <div className="space-y-4">
-                    {/* Payment Mode Selection */}
-                    <div className="grid grid-cols-1 gap-4">
-                      <Dropdown
-                        label="Payment Mode *"
-                        options={paymentModeOptions}
-                        value={formData.paymentMode}
-                        onChange={(value) => setFormData(prev => ({ ...prev, paymentMode: value }))}
-                        helpText="Select how the initial payment will be made"
-                      />
-                    </div>
-                    
-                    {/* Amount Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input
-                        label="Security Deposit (₹) *"
-                        type="number"
-                        min="0"
-                        value={formData.securityDeposit}
-                        onChange={(e) => setFormData(prev => ({ ...prev, securityDeposit: e.target.value }))}
-                        placeholder="Security deposit amount"
-                        helpText={`Suggested: ₹${selectedBed.rent * 2} (2 months rent)`}
-                        required
-                      />
-                      <Input
-                        label="Advance Rent (₹) *"
-                        type="number"
-                        min="0"
-                        value={formData.advanceRent}
-                        onChange={(e) => setFormData(prev => ({ ...prev, advanceRent: e.target.value }))}
-                        placeholder="Advance rent paid"
-                        helpText={`Suggested: ₹${selectedBed.rent} (1 month rent)`}
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Financial Summary */}
-                {selectedBed && formData.securityDeposit && formData.advanceRent && (
-                  <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <h5 className="font-medium text-green-800 mb-2">💰 Financial Summary</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-green-700">
-                      <div>
-                        <span className="font-medium">Monthly Rent:</span> ₹{selectedBed.rent}
-                      </div>
-                      <div>
-                        <span className="font-medium">Security Deposit:</span> ₹{formData.securityDeposit || 0}
-                      </div>
-                      <div>
-                        <span className="font-medium">Advance Rent:</span> ₹{formData.advanceRent || 0}
-                      </div>
-                      <div>
-                        <span className="font-medium">Payment Mode:</span> {paymentModeOptions.find(opt => opt.value === formData.paymentMode)?.label || 'Cash'}
-                      </div>
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-green-300">
-                      <span className="font-semibold text-green-800">
-                        Total Initial Payment: ₹{(parseFloat(formData.securityDeposit) || 0) + (parseFloat(formData.advanceRent) || 0)}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                <Dropdown
+                  premium
+                  label="Room"
+                  options={roomOptions}
+                  value={formData.roomId}
+                  onChange={(value) => updateField('roomId', value)}
+                  placeholder={formData.floorId ? 'Choose a room' : 'Select a floor first'}
+                  disabled={!formData.floorId}
+                  helpText="Rooms unlock after floor selection."
+                  error={errors.roomId}
+                />
+                <Dropdown
+                  premium
+                  label="Bed"
+                  options={allBedOptions}
+                  value={formData.bedId}
+                  onChange={(value) => updateField('bedId', value)}
+                  placeholder={formData.roomId ? 'Choose a bed' : 'Select a room first'}
+                  disabled={!formData.roomId}
+                  helpText="Only available beds are shown."
+                  error={errors.bedId}
+                />
               </div>
-            </div>
 
-            {/* Terms and Conditions Section */}
-            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <FileText className="w-5 h-5 mr-2 text-yellow-600" />
-                Terms and Conditions
-              </h4>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-700">
-                    Please review and accept the terms and conditions before adding the tenant.
-                  </p>
+              {selectedBed ? (
+                <>
+                  <div className="mt-4 rounded-[1.35rem] border border-sky-200/80 bg-white/85 p-4">
+                    <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2 xl:grid-cols-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Bed</p>
+                        <p className="mt-1 font-medium text-slate-900">{selectedBed.bedNumber} • {selectedBed.bedType}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Room</p>
+                        <p className="mt-1 font-medium text-slate-900">{selectedBed.room?.roomNumber} • {selectedBed.room?.type}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Floor</p>
+                        <p className="mt-1 font-medium text-slate-900">{selectedBed.room?.floor?.name || 'Not available'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Monthly rent</p>
+                        <p className="mt-1 font-medium text-slate-900">₹{selectedBed.rent}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Suggested deposit</p>
+                        <p className="mt-1 font-medium text-slate-900">₹{selectedBed.rent * 2}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Room amenities</p>
+                        <p className="mt-1 font-medium text-slate-900">{selectedBed.room?.amenities?.join(', ') || 'None configured'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    <Dropdown
+                      premium
+                      label="Payment mode"
+                      options={paymentModeOptions}
+                      value={formData.paymentMode}
+                      onChange={(value) => updateField('paymentMode', value)}
+                      error={errors.paymentMode}
+                    />
+                    <Input
+                      premium
+                      label="Security deposit"
+                      type="number"
+                      min="0"
+                      value={formData.securityDeposit}
+                      onChange={(e) => updateField('securityDeposit', e.target.value)}
+                      placeholder="0"
+                      required
+                      error={errors.securityDeposit}
+                      hint={`Suggested: ₹${selectedBed.rent * 2}`}
+                    />
+                    <Input
+                      premium
+                      label="Advance rent"
+                      type="number"
+                      min="0"
+                      value={formData.advanceRent}
+                      onChange={(e) => updateField('advanceRent', e.target.value)}
+                      placeholder="0"
+                      required
+                      error={errors.advanceRent}
+                      hint={`Suggested: ₹${selectedBed.rent}`}
+                    />
+                  </div>
+
+                  <div className="mt-4 rounded-[1.35rem] border border-emerald-200/80 bg-emerald-50/80 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Initial payment summary</p>
+                        <p className="mt-1 text-sm text-emerald-800">
+                          Rent ₹{selectedBed.rent} • Deposit ₹{formData.securityDeposit || 0} • Advance ₹{formData.advanceRent || 0}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-200/90 bg-white/80 px-4 py-2 text-right">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">Total due now</p>
+                        <p className="mt-1 text-lg font-semibold text-emerald-900">
+                          ₹{(parseFloat(formData.securityDeposit) || 0) + (parseFloat(formData.advanceRent) || 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 rounded-[1.35rem] border border-dashed border-sky-200/90 bg-white/75 px-4 py-4 text-sm text-slate-500">
+                  Select a floor, room, and bed to lock the tenant into live inventory and see the suggested deposit setup.
+                </div>
+              )}
+            </TenantFormSection>
+
+            <TenantFormSection
+              icon={FileText}
+              title="Admission confirmation"
+              description="Keep this acknowledgement step, but avoid fake rules. If the property has configured house rules, they can be reviewed here."
+              tone="amber"
+            >
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 rounded-[1.25rem] border border-amber-200/80 bg-white/85 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">
+                      {termsAndConditions.length > 0 ? 'Property rules are available for review.' : 'No property rules are configured yet.'}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {termsAndConditions.length > 0
+                        ? 'Review the current house rules before confirming the tenant.'
+                        : 'You can still save the tenant record and configure the rules later in Settings.'}
+                    </p>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     onClick={() => setShowTermsModal(true)}
                   >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View Terms
+                    <Eye className="mr-2 h-4 w-4" />
+                    {termsAndConditions.length > 0 ? 'View rules' : 'Review note'}
                   </Button>
                 </div>
-                
-                <div className="flex items-center space-x-3">
+
+                <label className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200/80 bg-white/85 p-4">
                   <input
                     type="checkbox"
-                    id="termsAccepted"
                     checked={formData.termsAccepted}
-                    onChange={(e) => setFormData(prev => ({ ...prev, termsAccepted: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                    required
+                    onChange={(e) => updateField('termsAccepted', e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                   />
-                  <label htmlFor="termsAccepted" className="text-sm text-gray-700">
-                    I agree to the <button type="button" onClick={() => setShowTermsModal(true)} className="text-blue-600 underline">terms and conditions</button> *
-                  </label>
-                </div>
-              </div>
-            </div>
+                  <span>
+                    <span className="block text-sm font-medium text-slate-900">
+                      I confirm the tenant details, bed assignment, and admission terms are accurate.
+                    </span>
+                    <span className="mt-1 block text-xs text-slate-500">
+                      This keeps the current approval step in place without showing placeholder rules.
+                    </span>
+                    {errors.termsAccepted ? <span className="mt-2 block text-xs text-red-500">{errors.termsAccepted}</span> : null}
+                  </span>
+                </label>
 
-            {/* Form Actions */}
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
-                {loading ? 'Processing...' : (tenant ? 'Update Tenant' : 'Add Tenant')}
-              </Button>
-            </div>
-          </form>
-        </div>
+                {!formData.termsAccepted ? (
+                  <div className="rounded-[1.15rem] border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-xs font-medium text-amber-800">
+                    Accept the admission rules to enable {tenant ? 'tenant updates' : 'tenant creation'}.
+                  </div>
+                ) : null}
+              </div>
+            </TenantFormSection>
+          </div>
+
+          <div className="sticky bottom-0 flex items-center justify-end gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-[0_-12px_28px_rgba(15,23,42,0.04)] backdrop-blur">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading || !formData.termsAccepted}>
+              {loading ? (tenant ? 'Updating tenant...' : 'Adding tenant...') : (tenant ? 'Update tenant' : 'Add tenant')}
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       {/* Terms and Conditions Modal */}
-      <Modal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} title="Terms and Conditions" size="lg">
+      <Modal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} title="House Rules and Confirmation" size="lg">
         <div className="space-y-4">
-          <div className="bg-gray-50 p-6 rounded-lg border max-h-96 overflow-y-auto">
-            <h3 className="text-xl font-bold text-center mb-6 text-gray-900">
-              Terms and Conditions
-            </h3>
-            <div className="space-y-3">
-              <p className="text-gray-700 mb-4">
-                By registering as a tenant, you agree to comply with the following terms and conditions:
+          <div className="grid gap-3 md:grid-cols-3">
+            <TenantMiniStat
+              label="Property"
+              value={selectedProperty?.name || 'Current property'}
+              helper="Rules shown here belong to the active property."
+            />
+            <TenantMiniStat
+              label="Rules"
+              value={termsAndConditions.length > 0 ? termsAndConditions.length : 'Not configured'}
+              helper="These are the terms reviewed during tenant admission."
+            />
+            <TenantMiniStat
+              label="Confirmation"
+              value="Required"
+              helper="The tenant form still asks for explicit admission confirmation."
+            />
+          </div>
+
+          <div className="max-h-96 overflow-y-auto rounded-[1.5rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.98))] p-6">
+            <div className="mb-6 rounded-[1.35rem] border border-slate-200/80 bg-white/90 px-5 py-4">
+              <h3 className="text-lg font-semibold text-slate-950">Admission terms</h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Review the active property rules before confirming the tenant record. This keeps the admission step deliberate and consistent.
               </p>
+            </div>
+            <div className="space-y-3">
               {termsAndConditions.length > 0 ? (
                 termsAndConditions.map((term, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <span className="font-semibold text-blue-600 min-w-[20px]">{index + 1}.</span>
-                    <p className="text-gray-700 leading-relaxed">{term}</p>
+                  <div key={index} className="flex items-start gap-3 rounded-[1.15rem] border border-slate-200/80 bg-white/92 px-4 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-sky-200/80 bg-sky-50 text-xs font-semibold text-sky-700">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm leading-6 text-slate-700">{term}</p>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500 italic text-center">
-                  No terms and conditions configured yet.
-                </p>
+                <div className="rounded-[1.25rem] border border-dashed border-slate-200/90 bg-white/92 px-5 py-5 text-sm text-slate-500">
+                  <p className="font-medium text-slate-900">No property rules are configured yet.</p>
+                  <p className="mt-2">
+                    The tenant acknowledgement step still stays in the form so admissions remain intentional. You can configure the house rules later in Settings.
+                  </p>
+                </div>
               )}
             </div>
           </div>
-          <ModalFooter>
+
+          <div className="flex items-center justify-end rounded-[1.5rem] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-[0_-12px_28px_rgba(15,23,42,0.04)]">
             <Button onClick={() => setShowTermsModal(false)}>
               Close
             </Button>
-          </ModalFooter>
+          </div>
         </div>
       </Modal>
     </>
@@ -787,6 +955,7 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
   const [leavingDate, setLeavingDate] = useState('');
   const [reason, setReason] = useState('Tenant vacated');
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
 
   // Set default leaving date to today
   useEffect(() => {
@@ -794,6 +963,7 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
       const today = new Date().toISOString().split('T')[0];
       setLeavingDate(today);
       setReason('Tenant vacated');
+      setFormError('');
     }
   }, [isOpen]);
 
@@ -801,7 +971,7 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
     e.preventDefault();
     
     if (!leavingDate) {
-      alert('Please select a leaving date');
+      setFormError('Select a leaving date to continue.');
       return;
     }
 
@@ -837,10 +1007,17 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
   const stayDays = Math.ceil((leavingDateObj - joiningDate) / (1000 * 60 * 60 * 24));
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="Mark Tenant as Vacated" size="default">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Mark Tenant as Vacated"
+      size="default"
+      headerClassName="px-6 py-4"
+      contentClassName="px-6 pb-6 pt-0"
+    >
+      <form onSubmit={handleSubmit} className="grid gap-5">
             {/* Tenant Info */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
               <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                 <User className="w-5 h-5 mr-2 text-blue-600" />
                 Tenant Information
@@ -882,7 +1059,7 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
             </div>
 
             {/* Leaving Details */}
-            <div className="space-y-4 mb-6">
+            <div className="grid gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Leaving Date *
@@ -899,6 +1076,9 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
                 <p className="text-xs text-gray-500 mt-1">
                   Select the date when the tenant vacated (between {new Date(tenant.joiningDate).toLocaleDateString()} and today)
                 </p>
+                {formError ? (
+                  <p className="mt-2 text-xs text-red-500">{formError}</p>
+                ) : null}
               </div>
 
               <div>
@@ -951,7 +1131,7 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
             </div>
 
             {/* Warnings */}
-            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-6">
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
               <div className="flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-yellow-800">
@@ -988,12 +1168,12 @@ function VacateTenantDrawer({ isOpen, onClose, tenant, onVacate }) {
 export default function TenantsPage() {
   const dispatch = useDispatch();
   const searchParams = useSearchParams();
-  const { tenants, loading, error } = useSelector((state) => state.tenants);
+  const { tenants, loading } = useSelector((state) => state.tenants);
   const { floors } = useSelector((state) => state.floors);
   const { rooms } = useSelector((state) => state.rooms);
   const { beds } = useSelector((state) => state.beds);
   const { isAuthenticated } = useSelector((state) => state.auth);
-  const { properties, selectedProperty } = useSelector((state) => state.property);
+  const { selectedProperty } = useSelector((state) => state.property);
 
   const [showTenantModal, setShowTenantModal] = useState(false);
   const [editingTenant, setEditingTenant] = useState(null);
@@ -1060,23 +1240,34 @@ export default function TenantsPage() {
   const availableBeds = beds.filter(bed => !bed.tenant);
 
   // Tenant management functions
-  const handleTenantSubmit = (tenantData) => {
-    console.log('🔧 Submitting tenant:', tenantData);
-    
-    if (editingTenant) {
-      dispatch(updateTenant({ id: editingTenant.id, ...tenantData }));
-    } else {
-      // Generate unique tenant ID for new tenant
-      const tenantId = generateTenantId();
-      dispatch(createTenant({ 
-        ...tenantData, 
-        tenantId,
-        propertyId: selectedProperty.id 
-      }));
+  const handleTenantSubmit = async (tenantData) => {
+    try {
+      if (editingTenant) {
+        await dispatch(updateTenant({ id: editingTenant.id, ...tenantData })).unwrap();
+        dispatch(addToast({
+          title: 'Tenant updated',
+          description: `${tenantData.fullName} was updated successfully.`,
+          variant: 'success'
+        }));
+      } else {
+        const tenantId = generateTenantId();
+        await dispatch(createTenant({
+          ...tenantData,
+          tenantId,
+          propertyId: selectedProperty.id
+        })).unwrap();
+        dispatch(addToast({
+          title: 'Tenant added',
+          description: `${tenantData.fullName} is now part of this property.`,
+          variant: 'success'
+        }));
+      }
+
+      setEditingTenant(null);
+      setShowTenantModal(false);
+    } catch (error) {
+      throw error;
     }
-    
-    setEditingTenant(null);
-    setShowTenantModal(false);
   };
 
   const handleEditTenant = (tenant) => {
@@ -1104,11 +1295,6 @@ export default function TenantsPage() {
     }
   };
 
-  const handleAssignTenantToBed = (tenantId, bedId) => {
-    console.log('🔧 Assigning tenant to bed:', { tenantId, bedId });
-    dispatch(assignTenantToBed({ tenantId, bedId }));
-  };
-
   const handleVacateTenant = (tenant) => {
     console.log('🔧 Vacating tenant:', tenant);
     setVacatingTenant(tenant);
@@ -1116,14 +1302,22 @@ export default function TenantsPage() {
   };
 
   const handleVacateSubmit = async (vacateData) => {
-    console.log('🔧 Submitting vacate:', vacateData);
     try {
       await dispatch(vacateTenant(vacateData)).unwrap();
-      // Refresh the tenants list
       dispatch(fetchTenants({ propertyId: selectedProperty.id }));
+      dispatch(addToast({
+        title: 'Tenant marked as vacated',
+        description: 'The resident has been moved out and the bed is available again.',
+        variant: 'success'
+      }));
+      setShowVacateModal(false);
+      setVacatingTenant(null);
     } catch (error) {
-      console.error('Error vacating tenant:', error);
-      alert('Failed to vacate tenant: ' + error);
+      dispatch(addToast({
+        title: 'Unable to vacate tenant',
+        description: error || 'Please try again.',
+        variant: 'error'
+      }));
     }
   };
 
@@ -1135,247 +1329,208 @@ export default function TenantsPage() {
   ];
 
   return (
-    <div className="relative space-y-6 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tenants Management</h1>
-          <p className="text-gray-600 mt-2">
-            View, manage, and track all tenants in your PG
-          </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <Button 
-            onClick={() => setShowTenantModal(true)}
-            className="flex items-center space-x-2"
-            disabled={!selectedProperty || availableBeds.length === 0}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Tenant</span>
-          </Button>
-        </div>
-      </div>
-      <div className="my-6" />
-
-      {/* Stats Cards */}
-      {selectedProperty && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card 
-              className={`cursor-pointer transition-all duration-200 ${
-                statusFilter === 'all' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-lg'
-              }`}
-              onClick={() => setStatusFilter('all')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-50 rounded-lg">
-                    <Users className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Total Tenants</p>
-                    <p className="text-xl font-bold">{tenantStats.total}</p>
-                    {statusFilter === 'all' && (
-                      <span className="text-xs text-blue-600 font-medium">Active Filter</span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card 
-              className={`cursor-pointer transition-all duration-200 ${
-                statusFilter === 'ACTIVE' ? 'ring-2 ring-green-500 bg-green-50' : 'hover:shadow-lg'
-              }`}
-              onClick={() => setStatusFilter('ACTIVE')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-50 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Active Tenants</p>
-                    <p className="text-xl font-bold text-green-600">{tenantStats.active}</p>
-                    {statusFilter === 'ACTIVE' && (
-                      <span className="text-xs text-green-600 font-medium">Active Filter</span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card 
-              className={`cursor-pointer transition-all duration-200 ${
-                statusFilter === 'VACATED' ? 'ring-2 ring-gray-500 bg-gray-50' : 'hover:shadow-lg'
-              }`}
-              onClick={() => setStatusFilter('VACATED')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-gray-50 rounded-lg">
-                    <UserMinus className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Vacated Tenants</p>
-                    <p className="text-xl font-bold text-gray-600">{tenantStats.vacated}</p>
-                    {statusFilter === 'VACATED' && (
-                      <span className="text-xs text-gray-600 font-medium">Active Filter</span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card 
-              className={`cursor-pointer transition-all duration-200 ${
-                statusFilter === 'PENDING' ? 'ring-2 ring-yellow-500 bg-yellow-50' : 'hover:shadow-lg'
-              }`}
-              onClick={() => setStatusFilter('PENDING')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-yellow-50 rounded-lg">
-                    <Clock className="w-5 h-5 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Pending Tenants</p>
-                    <p className="text-xl font-bold text-yellow-600">{tenantStats.pending}</p>
-                    {statusFilter === 'PENDING' && (
-                      <span className="text-xs text-yellow-600 font-medium">Active Filter</span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="my-6" />
-        </div>
-      )}
-
-      {/* Filters and Search */}
-      <div className="flex flex-col gap-4 border border-gray-200 rounded-xl p-1">
-        <div className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search tenants by name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                  name="tenant-list-search"
-                  className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+    <div className="app-shell min-h-screen space-y-6 p-4 sm:p-6">
+      <section className="app-surface rounded-[2rem] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="space-y-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Residents</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Tenants</h1>
+              <p className="mt-2 max-w-2xl text-sm text-slate-500">
+                Keep resident records, active occupancy, and move-out actions aligned with the property selected in the header.
+              </p>
             </div>
-            
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1.5">
+                {selectedProperty ? `${availableBeds.length} beds available for new move-ins` : 'Select a property to start'}
+              </span>
+              <span className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1.5">
+                Search is limited to tenant name for faster lookup
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            <Button
+              onClick={() => setShowTenantModal(true)}
+              disabled={!selectedProperty || availableBeds.length === 0}
+              className="min-w-[10rem]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add tenant
+            </Button>
+          </div>
+        </div>
+
+        {selectedProperty ? (
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <TenantMetricCard
+              icon={Users}
+              label="Total tenants"
+              value={tenantStats.total}
+              helper="All tenant records in this property"
+              tone="blue"
+              active={statusFilter === 'all'}
+              onClick={() => setStatusFilter('all')}
+            />
+            <TenantMetricCard
+              icon={CheckCircle}
+              label="Active tenants"
+              value={tenantStats.active}
+              helper="Currently occupying a bed"
+              tone="emerald"
+              active={statusFilter === 'ACTIVE'}
+              onClick={() => setStatusFilter('ACTIVE')}
+            />
+            <TenantMetricCard
+              icon={UserMinus}
+              label="Vacated"
+              value={tenantStats.vacated}
+              helper="Residents who already moved out"
+              tone="slate"
+              active={statusFilter === 'VACATED'}
+              onClick={() => setStatusFilter('VACATED')}
+            />
+            <TenantMetricCard
+              icon={Clock}
+              label="Pending"
+              value={tenantStats.pending}
+              helper="Profiles that still need follow-up"
+              tone="amber"
+              active={statusFilter === 'PENDING'}
+              onClick={() => setStatusFilter('PENDING')}
+            />
+          </div>
+        ) : null}
+      </section>
+
+      <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] backdrop-blur sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex-1">
+            <Input
+              premium
+              icon={Search}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search tenants by name"
+              autoComplete="off"
+              spellCheck={false}
+              name="tenant-list-search"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="min-w-[12rem]">
               <Dropdown
+                premium
                 options={statusOptions}
                 value={statusFilter}
                 onChange={setStatusFilter}
                 placeholder="Filter by status"
               />
-              
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'table'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                  <span>Table</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('cards')}
-                  className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'cards'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                  <span>Cards</span>
-                </button>
-              </div>
+            </div>
+
+            <div className="inline-flex rounded-2xl border border-slate-200/80 bg-slate-50 p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <List className="h-4 w-4" />
+                Table
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'cards' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Grid3X3 className="h-4 w-4" />
+                Cards
+              </button>
             </div>
           </div>
         </div>
-      </div>
-      <div className="my-6" />
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5">
+            Showing {filteredTenants.length} {filteredTenants.length === 1 ? 'tenant' : 'tenants'}
+          </span>
+          <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5">
+            Status: {statusOptions.find((option) => option.value === statusFilter)?.label || 'All Status'}
+          </span>
+          {selectedProperty ? (
+            <span className="rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5">
+              Property: {selectedProperty.name}
+            </span>
+          ) : null}
+        </div>
+      </section>
 
       {/* Content */}
       {!selectedProperty ? (
-        <div className="border border-gray-200 rounded-xl p-1">
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Property Selected</h3>
-            <p className="text-gray-500">
-              Please select a property to view and manage tenants.
-            </p>
+        <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 px-6 py-14 text-center shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-slate-200/80 bg-slate-50 text-slate-500">
+            <Users className="h-6 w-6" />
           </div>
-        </div>
+          <h3 className="mt-5 text-lg font-semibold text-slate-900">No property selected</h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Choose a property from the header first, then the tenant list and move-in actions will load here.
+          </p>
+        </section>
       ) : loading ? (
-        <div>
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">Loading tenants...</p>
-          </div>
-        </div>
+        <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 px-6 py-14 text-center shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
+          <p className="mt-4 text-sm text-slate-500">Loading tenants for the selected property...</p>
+        </section>
       ) : filteredTenants.length > 0 ? (
         viewMode === 'table' ? (
-          <div>
-            <div className="p-0">
+          <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-3 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+            <div className="overflow-hidden rounded-[1.35rem]">
               <TenantTable
                 tenants={filteredTenants}
                 onEdit={handleEditTenant}
                 onDelete={handleDeleteTenant}
                 onVacate={handleVacateTenant}
-                onAssignBed={(tenant) => {
-                  // Handle bed assignment - could open a modal or redirect
-                  console.log('Assign bed to tenant:', tenant);
-                  // For now, just log - you can implement bed assignment modal here
-                }}
+                onAssignBed={handleEditTenant}
                 viewMode={viewMode}
                 loading={loading}
               />
-                </div>
-          </div>
+            </div>
+          </section>
         ) : (
-          <TenantTable
-            tenants={filteredTenants}
-            onEdit={handleEditTenant}
-            onDelete={handleDeleteTenant}
-            onVacate={handleVacateTenant}
-            onAssignBed={(tenant) => {
-              // Handle bed assignment - could open a modal or redirect
-              console.log('Assign bed to tenant:', tenant);
-              // For now, just log - you can implement bed assignment modal here
-            }}
-            viewMode={viewMode}
-            loading={loading}
-          />
+          <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+            <TenantTable
+              tenants={filteredTenants}
+              onEdit={handleEditTenant}
+              onDelete={handleDeleteTenant}
+              onVacate={handleVacateTenant}
+              onAssignBed={handleEditTenant}
+              viewMode={viewMode}
+              loading={loading}
+            />
+          </section>
         )
       ) : (
-        <div>
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 px-6 py-14 text-center shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-slate-200/80 bg-slate-50 text-slate-500">
+            <Users className="h-6 w-6" />
+          </div>
+          <h3 className="mt-5 text-lg font-semibold text-slate-900">
               {searchTerm || statusFilter !== 'all' ? 'No Tenants Match Your Filters' : 'No Tenants Found'}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {searchTerm || statusFilter !== 'all' 
+          </h3>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
+              {searchTerm || statusFilter !== 'all'
                 ? 'Try adjusting your search terms or filters.'
                 : 'Start by adding your first tenant to manage occupancy and payments.'
               }
-            </p>
+          </p>
             {(!searchTerm && statusFilter === 'all') && (
-              <Button 
+              <Button
+                className="mt-5"
                 onClick={() => setShowTenantModal(true)}
                 disabled={!selectedProperty || availableBeds.length === 0}
               >
@@ -1383,8 +1538,7 @@ export default function TenantsPage() {
                 Add First Tenant
               </Button>
             )}
-          </div>
-        </div>
+        </section>
       )}
 
       {/* Tenant Form Modal */}

@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export function Drawer({ 
   isOpen, 
@@ -10,6 +11,8 @@ export function Drawer({
   title, 
   children, 
   className,
+  headerClassName,
+  contentClassName,
   size = "default",
   showCloseButton = true 
 }) {
@@ -49,12 +52,12 @@ export function Drawer({
     };
   }, [isOpen, onClose]);
 
-  return (
+  const drawerContent = (
     <>
       {/* Backdrop */}
       <div 
         className={cn(
-          "fixed inset-0 bg-black bg-opacity-50 transition-opacity z-40",
+          "fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[1px] transition-opacity",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -63,7 +66,7 @@ export function Drawer({
       {/* Drawer */}
       <div 
         className={cn(
-          "fixed top-0 right-0 h-full bg-white shadow-xl transition-transform duration-300 ease-in-out z-50 flex flex-col",
+          "fixed inset-y-0 right-0 max-h-screen overflow-hidden bg-white shadow-xl transition-transform duration-300 ease-in-out z-50 flex flex-col",
           sizeClasses[size],
           className,
           isOpen ? "translate-x-0" : "translate-x-full"
@@ -71,7 +74,7 @@ export function Drawer({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0 bg-white">
+          <div className={cn("flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0 bg-white", headerClassName)}>
             {title && (
               <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
             )}
@@ -87,14 +90,20 @@ export function Drawer({
         )}
         
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className={cn("p-6", contentClassName)}>
             {children}
           </div>
         </div>
       </div>
     </>
   );
+
+  if (typeof document === "undefined") {
+    return drawerContent;
+  }
+
+  return createPortal(drawerContent, document.body);
 }
 
 export function DrawerHeader({ children, className }) {
