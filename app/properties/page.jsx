@@ -137,6 +137,26 @@ function SummaryCard({ icon: Icon, label, value, helper, tone = "blue" }) {
   );
 }
 
+function TooltipChip({ label, tooltip, muted = false }) {
+  const baseClasses = muted ? "text-slate-500" : "text-slate-600";
+
+  return (
+    <div className="group relative">
+      <button
+        type="button"
+        className={`rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300 ${baseClasses}`}
+        aria-label={tooltip}
+      >
+        {label}
+      </button>
+      <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[14rem] -translate-x-1/2 rounded-xl bg-slate-950 px-3 py-2 text-center text-[11px] font-medium leading-5 text-white opacity-0 shadow-[0_18px_40px_rgba(15,23,42,0.28)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="whitespace-normal">{tooltip}</div>
+        <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-slate-950" />
+      </div>
+    </div>
+  );
+}
+
 function PropertiesLoadingState() {
   return (
     <div className="app-shell min-h-screen space-y-6 p-4 sm:p-6">
@@ -313,17 +333,18 @@ function PropertyCard({
         {Array.isArray(property.amenities) && property.amenities.length > 0 ? (
           <div className="mt-5 flex flex-wrap gap-2">
             {property.amenities.slice(0, 4).map((amenity) => (
-              <span
+              <TooltipChip
                 key={amenity}
-                className="rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600"
-              >
-                {amenity}
-              </span>
+                label={amenity}
+                tooltip={amenity}
+              />
             ))}
             {property.amenities.length > 4 ? (
-              <span className="rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500">
-                +{property.amenities.length - 4} more
-              </span>
+              <TooltipChip
+                label={`+${property.amenities.length - 4} more`}
+                tooltip={property.amenities.slice(4).join(", ")}
+                muted
+              />
             ) : null}
           </div>
         ) : null}
