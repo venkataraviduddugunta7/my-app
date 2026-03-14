@@ -5,19 +5,36 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import {
   AlertCircle,
+  ArrowUpDown,
+  BatteryCharging,
   Bed,
+  BookOpen,
   Building2,
+  BrushCleaning,
+  Camera,
+  Car,
+  ChefHat,
   Check,
   DollarSign,
+  Droplets,
+  Dumbbell,
   Edit2,
+  GlassWater,
   Home,
   Mail,
   Phone,
   Plus,
+  Refrigerator,
   RefreshCw,
   Search,
+  Shield,
+  Shirt,
+  Snowflake,
+  Tv,
   Trash2,
+  UtensilsCrossed,
   Users,
+  Wifi,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -51,6 +68,26 @@ const SUMMARY_STYLES = {
     "border-violet-200/80 bg-[linear-gradient(180deg,rgba(245,243,255,0.96),rgba(255,255,255,0.92))] text-violet-700",
   amber:
     "border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(255,255,255,0.92))] text-amber-700",
+};
+
+const AMENITY_META = {
+  WiFi: { icon: Wifi, chip: "text-sky-700" },
+  AC: { icon: Snowflake, chip: "text-cyan-700" },
+  Parking: { icon: Car, chip: "text-slate-700" },
+  "Power Backup": { icon: BatteryCharging, chip: "text-amber-700" },
+  "Food / Mess": { icon: ChefHat, chip: "text-orange-700" },
+  Gym: { icon: Dumbbell, chip: "text-rose-700" },
+  "Hot Water": { icon: Droplets, chip: "text-amber-700" },
+  "RO Drinking Water": { icon: GlassWater, chip: "text-sky-700" },
+  TV: { icon: Tv, chip: "text-violet-700" },
+  Kitchen: { icon: UtensilsCrossed, chip: "text-emerald-700" },
+  Refrigerator: { icon: Refrigerator, chip: "text-cyan-700" },
+  Lift: { icon: ArrowUpDown, chip: "text-slate-700" },
+  Security: { icon: Shield, chip: "text-indigo-700" },
+  Laundry: { icon: Shirt, chip: "text-fuchsia-700" },
+  Housekeeping: { icon: BrushCleaning, chip: "text-teal-700" },
+  CCTV: { icon: Camera, chip: "text-slate-700" },
+  "Study Area": { icon: BookOpen, chip: "text-blue-700" },
 };
 
 const derivePropertyMetrics = (property) => {
@@ -137,8 +174,9 @@ function SummaryCard({ icon: Icon, label, value, helper, tone = "blue" }) {
   );
 }
 
-function TooltipChip({ label, tooltip, muted = false }) {
+function TooltipChip({ label, tooltip, icon: Icon, muted = false }) {
   const baseClasses = muted ? "text-slate-500" : "text-slate-600";
+  const iconTone = muted ? "text-slate-400" : "text-slate-500";
 
   return (
     <div className="group relative">
@@ -147,7 +185,10 @@ function TooltipChip({ label, tooltip, muted = false }) {
         className={`rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300 ${baseClasses}`}
         aria-label={tooltip}
       >
-        {label}
+        <span className="flex items-center gap-1.5">
+          {Icon ? <Icon className={`h-3.5 w-3.5 ${iconTone}`} /> : null}
+          <span>{label}</span>
+        </span>
       </button>
       <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[14rem] -translate-x-1/2 rounded-xl bg-slate-950 px-3 py-2 text-center text-[11px] font-medium leading-5 text-white opacity-0 shadow-[0_18px_40px_rgba(15,23,42,0.28)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
         <div className="whitespace-normal">{tooltip}</div>
@@ -332,13 +373,18 @@ function PropertyCard({
 
         {Array.isArray(property.amenities) && property.amenities.length > 0 ? (
           <div className="mt-5 flex flex-wrap gap-2">
-            {property.amenities.slice(0, 4).map((amenity) => (
-              <TooltipChip
-                key={amenity}
-                label={amenity}
-                tooltip={amenity}
-              />
-            ))}
+            {property.amenities.slice(0, 4).map((amenity) => {
+              const amenityMeta = AMENITY_META[amenity] || {};
+
+              return (
+                <TooltipChip
+                  key={amenity}
+                  label={amenity}
+                  tooltip={amenity}
+                  icon={amenityMeta.icon}
+                />
+              );
+            })}
             {property.amenities.length > 4 ? (
               <TooltipChip
                 label={`+${property.amenities.length - 4} more`}

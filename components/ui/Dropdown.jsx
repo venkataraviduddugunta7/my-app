@@ -74,13 +74,25 @@ export function Dropdown({
     }
   };
 
+  const triggerClasses = cn(
+    'relative w-full cursor-pointer text-left transition-all duration-200 focus:outline-none',
+    {
+      'rounded-xl border bg-white px-4 py-3 text-sm shadow-elegant hover:border-gray-300': premium,
+      'rounded-lg border bg-white px-3 py-2 text-sm': !premium,
+      'border-gray-200': !error && !isOpen,
+      'border-primary-500 ring-2 ring-primary-500/15 shadow-[0_12px_24px_rgba(59,130,246,0.08)]': !error && isOpen,
+      'border-error-500 ring-2 ring-error-500/10': error,
+      'opacity-50 cursor-not-allowed': disabled,
+    }
+  );
+
   return (
-    <div className={cn('relative w-full', className)}>
+    <div className={cn('relative w-full', isOpen && 'z-[70]', className)}>
       {label && (
         <motion.label
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="mb-1 block text-sm font-medium text-gray-700"
         >
           {label}
         </motion.label>
@@ -88,25 +100,14 @@ export function Dropdown({
 
       <div ref={dropdownRef} className="relative">
         <motion.button
-          // whileHover={{ scale: 1.01 }}
-          // whileTap={{ scale: 0.99 }}
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className={cn(
-            'relative w-full cursor-pointer rounded-lg border bg-white px-3 py-2 text-left  transition-all duration-200',
-            {
-              'border-gray-200 focus:border-primary-500 focus:ring-primary-500': !error,
-              'border-error-500 focus:border-error-500 focus:ring-error-500': error,
-              'opacity-50 cursor-not-allowed': disabled,
-              'border-primary-500 ring-1 ring-primary-500/20': isOpen,
-              'shadow-float': premium && isOpen,
-            }
-          )}
+          className={triggerClasses}
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
-              {Icon && <Icon className="h-4 w-4 text-gray-400 flex-shrink-0" />}
+            <div className="flex min-w-0 flex-1 items-center space-x-2.5">
+              {Icon && <Icon className="h-4 w-4 shrink-0 text-gray-400" />}
               
               <div className="flex-1 min-w-0">
                 {multiple && selectedOptions.length > 0 ? (
@@ -166,19 +167,19 @@ export function Dropdown({
               initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              className="absolute z-50 mt-2 w-full rounded-xl bg-white border border-gray-200 shadow-float-lg overflow-hidden"
+              className="absolute z-[80] mt-2 w-full overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_20px_40px_rgba(15,23,42,0.12)]"
             >
               {/* Search Input */}
               {searchable && (
-                <div className="p-3 border-b border-gray-100">
+                <div className="border-b border-slate-100 p-3">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Search options..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/15"
                       autoFocus
                     />
                   </div>
@@ -188,7 +189,7 @@ export function Dropdown({
               {/* Options List */}
               <div className="max-h-60 overflow-auto py-1">
                 {filteredOptions.length === 0 ? (
-                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                  <div className="px-4 py-3 text-center text-sm text-slate-500">
                     {searchTerm ? 'No options found' : 'No options available'}
                   </div>
                 ) : (
@@ -207,10 +208,10 @@ export function Dropdown({
                         type="button"
                         onClick={() => handleSelect(option.value)}
                         className={cn(
-                          'relative w-full cursor-pointer select-none py-3 px-4 text-left transition-all duration-150',
+                          'relative w-full cursor-pointer select-none px-4 py-3 text-left transition-all duration-150',
                           {
                             'bg-primary-50 text-primary-700': isSelected,
-                            'text-gray-900 hover:bg-gray-50': !isSelected,
+                            'text-slate-900 hover:bg-slate-50': !isSelected,
                           }
                         )}
                       >
@@ -219,18 +220,18 @@ export function Dropdown({
                             {option.icon && (
                               <option.icon className={cn(
                                 'h-4 w-4',
-                                isSelected ? 'text-primary-600' : 'text-gray-400'
+                                isSelected ? 'text-primary-600' : 'text-slate-400'
                               )} />
                             )}
                             <div>
                               <span className={cn(
                                 'block text-sm font-medium',
-                                isSelected ? 'text-primary-900' : 'text-gray-900'
+                                isSelected ? 'text-primary-900' : 'text-slate-900'
                               )}>
                                 {option.label}
                               </span>
                               {option.description && (
-                                <span className="block text-xs text-gray-500 mt-0.5">
+                                <span className="mt-0.5 block text-xs text-slate-500">
                                   {option.description}
                                 </span>
                               )}

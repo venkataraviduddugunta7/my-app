@@ -3,17 +3,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Input, Modal, Dropdown } from '@/components/ui';
 import {
+  ArrowUpDown,
+  BatteryCharging,
+  BookOpen,
   Building2,
+  BrushCleaning,
+  Camera,
+  Car,
+  ChefHat,
+  ChevronDown,
   Compass,
   DollarSign,
+  Droplets,
+  Dumbbell,
+  GlassWater,
   Home,
   Link2,
   Mail,
   MapPin,
   Phone,
+  Refrigerator,
   Search,
+  Shield,
+  Shirt,
+  Snowflake,
   Sparkles,
+  Tv,
+  UtensilsCrossed,
   Users,
+  Wifi,
 } from 'lucide-react';
 
 const PROPERTY_TYPE_OPTIONS = [
@@ -23,16 +41,23 @@ const PROPERTY_TYPE_OPTIONS = [
 ];
 
 const AMENITY_OPTIONS = [
-  { value: 'WiFi', label: 'WiFi', icon: Sparkles },
-  { value: 'AC', label: 'Air Conditioning', icon: Sparkles },
-  { value: 'Parking', label: 'Parking', icon: Sparkles },
-  { value: 'Gym', label: 'Gym', icon: Sparkles },
-  { value: 'Hot Water', label: 'Hot Water', icon: Sparkles },
-  { value: 'TV', label: 'Television', icon: Sparkles },
-  { value: 'Kitchen', label: 'Kitchen', icon: Sparkles },
-  { value: 'Security', label: '24/7 Security', icon: Sparkles },
-  { value: 'Laundry', label: 'Laundry', icon: Sparkles },
-  { value: 'CCTV', label: 'CCTV Surveillance', icon: Sparkles },
+  { value: 'WiFi', label: 'WiFi', icon: Wifi },
+  { value: 'AC', label: 'Air Conditioning', icon: Snowflake },
+  { value: 'Parking', label: 'Parking', icon: Car },
+  { value: 'Power Backup', label: 'Power Backup', icon: BatteryCharging },
+  { value: 'Food / Mess', label: 'Food / Mess', icon: ChefHat },
+  { value: 'Gym', label: 'Gym', icon: Dumbbell },
+  { value: 'Hot Water', label: 'Hot Water', icon: Droplets },
+  { value: 'RO Drinking Water', label: 'RO Drinking Water', icon: GlassWater },
+  { value: 'TV', label: 'Television', icon: Tv },
+  { value: 'Kitchen', label: 'Kitchen', icon: UtensilsCrossed },
+  { value: 'Refrigerator', label: 'Refrigerator', icon: Refrigerator },
+  { value: 'Lift', label: 'Lift', icon: ArrowUpDown },
+  { value: 'Security', label: '24/7 Security', icon: Shield },
+  { value: 'Laundry', label: 'Laundry', icon: Shirt },
+  { value: 'Housekeeping', label: 'Housekeeping', icon: BrushCleaning },
+  { value: 'CCTV', label: 'CCTV Surveillance', icon: Camera },
+  { value: 'Study Area', label: 'Study Area', icon: BookOpen },
 ];
 
 const INDIA_STATE_OPTIONS = [
@@ -476,6 +501,76 @@ const hasGooglePlaces = () =>
 const createGooglePlacesService = () => new window.google.maps.places.AutocompleteService();
 const createGoogleGeocoder = () => new window.google.maps.Geocoder();
 
+const SECTION_TONES = {
+  slate: 'from-slate-700 to-slate-900',
+  blue: 'from-sky-500 to-blue-600',
+  emerald: 'from-emerald-500 to-teal-600',
+  amber: 'from-amber-500 to-orange-500',
+  violet: 'from-violet-500 to-fuchsia-600',
+  rose: 'from-rose-500 to-pink-600',
+};
+
+function FormSection({ icon: Icon, title, description, tone = 'slate', children }) {
+  return (
+    <section className="overflow-visible rounded-[1.35rem] border border-slate-200/80 bg-white/95 shadow-[0_12px_30px_rgba(15,23,42,0.045)]">
+      <div className="border-b border-slate-100 bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.85))] px-4 py-3.5 sm:px-5">
+        <div className="flex items-start gap-3">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm ${SECTION_TONES[tone]}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="text-[15px] font-semibold text-slate-950">{title}</h3>
+            {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+          </div>
+        </div>
+      </div>
+      <div className="px-4 py-4 sm:px-5">{children}</div>
+    </section>
+  );
+}
+
+function CollapsibleFormSection({
+  icon: Icon,
+  title,
+  description,
+  tone = 'slate',
+  summary = 'Optional',
+  isOpen,
+  onToggle,
+  children,
+}) {
+  return (
+    <section className="overflow-visible rounded-[1.35rem] border border-slate-200/80 bg-white/95 shadow-[0_12px_30px_rgba(15,23,42,0.045)]">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full border-b border-slate-100 bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.85))] px-4 py-3.5 text-left sm:px-5"
+      >
+        <div className="flex items-start gap-3">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm ${SECTION_TONES[tone]}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-[15px] font-semibold text-slate-950">{title}</h3>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                  {summary}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                />
+              </div>
+            </div>
+            {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+          </div>
+        </div>
+      </button>
+      {isOpen ? <div className="px-4 py-4 sm:px-5">{children}</div> : null}
+    </section>
+  );
+}
+
 export default function PropertyFormModal({
   isOpen,
   onClose,
@@ -495,6 +590,11 @@ export default function PropertyFormModal({
   const [addressError, setAddressError] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
   const [googleReady, setGoogleReady] = useState(hasGooglePlaces());
+  const [optionalSections, setOptionalSections] = useState({
+    contact: false,
+    amenities: false,
+    notes: false,
+  });
 
   const normalizedInitialValues = useMemo(
     () => normalizeInitialValues(initialValues),
@@ -509,6 +609,11 @@ export default function PropertyFormModal({
     setDidSubmit(false);
     setAddressError('');
     setAddressSuggestions([]);
+    setOptionalSections({
+      contact: false,
+      amenities: false,
+      notes: false,
+    });
 
     const initialSearch = [
       cleanString(normalizedInitialValues.addressLine1),
@@ -779,23 +884,42 @@ export default function PropertyFormModal({
     const validation = validatePropertyForm(formData);
     setFormErrors(validation.errors);
 
-    if (!validation.isValid) return;
+    if (!validation.isValid) {
+      setOptionalSections((current) => ({
+        contact:
+          current.contact ||
+          Boolean(validation.errors.phone || validation.errors.email || validation.errors.website),
+        amenities: current.amenities,
+        notes: current.notes || Boolean(validation.errors.description),
+      }));
+      return;
+    }
 
     await onSubmit(validation.payload);
   };
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="xl">
-      <div className="max-h-[80vh] overflow-y-auto p-1">
-        <form onSubmit={submitForm} className="space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-600">
-                <Building2 className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
-            </div>
+  const contactSummary =
+    formData.phone || formData.email || formData.website ? 'Added' : 'Optional';
+  const amenitiesSummary =
+    formData.amenities.length > 0 ? `${formData.amenities.length} selected` : 'Optional';
+  const notesSummary = cleanString(formData.description) ? 'Added' : 'Optional';
 
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      size="lg"
+      className="border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))]"
+    >
+      <div className="max-h-[82vh] overflow-y-auto">
+        <form onSubmit={submitForm} className="space-y-3">
+          <FormSection
+            icon={Building2}
+            title="Basic information"
+            description="Start with the property identity and who the PG is intended for."
+            tone="slate"
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Property Name"
@@ -804,6 +928,7 @@ export default function PropertyFormModal({
                 onChange={(event) => updateField('name', event.target.value)}
                 placeholder="e.g., Sunrise PG"
                 error={formErrors.name}
+                premium
               />
               <Dropdown
                 label="Property Type"
@@ -815,16 +940,14 @@ export default function PropertyFormModal({
                 error={formErrors.type}
               />
             </div>
-          </div>
+          </FormSection>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
-                <MapPin className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Address (India)</h3>
-            </div>
-
+          <FormSection
+            icon={MapPin}
+            title="Address"
+            description="Use address search or GPS, then review each field before saving."
+            tone="blue"
+          >
             <div className="space-y-4">
               <div className="space-y-2">
                 <Input
@@ -838,6 +961,7 @@ export default function PropertyFormModal({
                       ? 'Google Places suggestions enabled (India only).'
                       : 'Using open address suggestions (India only). Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY for Google Places.'
                   }
+                  premium
                 />
 
                 <div className="flex flex-wrap gap-2">
@@ -860,13 +984,13 @@ export default function PropertyFormModal({
                 {addressError && <p className="text-xs text-red-600">{addressError}</p>}
 
                 {addressSuggestions.length > 0 && (
-                  <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-white">
+                  <div className="max-h-48 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white shadow-[0_14px_28px_rgba(15,23,42,0.08)]">
                     {addressSuggestions.map((suggestion) => (
                       <button
                         key={suggestion.id}
                         type="button"
                         onClick={() => selectAddressSuggestion(suggestion)}
-                        className="w-full border-b border-gray-100 px-3 py-2 text-left text-sm text-gray-700 last:border-b-0 hover:bg-gray-50"
+                        className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 last:border-b-0 hover:bg-slate-50"
                       >
                         {suggestion.label}
                       </button>
@@ -883,12 +1007,14 @@ export default function PropertyFormModal({
                   onChange={(event) => updateField('addressLine1', event.target.value)}
                   placeholder="House/Flat No, Building, Street"
                   error={formErrors.addressLine1}
+                  premium
                 />
                 <Input
                   label="Address Line 2"
                   value={formData.addressLine2}
                   onChange={(event) => updateField('addressLine2', event.target.value)}
                   placeholder="Apartment, block, sector (optional)"
+                  premium
                 />
               </div>
 
@@ -900,12 +1026,14 @@ export default function PropertyFormModal({
                   onChange={(event) => updateField('locality', event.target.value)}
                   placeholder="e.g., Koramangala"
                   error={formErrors.locality}
+                  premium
                 />
                 <Input
                   label="Landmark"
                   value={formData.landmark}
                   onChange={(event) => updateField('landmark', event.target.value)}
                   placeholder="e.g., Near Metro Station"
+                  premium
                 />
               </div>
 
@@ -917,6 +1045,7 @@ export default function PropertyFormModal({
                   onChange={(event) => updateField('city', event.target.value)}
                   placeholder="e.g., Bangalore"
                   error={formErrors.city}
+                  premium
                 />
 
                 <Dropdown
@@ -938,21 +1067,20 @@ export default function PropertyFormModal({
                   }
                   placeholder="e.g., 560001"
                   error={formErrors.pincode}
+                  premium
                 />
 
-                <Input label="Country" value={COUNTRY_FIXED} disabled />
+                <Input label="Country" value={COUNTRY_FIXED} disabled premium />
               </div>
             </div>
-          </div>
+          </FormSection>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600">
-                <Home className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Property Details</h3>
-            </div>
-
+          <FormSection
+            icon={Home}
+            title="Capacity planning"
+            description="These are planned values for the property profile. Live inventory starts after floor, room, and bed setup."
+            tone="emerald"
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <Input
                 label="Total Floors"
@@ -961,6 +1089,7 @@ export default function PropertyFormModal({
                 onChange={(event) => updateField('totalFloors', event.target.value)}
                 placeholder="e.g., 4"
                 error={formErrors.totalFloors}
+                premium
               />
               <Input
                 label="Total Rooms"
@@ -969,6 +1098,7 @@ export default function PropertyFormModal({
                 onChange={(event) => updateField('totalRooms', event.target.value)}
                 placeholder="e.g., 16"
                 error={formErrors.totalRooms}
+                premium
               />
               <Input
                 label="Total Beds"
@@ -978,18 +1108,17 @@ export default function PropertyFormModal({
                 onChange={(event) => updateField('totalBeds', event.target.value)}
                 placeholder="e.g., 48"
                 error={formErrors.totalBeds}
+                premium
               />
             </div>
-          </div>
+          </FormSection>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-yellow-500 to-yellow-600">
-                <DollarSign className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Pricing</h3>
-            </div>
-
+          <FormSection
+            icon={DollarSign}
+            title="Pricing"
+            description="Set the base monthly rent and deposit for this property profile."
+            tone="amber"
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Monthly Rent (₹)"
@@ -999,6 +1128,7 @@ export default function PropertyFormModal({
                 onChange={(event) => updateField('monthlyRent', event.target.value)}
                 placeholder="e.g., 8000"
                 error={formErrors.monthlyRent}
+                premium
               />
               <Input
                 label="Security Deposit (₹)"
@@ -1007,18 +1137,22 @@ export default function PropertyFormModal({
                 onChange={(event) => updateField('securityDeposit', event.target.value)}
                 placeholder="e.g., 16000"
                 error={formErrors.securityDeposit}
+                premium
               />
             </div>
-          </div>
+          </FormSection>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
-                <Phone className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
-            </div>
-
+          <CollapsibleFormSection
+            icon={Phone}
+            title="Contact information"
+            description="Optional, but useful for residents and future operational workflows."
+            tone="violet"
+            summary={contactSummary}
+            isOpen={optionalSections.contact}
+            onToggle={() =>
+              setOptionalSections((current) => ({ ...current, contact: !current.contact }))
+            }
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <Input
                 label="Phone"
@@ -1028,6 +1162,7 @@ export default function PropertyFormModal({
                 placeholder="+91 9876543210"
                 icon={Phone}
                 error={formErrors.phone}
+                premium
               />
               <Input
                 label="Email"
@@ -1037,6 +1172,7 @@ export default function PropertyFormModal({
                 placeholder="property@example.com"
                 icon={Mail}
                 error={formErrors.email}
+                premium
               />
               <Input
                 label="Website"
@@ -1046,18 +1182,22 @@ export default function PropertyFormModal({
                 placeholder="example.com"
                 icon={Link2}
                 error={formErrors.website}
+                premium
               />
             </div>
-          </div>
+          </CollapsibleFormSection>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Amenities</h3>
-            </div>
-
+          <CollapsibleFormSection
+            icon={Sparkles}
+            title="Amenities"
+            description="Pick the facilities residents can expect at this property."
+            tone="rose"
+            summary={amenitiesSummary}
+            isOpen={optionalSections.amenities}
+            onToggle={() =>
+              setOptionalSections((current) => ({ ...current, amenities: !current.amenities }))
+            }
+          >
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {AMENITY_OPTIONS.map((amenity) => {
                 const Icon = amenity.icon;
@@ -1067,43 +1207,64 @@ export default function PropertyFormModal({
                     key={amenity.value}
                     type="button"
                     onClick={() => toggleAmenity(amenity.value)}
-                    className={`rounded-xl border-2 p-4 text-left transition-all duration-200 ${
+                    className={`rounded-2xl border p-3.5 text-left transition-all duration-200 ${
                       isSelected
-                        ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
-                        : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                        ? 'border-primary-500 bg-primary-50/80 text-primary-700 shadow-[0_10px_24px_rgba(59,130,246,0.10)]'
+                        : 'border-slate-200 bg-white hover:border-primary-300 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
+                    <div className="flex items-center gap-2.5">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${
+                        isSelected ? 'bg-primary-100 text-primary-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
                       <span className="text-sm font-medium">{amenity.label}</span>
                     </div>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </CollapsibleFormSection>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <label className="mb-2 block text-sm font-medium text-gray-700">
+          <CollapsibleFormSection
+            icon={Users}
+            title="Additional notes"
+            description="Add a short internal description for this property profile."
+            tone="slate"
+            summary={notesSummary}
+            isOpen={optionalSections.notes}
+            onToggle={() =>
+              setOptionalSections((current) => ({ ...current, notes: !current.notes }))
+            }
+          >
+            <label className="mb-2 block text-sm font-medium text-slate-700">
               Description (Optional)
             </label>
             <textarea
               value={formData.description}
               onChange={(event) => updateField('description', event.target.value)}
               rows={4}
-              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+              className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm text-slate-900 transition-all focus:outline-none focus:ring-2 ${
                 formErrors.description
                   ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-100'
+                  : 'border-slate-200 focus:border-primary-500 focus:ring-primary-500/15'
               }`}
-              placeholder="Brief description about your property"
+              placeholder="Brief description about the property, resident profile, or setup notes"
             />
-            {formErrors.description && (
-              <p className="mt-1 text-xs text-red-600">{formErrors.description}</p>
-            )}
-          </div>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              {formErrors.description ? (
+                <p className="text-xs text-red-600">{formErrors.description}</p>
+              ) : (
+                <p className="text-xs text-slate-500">Keep it concise. This description is limited to 500 characters.</p>
+              )}
+              <p className="text-xs font-medium text-slate-400">
+                {formData.description.length}/500
+              </p>
+            </div>
+          </CollapsibleFormSection>
 
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
+          <div className="sticky bottom-0 rounded-[1.35rem] border border-slate-200/80 bg-white/95 p-3.5 shadow-[0_-10px_24px_rgba(15,23,42,0.06)] backdrop-blur">
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
                 Cancel
@@ -1118,7 +1279,7 @@ export default function PropertyFormModal({
                   submitLabel
                 )}
               </Button>
-            </div>
+              </div>
           </div>
         </form>
       </div>
