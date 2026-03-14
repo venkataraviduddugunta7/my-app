@@ -99,27 +99,27 @@ const defaultSecurityData = {
 };
 
 const inputClasses =
-  'border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 focus:border-sky-500 focus:ring-sky-500/20';
+  'rounded-xl border-slate-200/80 bg-white text-slate-900 placeholder:text-slate-400 shadow-[0_10px_24px_rgba(15,23,42,0.04)] focus:border-sky-500 focus:ring-sky-500/20';
 const labelClasses = 'text-slate-700';
 
 function SettingsCard({ icon: Icon, title, description, children, actions }) {
   return (
     <Card
       hover={false}
-      className="overflow-hidden border-slate-200 bg-white text-slate-900 shadow-sm"
+      className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white/92 text-slate-900 shadow-[0_16px_40px_rgba(15,23,42,0.05)] backdrop-blur"
     >
-      <CardHeader className="border-b border-slate-200 pb-5">
+      <CardHeader className="border-b border-slate-200/80 pb-5 sm:pb-6">
         <CardTitle className="flex items-center gap-3 text-base font-semibold text-slate-900">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-600">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-[1rem] border border-sky-200/80 bg-sky-50 text-sky-700 shadow-[0_10px_20px_rgba(56,189,248,0.12)]">
             <Icon className="h-4 w-4" />
           </span>
           {title}
         </CardTitle>
-        {description ? <p className="text-sm text-slate-600">{description}</p> : null}
+        {description ? <p className="text-sm leading-6 text-slate-500">{description}</p> : null}
       </CardHeader>
-      <CardContent className="space-y-6 pt-6">
+      <CardContent className="space-y-6 pt-6 sm:space-y-7">
         {children}
-        {actions ? <div className="border-t border-slate-200 pt-5">{actions}</div> : null}
+        {actions ? <div className="border-t border-slate-200/80 pt-5">{actions}</div> : null}
       </CardContent>
     </Card>
   );
@@ -129,15 +129,16 @@ function SectionTitle({ children }) {
   return <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500">{children}</h3>;
 }
 
-function SelectField({ label, value, options, onChange, hint }) {
+function SelectField({ label, value, options, onChange, hint, disabled = false }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <label className="block text-sm font-medium text-slate-700">{label}</label>
       <div className="relative">
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-9 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20"
+          disabled={disabled}
+          className="w-full appearance-none rounded-xl border border-slate-200/80 bg-white px-4 py-3 pr-10 text-sm text-slate-900 shadow-[0_10px_24px_rgba(15,23,42,0.04)] outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {options.map((option) => (
             <option key={option.value} value={option.value} className="bg-white text-slate-900">
@@ -154,14 +155,14 @@ function SelectField({ label, value, options, onChange, hint }) {
 
 function PropertySelector({ properties, propertyId, onChange, disabled = false }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <label className="block text-sm font-medium text-slate-700">Property</label>
       <div className="relative">
         <select
           value={propertyId}
           onChange={(event) => onChange(event.target.value)}
           disabled={disabled || properties.length === 0}
-          className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-9 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full appearance-none rounded-xl border border-slate-200/80 bg-white px-4 py-3 pr-10 text-sm text-slate-900 shadow-[0_10px_24px_rgba(15,23,42,0.04)] outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {properties.length === 0 ? (
             <option value="">No properties available</option>
@@ -182,7 +183,7 @@ function ToggleField({ id, label, description, checked, onChange }) {
   return (
     <label
       htmlFor={id}
-      className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50"
+      className="flex cursor-pointer items-center justify-between gap-4 rounded-[1.1rem] border border-slate-200/80 bg-white/90 px-4 py-3.5 shadow-[0_10px_24px_rgba(15,23,42,0.03)] transition-colors hover:bg-slate-50/90"
     >
       <div>
         <p className="text-sm font-medium text-slate-900">{label}</p>
@@ -333,7 +334,6 @@ function ProfileSettings() {
     <SettingsCard
       icon={User}
       title="Profile & Preferences"
-      description="Update account identity and personal defaults used across your PG operations."
       actions={
         <div className="flex justify-end">
           <Button onClick={handleSave} loading={saving} disabled={loading}>
@@ -506,7 +506,6 @@ function NotificationSettings() {
     <SettingsCard
       icon={Bell}
       title="Notification Preferences"
-      description="Control which channels and operational events should notify you."
       actions={
         <div className="flex justify-end">
           <Button onClick={handleSave} loading={saving} disabled={loading}>
@@ -597,8 +596,6 @@ function TermsAndRulesSettings() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [rules, setRules] = useState(['']);
-  const [amenities, setAmenities] = useState([]);
-  const [amenityInput, setAmenityInput] = useState('');
 
   useEffect(() => {
     if (properties.length === 0) {
@@ -616,7 +613,6 @@ function TermsAndRulesSettings() {
   useEffect(() => {
     if (!propertyId) {
       setRules(['']);
-      setAmenities([]);
       return;
     }
 
@@ -632,10 +628,7 @@ function TermsAndRulesSettings() {
         if (!isMounted) return;
 
         const incomingRules = Array.isArray(data.rules) ? data.rules : [];
-        const incomingAmenities = Array.isArray(data.amenities) ? data.amenities : [];
-
         setRules(incomingRules.length > 0 ? incomingRules : ['']);
-        setAmenities(incomingAmenities);
       } catch {
         if (isMounted) {
           dispatch(
@@ -646,7 +639,6 @@ function TermsAndRulesSettings() {
             })
           );
           setRules(['']);
-          setAmenities([]);
         }
       } finally {
         if (isMounted) {
@@ -677,24 +669,6 @@ function TermsAndRulesSettings() {
     });
   };
 
-  const addAmenity = () => {
-    const nextAmenity = amenityInput.trim();
-
-    if (!nextAmenity) return;
-
-    if (amenities.includes(nextAmenity)) {
-      setAmenityInput('');
-      return;
-    }
-
-    setAmenities((previous) => [...previous, nextAmenity]);
-    setAmenityInput('');
-  };
-
-  const removeAmenity = (targetAmenity) => {
-    setAmenities((previous) => previous.filter((amenity) => amenity !== targetAmenity));
-  };
-
   const handleSave = async () => {
     if (!propertyId) {
       dispatch(
@@ -708,7 +682,6 @@ function TermsAndRulesSettings() {
     }
 
     const cleanRules = rules.map((rule) => rule.trim()).filter(Boolean);
-    const cleanAmenities = [...new Set(amenities.map((amenity) => amenity.trim()).filter(Boolean))];
 
     if (cleanRules.length === 0) {
       dispatch(
@@ -726,16 +699,14 @@ function TermsAndRulesSettings() {
     try {
       await apiService.settings.updatePropertyRules(propertyId, {
         rules: cleanRules,
-        amenities: cleanAmenities,
       });
 
       setRules(cleanRules);
-      setAmenities(cleanAmenities);
 
       dispatch(
         addToast({
           title: 'Rules updated',
-          description: 'Rules and amenities were saved successfully.',
+          description: 'Property rules were saved successfully.',
           variant: 'success',
         })
       );
@@ -756,7 +727,6 @@ function TermsAndRulesSettings() {
     <SettingsCard
       icon={FileText}
       title="Terms & Rules"
-      description="Define enforceable house rules and published amenities for tenant onboarding."
       actions={
         <div className="flex justify-end">
           <Button onClick={handleSave} loading={saving} disabled={loading || properties.length === 0}>
@@ -766,17 +736,9 @@ function TermsAndRulesSettings() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <PropertySelector properties={properties} propertyId={propertyId} onChange={setPropertyId} disabled={loading} />
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          <p className="font-medium text-slate-900">Tenant onboarding scope</p>
-          <p className="mt-1">Rules in this tab appear in tenant registration and agreement review screens.</p>
-        </div>
-      </div>
-
       {properties.length === 0 ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          No property found. Create a property to configure rules and amenities.
+          No property found. Create a property to configure rules.
         </div>
       ) : null}
 
@@ -813,53 +775,6 @@ function TermsAndRulesSettings() {
                 className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20"
               />
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <SectionTitle>Amenities</SectionTitle>
-        <div className="flex flex-col gap-3 md:flex-row">
-          <Input
-            label="Add Amenity"
-            labelClassName={labelClasses}
-            className={inputClasses}
-            value={amenityInput}
-            onChange={(event) => setAmenityInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                addAmenity();
-              }
-            }}
-            placeholder="WiFi, Laundry, Security..."
-          />
-          <div className="md:self-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addAmenity}
-              className="w-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50 md:w-auto"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add</span>
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {amenities.length === 0 ? <p className="text-sm text-slate-500">No amenities listed yet.</p> : null}
-          {amenities.map((amenity) => (
-            <button
-              key={amenity}
-              type="button"
-              onClick={() => removeAmenity(amenity)}
-              className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-100"
-              aria-label={`Remove amenity ${amenity}`}
-            >
-              {amenity}
-              <Trash2 className="h-3 w-3" />
-            </button>
           ))}
         </div>
       </div>
@@ -1011,14 +926,6 @@ function SystemSettings() {
     setSaving(true);
 
     try {
-      await apiService.settings.updateUserSettings({
-        theme: systemData.theme,
-        language: systemData.language,
-        timezone: systemData.timezone,
-        dateFormat: systemData.dateFormat,
-        currency: systemData.currency,
-      });
-
       if (propertyId) {
         await apiService.settings.updatePropertySettings(propertyId, {
           paymentSettings: {
@@ -1059,10 +966,9 @@ function SystemSettings() {
     <SettingsCard
       icon={Settings}
       title="System Configuration"
-      description="Production-facing defaults for locale, payment policy, and property contact details."
       actions={
         <div className="flex justify-end">
-          <Button onClick={handleSave} loading={saving} disabled={loading}>
+          <Button onClick={handleSave} loading={saving} disabled={loading || properties.length === 0}>
             <Save className="h-4 w-4" />
             <span>Save configuration</span>
           </Button>
@@ -1075,43 +981,40 @@ function SystemSettings() {
           value={systemData.theme}
           options={THEME_OPTIONS}
           onChange={(value) => setSystemData((previous) => ({ ...previous, theme: value }))}
+          disabled
         />
         <SelectField
           label="Language"
           value={systemData.language}
           options={LANGUAGE_OPTIONS}
           onChange={(value) => setSystemData((previous) => ({ ...previous, language: value }))}
+          disabled
         />
         <SelectField
           label="Timezone"
           value={systemData.timezone}
           options={TIMEZONE_OPTIONS}
           onChange={(value) => setSystemData((previous) => ({ ...previous, timezone: value }))}
+          disabled
         />
         <SelectField
           label="Date Format"
           value={systemData.dateFormat}
           options={DATE_FORMAT_OPTIONS}
           onChange={(value) => setSystemData((previous) => ({ ...previous, dateFormat: value }))}
+          disabled
         />
         <SelectField
           label="Currency"
           value={systemData.currency}
           options={CURRENCY_OPTIONS}
           onChange={(value) => setSystemData((previous) => ({ ...previous, currency: value }))}
+          disabled
         />
       </div>
 
       <div className="space-y-4">
         <SectionTitle>Property Ops</SectionTitle>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <PropertySelector properties={properties} propertyId={propertyId} onChange={setPropertyId} disabled={loading} />
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            <p className="font-medium text-slate-900">Applies to selected property</p>
-            <p className="mt-1">Rent and contact values below are scoped to this property only.</p>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
             <Input
@@ -1229,6 +1132,7 @@ function SystemSettings() {
 
 function SecuritySettings() {
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -1389,7 +1293,6 @@ function SecuritySettings() {
     <SettingsCard
       icon={Shield}
       title="Security"
-      description="Protect account access and define your active session policy."
       actions={
         <div className="flex justify-end">
           <Button onClick={handleSaveSecurity} loading={saving} disabled={loading}>
@@ -1403,6 +1306,17 @@ function SecuritySettings() {
         <SectionTitle>Change Password</SectionTitle>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="sr-only" aria-hidden="true">
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value={user?.email || ''}
+              readOnly
+              tabIndex={-1}
+            />
+          </div>
+
           <div className="md:col-span-2">
             <Input
               type="password"
@@ -1414,6 +1328,8 @@ function SecuritySettings() {
                 setPasswordData((previous) => ({ ...previous, currentPassword: event.target.value }))
               }
               placeholder="Current password"
+              name="current-password"
+              autoComplete="current-password"
             />
             <FieldError message={errors.currentPassword} />
           </div>
@@ -1427,6 +1343,8 @@ function SecuritySettings() {
               value={passwordData.newPassword}
               onChange={(event) => setPasswordData((previous) => ({ ...previous, newPassword: event.target.value }))}
               placeholder="Minimum 8 characters"
+              name="new-password"
+              autoComplete="new-password"
             />
             <FieldError message={errors.newPassword} />
           </div>
@@ -1442,6 +1360,8 @@ function SecuritySettings() {
                 setPasswordData((previous) => ({ ...previous, confirmPassword: event.target.value }))
               }
               placeholder="Re-enter new password"
+              name="confirm-new-password"
+              autoComplete="new-password"
             />
             <FieldError message={errors.confirmPassword} />
           </div>
@@ -1535,17 +1455,15 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-7xl space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Settings</h1>
-          <p className="max-w-3xl text-sm text-slate-600 sm:text-base">
-            Manage your PG system preferences and production configuration in one place.
-          </p>
-        </header>
+    <div className="app-shell min-h-screen space-y-6 p-4 sm:p-6">
+      <section className="app-surface rounded-[2rem] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Settings</h1>
+          </div>
 
-        <div className="overflow-x-auto pb-1">
-          <nav className="flex min-w-max items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2">
+          <div className="overflow-x-auto pb-1">
+            <nav className="flex min-w-max items-center gap-2 rounded-[1.35rem] border border-slate-200/80 bg-white/90 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1556,9 +1474,9 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-500/25',
+                    'inline-flex items-center gap-2 rounded-[1rem] border px-3.5 py-2.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-sky-500/25',
                     isActive
-                      ? 'border-sky-300 bg-sky-50 text-sky-700'
+                      ? 'border-slate-900 bg-slate-900 text-white shadow-[0_10px_24px_rgba(15,23,42,0.16)]'
                       : 'border-transparent bg-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
                   )}
                   aria-current={isActive ? 'page' : undefined}
@@ -1568,11 +1486,12 @@ export default function SettingsPage() {
                 </button>
               );
             })}
-          </nav>
+            </nav>
+          </div>
         </div>
+      </section>
 
-        <div>{renderTabContent()}</div>
-      </div>
+      <div>{renderTabContent()}</div>
     </div>
   );
 }

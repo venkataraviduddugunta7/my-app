@@ -445,10 +445,14 @@ export function Header({ onOpenSidebar }) {
                 }}
                 onFocus={() => setShowSearchResults(true)}
                 placeholder="Search tenants by name"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
+                autoCapitalize="none"
                 spellCheck={false}
-                name="tenant-global-search"
+                data-lpignore="true"
+                data-form-type="other"
+                name="tenant-directory-query"
+                id="tenant-directory-query"
                 className="h-10 w-full rounded-2xl border border-white/15 bg-white/[0.07] pl-10 pr-10 text-sm text-white placeholder:text-slate-300 transition-all duration-200 focus:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/20"
                 aria-label="Search tenants by name"
               />
@@ -680,10 +684,14 @@ export function Header({ onOpenSidebar }) {
                 }}
                 onFocus={() => setShowSearchResults(true)}
                 placeholder="Search tenants by name"
-                autoComplete="off"
+                autoComplete="new-password"
                 autoCorrect="off"
+                autoCapitalize="none"
                 spellCheck={false}
-                name="tenant-global-search-mobile"
+                data-lpignore="true"
+                data-form-type="other"
+                name="tenant-directory-query-mobile"
+                id="tenant-directory-query-mobile"
                 className="h-10 w-full rounded-2xl border border-white/15 bg-white/[0.08] pl-10 pr-10 text-sm text-white placeholder:text-slate-300 focus:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/20"
               />
               {searchQuery ? (
