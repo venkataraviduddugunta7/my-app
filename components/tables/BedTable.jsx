@@ -1,252 +1,255 @@
 'use client';
 
 import React from 'react';
-import { DataTable, columnTypes, statusConfigs, iconConfigs } from '@/components/ui/DataTable';
-import { createColumnHelper } from '@tanstack/react-table';
-import { Bed, Edit, Trash2, Home, Building, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { DataTable, columnTypes, statusConfigs } from '@/components/ui/DataTable';
+import { Bed, Edit, Trash2, User, AlertCircle, Home, Building } from 'lucide-react';
 
-const columnHelper = createColumnHelper();
+const normalizeStatus = (status) => String(status || '').toUpperCase();
 
-// Bed table columns
 export const createBedColumns = (onEdit, onDelete, rooms = [], floors = []) => [
-  columnTypes.icon('bedNumber', 'Bed Details', iconConfigs.bedIcons, {
+  columnTypes.icon('bedNumber', 'Bed', {}, {
+    meta: {
+      headerClassName: 'w-[22%]',
+      cellClassName: 'w-[22%]',
+    },
     cell: ({ getValue, row }) => {
       const bedNumber = getValue();
       const description = row.original.description;
-      
+
       return (
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-            <Bed className="w-4 h-4 text-blue-600" />
+        <div className="flex min-w-[10rem] items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-sky-200/80 bg-sky-100/80 text-sky-700 shadow-[0_10px_20px_rgba(56,189,248,0.12)]">
+            <Bed className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-medium text-gray-900">
-              Bed {bedNumber}
-            </div>
-            <div className="text-sm text-gray-500">
-              {description || 'Standard bed'}
-            </div>
+            <div className="text-sm font-semibold text-slate-900">Bed {bedNumber}</div>
+            <div className="mt-1 text-xs font-medium text-slate-500">{description || 'Standard bed setup'}</div>
           </div>
         </div>
       );
-    }
+    },
   }),
-  
-  columnTypes.text('roomAndFloor', 'Room & Floor', {
+
+  columnTypes.text('roomAndFloor', 'Stay', {
+    meta: {
+      headerClassName: 'w-[22%]',
+      cellClassName: 'w-[22%]',
+    },
     cell: ({ row }) => {
-      const room = rooms.find(r => r.id === row.original.roomId);
-      const floor = floors.find(f => f.id === room?.floorId);
-      
+      const room = rooms.find((item) => item.id === row.original.roomId);
+      const floor = floors.find((item) => item.id === room?.floorId);
+
       return (
-        <div>
-          <div className="text-sm text-gray-900">
-            Room {room?.roomNumber || 'Unknown'}
+        <div className="min-w-[11rem] space-y-1.5">
+          <div className="flex items-center gap-2 text-sm text-slate-900">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-sky-200/80 bg-sky-50 text-sky-700">
+              <Home className="h-3.5 w-3.5" />
+            </span>
+            <span className="font-medium">Room {room?.roomNumber || 'Unknown'}</span>
           </div>
-          <div className="text-sm text-gray-500">
-            {floor?.name || floor?.floorName || `Floor ${floor?.floorNumber}` || 'Unknown Floor'}
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50 text-slate-600">
+              <Building className="h-3.5 w-3.5" />
+            </span>
+            <span>{floor?.name || floor?.floorName || `Floor ${floor?.floorNumber}` || 'Unknown floor'}</span>
           </div>
-          {room?.amenities && room.amenities.length > 0 && (
-            <div className="text-xs text-gray-400 mt-1">
-              {room.amenities.slice(0, 2).join(', ')}
-              {room.amenities.length > 2 && ` +${room.amenities.length - 2} more`}
-            </div>
-          )}
         </div>
       );
-    }
+    },
   }),
-  
-  columnTypes.text('typeAndStatus', 'Type & Status', {
+
+  columnTypes.text('typeAndStatus', 'Type', {
+    meta: {
+      headerClassName: 'w-[18%]',
+      cellClassName: 'w-[18%]',
+    },
     cell: ({ row }) => {
       const bedType = row.original.bedType;
-      const status = row.original.status;
-      
+      const status = normalizeStatus(row.original.status);
       const statusConfig = statusConfigs.bedStatus[status] || {
-        color: 'bg-gray-100 text-gray-800',
+        color: 'border-slate-200/80 bg-slate-50 text-slate-600',
         icon: AlertCircle,
-        label: status
+        label: row.original.status || 'Unknown',
       };
       const StatusIcon = statusConfig.icon;
-      
+
       return (
-        <div>
-          <div className="text-sm text-gray-900 mb-1">{bedType} Bed</div>
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
-            <StatusIcon className="w-3 h-3 mr-1" />
+        <div className="min-w-[9rem]">
+          <div className="text-sm font-semibold text-slate-900">{bedType} bed</div>
+          <span className={`mt-2 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusConfig.color}`}>
+            <StatusIcon className="mr-1.5 h-3 w-3" />
             {statusConfig.label}
           </span>
         </div>
       );
-    }
+    },
   }),
-  
-  columnTypes.currency('rent', 'Rent & Deposit', {
+
+  columnTypes.text('rent', 'Pricing', {
+    meta: {
+      headerClassName: 'w-[18%]',
+      cellClassName: 'w-[18%]',
+    },
     cell: ({ row }) => {
       const rent = row.original.rent;
       const deposit = row.original.deposit;
-      
+
       return (
-        <div>
-          <div className="text-sm font-medium text-gray-900">
-            ₹{rent?.toLocaleString() || '0'}/month
-          </div>
-          <div className="text-sm text-gray-500">
-            ₹{deposit?.toLocaleString() || '0'} deposit
-          </div>
-          {row.original.status === 'Available' && (
-            <div className="text-xs text-green-600 font-medium mt-1">
-              Available for rent
-            </div>
-          )}
+        <div className="min-w-[9rem]">
+          <div className="text-sm font-semibold text-slate-900">₹{rent?.toLocaleString() || '0'}/month</div>
+          <div className="mt-1 text-xs text-slate-500">Deposit: ₹{deposit?.toLocaleString() || '0'}</div>
         </div>
       );
-    }
+    },
   }),
-  
+
   columnTypes.text('tenant', 'Tenant', {
+    meta: {
+      headerClassName: 'w-[20%]',
+      cellClassName: 'w-[20%]',
+    },
     cell: ({ row }) => {
       const tenant = row.original.tenant;
-      
-      if (tenant) {
+
+      if (!tenant) {
         return (
-          <div>
-            <div className="text-sm font-medium text-gray-900">
-              {tenant.fullName || tenant.name}
-            </div>
-            <div className="text-sm text-gray-500">
-              {tenant.phone || 'No phone'}
-            </div>
-          </div>
-        );
-      } else {
-        return (
-          <div className="text-sm text-gray-400 italic">
-            {row.original.status === 'Available' ? 'No tenant' : 'Vacant'}
-          </div>
+          <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500">
+            No tenant assigned
+          </span>
         );
       }
-    }
+
+      return (
+        <div className="min-w-[10rem] space-y-1">
+          <div className="text-sm font-semibold text-slate-900">{tenant.fullName || tenant.name}</div>
+          <div className="text-xs text-slate-500">{tenant.phone || 'No phone added'}</div>
+        </div>
+      );
+    },
   }),
-  
+
   columnTypes.actions([
     {
       icon: Edit,
       onClick: onEdit,
       title: 'Edit bed',
-      className: 'text-blue-600 hover:text-blue-900'
+      className: 'text-sky-700 hover:text-sky-800 hover:bg-sky-50 hover:border-sky-200/80',
     },
     {
       icon: Trash2,
       onClick: (bed) => onDelete(bed.id),
       title: 'Delete bed',
-      className: 'text-red-600 hover:text-red-900',
-      variant: 'default',
-      size: 'sm',
-      disabled: (bed) => bed.status === 'Occupied'
-    }
-  ])
+      className: 'text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200/80',
+      disabled: (bed) => normalizeStatus(bed.status) === 'OCCUPIED',
+    },
+  ], {
+    meta: {
+      headerClassName: 'w-[10rem] min-w-[10rem]',
+      cellClassName: 'w-[10rem] min-w-[10rem]',
+    },
+  }),
 ];
 
-// Bed card component
 export const BedCard = ({ data: bed, onEdit, onDelete, rooms = [], floors = [] }) => {
-  const room = rooms.find(r => r.id === bed.roomId);
-  const floor = floors.find(f => f.id === room?.floorId);
-  
-  const statusConfig = statusConfigs.bedStatus[bed.status] || {
-    color: 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200',
+  const room = rooms.find((item) => item.id === bed.roomId);
+  const floor = floors.find((item) => item.id === room?.floorId);
+  const status = normalizeStatus(bed.status);
+  const statusConfig = statusConfigs.bedStatus[status] || {
+    color: 'border-slate-200/80 bg-slate-50 text-slate-600',
     icon: AlertCircle,
-    label: bed.status
+    label: bed.status || 'Unknown',
   };
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-elegant-lg transition-all duration-200 group h-full flex flex-col">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-accent-100 to-accent-200 rounded-xl flex items-center justify-center shadow-elegant transition-all duration-200">
-            <Bed className="w-6 h-6 text-accent-600" />
+    <div className="group flex h-full flex-col rounded-[1.75rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_rgba(15,23,42,0.08)]">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-sky-200/80 bg-sky-100/80 text-sky-700 shadow-[0_12px_24px_rgba(56,189,248,0.14)]">
+            <Bed className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 text-lg">Bed {bed.bedNumber}</h3>
-            <p className="text-sm text-gray-500 font-medium">{bed.bedType} Bed</p>
+            <h3 className="text-lg font-semibold tracking-tight text-slate-950">Bed {bed.bedNumber}</h3>
+            <p className="text-sm font-medium text-slate-500">{bed.bedType} bed</p>
           </div>
         </div>
-        <div className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${statusConfig.color}`}>
-          <StatusIcon className="w-3 h-3 mr-1.5" />
-          <span>{statusConfig.label}</span>
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusConfig.color}`}>
+          <StatusIcon className="mr-1.5 h-3 w-3" />
+          {statusConfig.label}
+        </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Room</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">Room {room?.roomNumber || 'Unknown'}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Floor</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">{floor?.name || floor?.floorName || `Floor ${floor?.floorNumber}` || 'Unknown floor'}</p>
         </div>
       </div>
-      
-      <div className="space-y-4 flex-1">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-            <span className="text-sm font-medium text-gray-600">Room:</span>
-            <span className="text-sm font-semibold text-primary-600">{room?.roomNumber || 'Unknown'}</span>
+
+      <div className="mt-5 flex-1 rounded-[1.35rem] border border-slate-200/80 bg-white/85 p-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Rent</p>
+            <p className="mt-1 text-sm font-medium text-slate-900">₹{bed.rent || 0}/month</p>
           </div>
-          <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-            <span className="text-sm font-medium text-gray-600">Floor:</span>
-            <span className="text-sm font-semibold text-primary-600">{floor?.name || floor?.floorName || `Floor ${floor?.floorNumber}` || 'Unknown Floor'}</span>
-          </div>
-          <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-            <span className="text-sm font-medium text-gray-600">Rent:</span>
-            <span className="text-sm font-semibold text-primary-600">₹{bed.rent || 0}/month</span>
+          <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Deposit</p>
+            <p className="mt-1 text-sm font-medium text-slate-900">₹{bed.deposit || 0}</p>
           </div>
         </div>
-        
-        {bed.tenant && (
-          <div className="pt-4 border-t border-gray-200 mt-auto">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-secondary-100 to-secondary-200 rounded-lg flex items-center justify-center">
-                <User className="w-4 h-4 text-secondary-600" />
+
+        {bed.tenant ? (
+          <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-600">
+                <User className="h-4 w-4" />
               </div>
               <div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {bed.tenant.fullName || bed.tenant.name}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {bed.tenant.phone || 'No phone'}
-                </div>
+                <p className="text-sm font-semibold text-slate-900">{bed.tenant.fullName || bed.tenant.name}</p>
+                <p className="text-xs text-slate-500">{bed.tenant.phone || 'No phone added'}</p>
               </div>
             </div>
           </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-dashed border-slate-200/80 bg-slate-50/50 px-3 py-3 text-sm text-slate-500">
+            This bed is open for assignment.
+          </div>
         )}
       </div>
-      
-      {/* Action buttons at the bottom */}
-      <div className="flex items-center justify-end space-x-2 mt-6 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
+
+      <div className="mt-6 flex items-center justify-end gap-2 border-t border-slate-200/80 pt-4" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => onEdit(bed)}
-          className="p-2.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all duration-200"
+          className="rounded-xl p-2.5 text-slate-400 transition-all duration-200 hover:bg-sky-50 hover:text-sky-700"
           title="Edit bed"
         >
-          <Edit className="w-4 h-4" />
+          <Edit className="h-4 w-4" />
         </button>
         <button
           onClick={() => onDelete(bed.id)}
-          disabled={bed.status === 'Occupied'}
-          variant="primary"
-          size="sm"
-          className="p-2.5 text-gray-400 rounded-xl transition-all duration-200"
+          disabled={status === 'OCCUPIED'}
+          className="rounded-xl p-2.5 text-slate-400 transition-all duration-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
           title="Delete bed"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
     </div>
   );
 };
 
-// Main BedTable component
-export function BedTable({ 
-  beds = [], 
-  onEdit, 
+export function BedTable({
+  beds = [],
+  onEdit,
   onDelete,
   viewMode = 'table',
-  searchTerm = '',
-  onSearchChange,
   rooms = [],
   floors = [],
-  loading = false
+  loading = false,
 }) {
   const columns = React.useMemo(
     () => createBedColumns(onEdit, onDelete, rooms, floors),
@@ -257,8 +260,8 @@ export function BedTable({
     <DataTable
       data={beds}
       columns={columns}
-      searchable={false}
-      searchPlaceholder="Search beds by number, type, status, room, or tenant..."
+      tableClassName="w-full min-w-[900px] table-fixed"
+      firstColumnClassName=""
       emptyMessage="No beds found. Add beds to your rooms to manage individual tenant assignments."
       emptyIcon={Bed}
       viewMode={viewMode}

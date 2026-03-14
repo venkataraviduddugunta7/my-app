@@ -56,6 +56,29 @@ import {
   Briefcase
 } from 'lucide-react';
 
+function InventoryMetricCard({ icon: Icon, label, value, helper, active = false }) {
+  return (
+    <div
+      className={`rounded-[1.5rem] border px-4 py-3.5 text-left shadow-[0_12px_30px_rgba(15,23,42,0.04)] transition-all duration-200 ${
+        active
+          ? 'border-sky-200/80 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(255,255,255,0.92))]'
+          : 'border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.92))]'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+          <p className="mt-1.5 text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
+          <p className="mt-1.5 text-xs text-slate-500">{helper}</p>
+        </div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-[1.1rem] border border-white/70 bg-white/80 text-slate-700">
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Floor Form Modal
 function FloorFormModal({ isOpen, onClose, floor = null, onSubmit, loading = false }) {
   const [formData, setFormData] = useState({
@@ -96,10 +119,11 @@ function FloorFormModal({ isOpen, onClose, floor = null, onSubmit, loading = fal
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={floor ? 'Edit Floor' : 'Add New Floor'}>
+    <Modal isOpen={isOpen} onClose={onClose} title={floor ? 'Edit floor' : 'Add floor'}>
       <div className="max-h-[80vh] overflow-y-auto">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
+          premium
           label="Floor Name"
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -107,6 +131,7 @@ function FloorFormModal({ isOpen, onClose, floor = null, onSubmit, loading = fal
           required
         />
         <Input
+          premium
           label="Floor Number"
           type="number"
           value={formData.floorNumber || ''}
@@ -124,7 +149,7 @@ function FloorFormModal({ isOpen, onClose, floor = null, onSubmit, loading = fal
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-elegant transition-all duration-200 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
             placeholder="Optional description about this floor"
           />
         </div>
@@ -285,11 +310,12 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={room ? 'Edit Room' : 'Add New Room'} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={room ? 'Edit room' : 'Add room'} size="lg">
       <div className="max-h-[80vh] overflow-y-auto">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
+            premium
             label="Room Number"
             value={formData.roomNumber}
             onChange={(e) => setFormData(prev => ({ ...prev, roomNumber: e.target.value }))}
@@ -297,6 +323,7 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
             required
           />
           <Input
+            premium
             label="Room Name (Optional)"
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -307,6 +334,7 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Dropdown
+              premium
               label="Floor"
               options={floorOptions}
               value={formData.floorId}
@@ -341,6 +369,7 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
             )}
           </div>
           <Dropdown
+            premium
             label="Room Type"
             options={typeOptions}
             value={formData.type}
@@ -350,6 +379,7 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
 
         <div>
           <Input
+            premium
             label="Bed Capacity"
             type="number"
             min="1"
@@ -362,10 +392,6 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
             }}
             placeholder="Maximum number of beds this room can have"
             required
-            helpText={`Current type: ${formData.type} (recommended: ${
-              formData.type === 'Single' ? '1' : 
-              formData.type === 'Shared' ? '2-4' : '5-12'
-            } beds)`}
           />
         </div>
 
@@ -398,9 +424,6 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
               </label>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Select all amenities available in this room
-          </p>
         </div>
 
         <div>
@@ -411,16 +434,9 @@ function RoomFormModal({ isOpen, onClose, room = null, onSubmit, loading = false
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-elegant transition-all duration-200 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
             placeholder="Additional room details, special features, or notes"
           />
-        </div>
-
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>Note:</strong> Rent and deposits are set individually for each bed, not for the room. 
-            After creating this room, you can add beds with their specific rent amounts.
-          </p>
         </div>
 
         <ModalFooter>
@@ -532,11 +548,12 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
   const selectedRoomBeds = beds.filter(b => b.roomId === formData.roomId);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={bed ? 'Edit Bed' : 'Add New Bed'} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={bed ? 'Edit bed' : 'Add bed'} size="lg">
       <div className="max-h-[80vh] overflow-y-auto">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
+            premium
             label="Bed Number/ID"
             value={formData.bedNumber}
             onChange={(e) => setFormData(prev => ({ ...prev, bedNumber: e.target.value }))}
@@ -544,6 +561,7 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
             required
           />
           <Dropdown
+            premium
             label="Bed Type"
             options={bedTypeOptions}
             value={formData.bedType}
@@ -553,6 +571,7 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
 
         <div>
           <Dropdown
+            premium
             label="Room"
             options={rooms.map(room => ({
               value: room.id,
@@ -580,6 +599,7 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
+            premium
             label="Monthly Rent (₹)"
             type="number"
             min="1000"
@@ -591,9 +611,9 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
             }}
             placeholder="e.g., 5000, 7500"
             required
-            helpText="Amount tenant pays per month for this bed"
           />
           <Input
+            premium
             label="Security Deposit (₹)"
             type="number"
             min="0"
@@ -605,7 +625,6 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
             }}
             placeholder="e.g., 10000, 15000"
             required
-            helpText="One-time refundable deposit"
           />
         </div>
 
@@ -617,24 +636,9 @@ function BedFormModal({ isOpen, onClose, bed = null, onSubmit, loading = false }
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-elegant transition-all duration-200 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/15 focus:border-primary-500"
             placeholder="Bed-specific details, location in room, special features"
           />
-        </div>
-
-        {!selectedRoom && (
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> Please select a room first to see capacity information.
-            </p>
-          </div>
-        )}
-
-        <div className="bg-green-50 p-4 rounded-lg">
-          <p className="text-sm text-green-800">
-            <strong>Pricing Info:</strong> This bed will be available for rent at ₹{formData.rent || 0}/month 
-            with a security deposit of ₹{formData.deposit || 0}.
-          </p>
         </div>
 
         <ModalFooter>
@@ -1832,47 +1836,69 @@ export default function RoomsPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-gray-50 via-white to-blue-50 min-h-screen">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Rooms Management</h1>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-gray-600">Manage your floors, rooms, and bed assignments</p>
-          
-          <div className="flex items-center space-x-3">
-            {selectedProperty ? (
-              <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
-                <Building className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-800">
-                  {selectedProperty.name}
-                </span>
-                </div>
-                <CapacityIndicator 
-                  property={{
-                    ...selectedProperty,
-                    floors: floors.map(floor => ({
-                      ...floor,
-                      rooms: rooms.filter(room => room.floorId === floor.id).map(room => ({
-                        ...room,
-                        beds: beds.filter(bed => bed.roomId === room.id)
-                      }))
-                    }))
-                  }} 
-                  showDetails={false} 
-                />
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">No property selected</span>
-                <Button size="sm" onClick={() => setShowPropertyModal(true)}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Create Property
-                </Button>
-              </div>
-            )}
+    <div className="app-shell min-h-screen space-y-6 p-4 sm:p-6">
+      <section className="app-surface rounded-[2rem] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Rooms</h1>
           </div>
+
+          {selectedProperty ? (
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              <div className="inline-flex items-center gap-2 rounded-[1.1rem] border border-sky-200/80 bg-sky-50 px-3.5 py-2 text-sm font-medium text-sky-800">
+                <Building className="h-4 w-4" />
+                <span className="truncate">{selectedProperty.name}</span>
+              </div>
+              <CapacityIndicator
+                property={{
+                  ...selectedProperty,
+                  floors: floors.map(floor => ({
+                    ...floor,
+                    rooms: rooms.filter(room => room.floorId === floor.id).map(room => ({
+                      ...room,
+                      beds: beds.filter(bed => bed.roomId === room.id)
+                    }))
+                  }))
+                }}
+                showDetails={false}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+              <Button onClick={() => setShowPropertyModal(true)} className="min-w-[10rem]">
+                <Plus className="mr-2 h-4 w-4" />
+                Create property
+              </Button>
+            </div>
+          )}
         </div>
-      </div>
+
+        {selectedProperty ? (
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <InventoryMetricCard
+              icon={Building}
+              label="Floors"
+              value={floors.length}
+              helper={`${filteredFloors.length} visible in current filters`}
+              active={activeTab === 'floors'}
+            />
+            <InventoryMetricCard
+              icon={Home}
+              label="Rooms"
+              value={rooms.length}
+              helper={`${filteredRooms.length} visible in current filters`}
+              active={activeTab === 'rooms'}
+            />
+            <InventoryMetricCard
+              icon={Bed}
+              label="Beds"
+              value={beds.length}
+              helper={`${filteredBeds.length} visible in current filters`}
+              active={activeTab === 'beds'}
+            />
+          </div>
+        ) : null}
+      </section>
 
       {properties.length === 0 ? (
         <div>
@@ -1890,19 +1916,23 @@ export default function RoomsPage() {
         </div>
       ) : (
         <>
-          <nav className="border-b border-gray-200">
-            <div className="flex min-w-max space-x-6 overflow-x-auto px-1">
-              {['floors', 'rooms', 'beds'].map((tab) => (
+          <nav className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+            <div className="flex min-w-max gap-2 overflow-x-auto">
+              {tabs.map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`border-b-2 px-1 py-3.5 text-sm font-medium capitalize whitespace-nowrap ${
-                    activeTab === tab
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`inline-flex items-center gap-2 rounded-[1rem] px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-slate-900 text-white shadow-[0_10px_24px_rgba(15,23,42,0.16)]'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  {tab}
+                  <tab.icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${activeTab === tab.id ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    {tab.total}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1913,7 +1943,7 @@ export default function RoomsPage() {
             {/* Floors Tab */}
             {activeTab === 'floors' && (
               <div className="space-y-6">
-             <div className="rounded-xl border border-gray-200 bg-white/80 p-4">
+             <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] sm:p-5">
              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 
                   <h2 className="text-xl font-semibold">
@@ -2039,7 +2069,7 @@ export default function RoomsPage() {
             {/* Rooms Tab */}
             {activeTab === 'rooms' && (
               <div className="space-y-6">
-                    <div className="rounded-xl border border-gray-200 bg-white/80 p-4">
+                    <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] sm:p-5">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <h2 className="text-xl font-semibold">
                     Rooms
@@ -2051,7 +2081,7 @@ export default function RoomsPage() {
                       <div className="flex flex-col sm:flex-row gap-3">
                         <div className="w-full sm:w-80">
                           <Input
-                            placeholder="Search rooms by number, name, type, floor, or amenities..."
+                            placeholder="Search rooms"
                             value={roomSearchTerm}
                             onChange={(e) => setRoomSearchTerm(e.target.value)}
                             className="w-full"
@@ -2190,7 +2220,7 @@ export default function RoomsPage() {
             {activeTab === 'beds' && (
               <div className="space-y-6">
                
-               <div className="rounded-xl border border-gray-200 bg-white/80 p-4">
+               <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] sm:p-5">
                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <h2 className="text-xl font-semibold">
                     Beds
@@ -2202,7 +2232,7 @@ export default function RoomsPage() {
                       <div className="flex flex-col sm:flex-row gap-3">
                         <div className="w-full sm:w-80">
                           <Input
-                            placeholder="Search beds by number, type, status, room, or tenant..."
+                            placeholder="Search beds"
                             value={bedSearchTerm}
                             onChange={(e) => setBedSearchTerm(e.target.value)}
                             className="w-full"

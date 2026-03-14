@@ -532,6 +532,21 @@ export const columnTypes = {
 export const statusConfigs = {
   // Bed status
   bedStatus: {
+    AVAILABLE: {
+      color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
+      icon: CheckCircle,
+      label: 'Available'
+    },
+    OCCUPIED: {
+      color: 'border-rose-200/80 bg-rose-50 text-rose-700',
+      icon: User,
+      label: 'Occupied'
+    },
+    MAINTENANCE: {
+      color: 'border-amber-200/80 bg-amber-50 text-amber-700',
+      icon: AlertCircle,
+      label: 'Maintenance'
+    },
     Available: {
       color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
       icon: CheckCircle,
@@ -551,6 +566,21 @@ export const statusConfigs = {
 
   // Room status
   roomStatus: {
+    AVAILABLE: {
+      color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
+      icon: CheckCircle,
+      label: 'Available'
+    },
+    OCCUPIED: {
+      color: 'border-rose-200/80 bg-rose-50 text-rose-700',
+      icon: User,
+      label: 'Occupied'
+    },
+    MAINTENANCE: {
+      color: 'border-amber-200/80 bg-amber-50 text-amber-700',
+      icon: AlertCircle,
+      label: 'Maintenance'
+    },
     available: {
       color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
       icon: CheckCircle,

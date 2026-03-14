@@ -1,161 +1,181 @@
 'use client';
 
 import React from 'react';
-import { DataTable, columnTypes, statusConfigs, iconConfigs } from '@/components/ui/DataTable';
-import { createColumnHelper } from '@tanstack/react-table';
-import { Building, Edit, Trash2, Home } from 'lucide-react';
+import { DataTable, columnTypes } from '@/components/ui/DataTable';
+import { Building, Edit, Trash2, Layers3 } from 'lucide-react';
 
-const columnHelper = createColumnHelper();
+const formatFloorLabel = (floorNumber) => {
+  if (floorNumber === 0) return 'Ground floor';
+  if (floorNumber === 1) return '1st floor';
+  if (floorNumber === 2) return '2nd floor';
+  if (floorNumber === 3) return '3rd floor';
+  if (floorNumber === undefined || floorNumber === null) return 'Floor';
+  return `${floorNumber}th floor`;
+};
 
-// Floor table columns
 export const createFloorColumns = (onEdit, onDelete, onRowClick) => [
-  columnTypes.icon('name', 'Floor Details', iconConfigs.floorIcons, {
+  columnTypes.icon('name', 'Floor', {}, {
+    meta: {
+      headerClassName: 'w-[28%]',
+      cellClassName: 'w-[28%]',
+    },
     cell: ({ getValue, row }) => {
       const name = getValue();
       const floorNumber = row.original.floorNumber;
-      
+
       return (
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-            <Building className="w-4 h-4 text-blue-600" />
+        <div className="flex min-w-[11rem] items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-sky-200/80 bg-sky-100/80 text-sky-700 shadow-[0_10px_20px_rgba(56,189,248,0.12)]">
+            <Building className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-medium text-gray-900">
-              {name || `Floor ${floorNumber}`}
-            </div>
-            <div className="text-sm text-gray-500">
-              Floor {floorNumber}
-            </div>
+            <div className="text-sm font-semibold text-slate-900">{name || `Floor ${floorNumber}`}</div>
+            <div className="mt-1 text-xs font-medium text-slate-500">{formatFloorLabel(floorNumber)}</div>
           </div>
         </div>
       );
-    }
+    },
   }),
-  
-  columnTypes.badge('floorNumber', 'Floor Number', {
-    [0]: { color: 'bg-blue-100 text-blue-800', label: 'Ground Floor' },
-    [1]: { color: 'bg-green-100 text-green-800', label: '1st Floor' },
-    [2]: { color: 'bg-purple-100 text-purple-800', label: '2nd Floor' },
-    [3]: { color: 'bg-orange-100 text-orange-800', label: '3rd Floor' },
+
+  columnTypes.badge('floorNumber', 'Level', {
+    0: { color: 'border-sky-200/80 bg-sky-50 text-sky-700', label: 'Ground floor' },
+    1: { color: 'border-emerald-200/80 bg-emerald-50 text-emerald-700', label: '1st floor' },
+    2: { color: 'border-violet-200/80 bg-violet-50 text-violet-700', label: '2nd floor' },
+    3: { color: 'border-amber-200/80 bg-amber-50 text-amber-700', label: '3rd floor' },
+  }, {
+    meta: {
+      headerClassName: 'w-[16%]',
+      cellClassName: 'w-[16%]',
+    },
   }),
-  
-  columnTypes.text('roomCount', 'Rooms Count', {
+
+  columnTypes.text('roomCount', 'Rooms', {
+    meta: {
+      headerClassName: 'w-[22%]',
+      cellClassName: 'w-[22%]',
+    },
     cell: ({ row }) => {
       const roomCount = row.original.roomCount || 0;
+
       return (
-        <div className="flex items-center">
-          <div className="text-sm text-gray-900">{roomCount} rooms</div>
-          {roomCount > 0 && (
-            <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
-              Click to view
-            </span>
-          )}
+        <div className="min-w-[9rem]">
+          <div className="text-sm font-semibold text-slate-900">{roomCount} room{roomCount === 1 ? '' : 's'}</div>
+          <div className="mt-1 text-xs text-slate-500">
+            {roomCount > 0 ? 'Open to see rooms on this floor' : 'No rooms added yet'}
+          </div>
         </div>
       );
-    }
+    },
   }),
-  
-  columnTypes.text('description', 'Description', {
+
+  columnTypes.text('description', 'Notes', {
+    meta: {
+      headerClassName: 'w-[24%]',
+      cellClassName: 'w-[24%]',
+    },
     cell: ({ getValue }) => (
-      <div className="text-sm text-gray-900 max-w-xs truncate">
-        {getValue() || 'No description'}
+      <div className="max-w-[16rem] text-sm text-slate-600">
+        <span className="line-clamp-2">{getValue() || 'No notes added'}</span>
       </div>
-    )
+    ),
   }),
-  
+
   columnTypes.actions([
     {
       icon: Edit,
       onClick: onEdit,
       title: 'Edit floor',
-      className: 'text-blue-600 hover:text-blue-900'
+      className: 'text-sky-700 hover:text-sky-800 hover:bg-sky-50 hover:border-sky-200/80',
     },
     {
       icon: Trash2,
-      onClick: onDelete,
+      onClick: (floor) => onDelete(floor.id),
       title: 'Delete floor',
-      className: 'text-red-600 hover:text-red-900',
-      variant: 'default',
-      size: 'sm',
-      disabled: (floor) => (floor.roomCount || 0) > 0
-    }
-  ])
+      className: 'text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200/80',
+      disabled: (floor) => (floor.roomCount || 0) > 0,
+    },
+  ], {
+    meta: {
+      headerClassName: 'w-[10rem] min-w-[10rem]',
+      cellClassName: 'w-[10rem] min-w-[10rem]',
+    },
+  }),
 ];
 
-// Floor card component
 export const FloorCard = ({ data: floor, onEdit, onDelete, onClick }) => {
   const roomCount = floor.roomCount || 0;
-  
+
   return (
-    <div 
-      className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-elegant-lg transition-all duration-200 cursor-pointer group h-full flex flex-col"
+    <div
+      className="group flex h-full cursor-pointer flex-col rounded-[1.75rem] border border-slate-200/80 bg-white/92 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_rgba(15,23,42,0.08)]"
       onClick={() => onClick && onClick(floor.id)}
     >
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center shadow-elegant transition-all duration-200">
-            <Building className="w-6 h-6 text-primary-600" />
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-sky-200/80 bg-sky-100/80 text-sky-700 shadow-[0_12px_24px_rgba(56,189,248,0.14)]">
+            <Building className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 text-lg">{floor.name || `Floor ${floor.floorNumber}`}</h3>
-            <p className="text-sm text-gray-500 font-medium">Floor {floor.floorNumber}</p>
+            <h3 className="text-lg font-semibold tracking-tight text-slate-950">{floor.name || `Floor ${floor.floorNumber}`}</h3>
+            <p className="text-sm font-medium text-slate-500">{formatFloorLabel(floor.floorNumber)}</p>
           </div>
         </div>
+        <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+          {roomCount} room{roomCount === 1 ? '' : 's'}
+        </span>
       </div>
-      
-      <div className="space-y-4 flex-1">
-        <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
-          <span className="text-sm font-medium text-gray-600">Rooms:</span>
-          <span className="text-sm font-semibold text-primary-600">{roomCount}</span>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Level</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">{formatFloorLabel(floor.floorNumber)}</p>
         </div>
-        
-        {floor.description && (
-          <div className="pt-4 border-t border-gray-200 mt-auto">
-            <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">{floor.description}</p>
-          </div>
-        )}
-        
-        {roomCount > 0 && (
-          <div className="mt-4">
-            <span className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 text-xs font-semibold rounded-xl border border-primary-200">
-              Click to view rooms
-            </span>
-          </div>
-        )}
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Rooms</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">{roomCount} configured</p>
+        </div>
       </div>
-      
-      {/* Action buttons at the bottom */}
-      <div className="flex items-center justify-end space-x-2 mt-6 pt-4 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
+
+      <div className="mt-5 flex-1 rounded-[1.35rem] border border-slate-200/80 bg-white/85 p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-600">
+            <Layers3 className="h-4 w-4" />
+          </div>
+          <p className="text-sm font-semibold text-slate-900">Floor notes</p>
+        </div>
+        <p className="text-sm leading-6 text-slate-500">
+          {floor.description || 'Use this floor to group rooms cleanly and move into room setup from here.'}
+        </p>
+      </div>
+
+      <div className="mt-6 flex items-center justify-end gap-2 border-t border-slate-200/80 pt-4" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => onEdit(floor)}
-          className="p-2.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all duration-200"
+          className="rounded-xl p-2.5 text-slate-400 transition-all duration-200 hover:bg-sky-50 hover:text-sky-700"
           title="Edit floor"
         >
-          <Edit className="w-4 h-4" />
+          <Edit className="h-4 w-4" />
         </button>
         <button
           onClick={() => onDelete(floor.id)}
           disabled={roomCount > 0}
-          className="p-2.5 text-gray-400 hover:text-error-600 hover:bg-error-50 rounded-xl transition-all duration-200"
+          className="rounded-xl p-2.5 text-slate-400 transition-all duration-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
           title="Delete floor"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
     </div>
   );
 };
 
-// Main FloorTable component
-export function FloorTable({ 
-  floors = [], 
-  onEdit, 
-  onDelete, 
+export function FloorTable({
+  floors = [],
+  onEdit,
+  onDelete,
   onClick,
   viewMode = 'table',
-  searchTerm = '',
-  onSearchChange,
-  loading = false
+  loading = false,
 }) {
   const columns = React.useMemo(
     () => createFloorColumns(onEdit, onDelete, onClick),
@@ -166,8 +186,9 @@ export function FloorTable({
     <DataTable
       data={floors}
       columns={columns}
-      searchPlaceholder="Search floors by name, number, or description..."
-      emptyMessage="No floors found. Add floors to start organizing your PG structure."
+      tableClassName="w-full min-w-[760px] table-fixed"
+      firstColumnClassName=""
+      emptyMessage="No floors found. Add floors to start organizing your property structure."
       emptyIcon={Building}
       onRowClick={onClick}
       viewMode={viewMode}
