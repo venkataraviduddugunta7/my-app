@@ -187,7 +187,14 @@ class ApiService {
 
   // Floor APIs
   floors = {
-    getAll: (propertyId) => this.get(`/floors?propertyId=${propertyId}`),
+    getAll: (propertyIdOrParams) =>
+      this.get(
+        `/floors${
+          typeof propertyIdOrParams === 'object'
+            ? this.buildQuery(propertyIdOrParams)
+            : this.buildQuery({ propertyId: propertyIdOrParams })
+        }`
+      ),
     getById: (id) => this.get(`/floors/${id}`),
     create: (floorData) => this.post('/floors', floorData),
     update: (id, floorData) => this.put(`/floors/${id}`, floorData),
@@ -196,7 +203,14 @@ class ApiService {
 
   // Room APIs
   rooms = {
-    getAll: (floorId) => this.get(`/rooms?floorId=${floorId}`),
+    getAll: (floorIdOrParams) =>
+      this.get(
+        `/rooms${
+          typeof floorIdOrParams === 'object'
+            ? this.buildQuery(floorIdOrParams)
+            : this.buildQuery({ floorId: floorIdOrParams })
+        }`
+      ),
     getById: (id) => this.get(`/rooms/${id}`),
     create: (roomData) => this.post('/rooms', roomData),
     update: (id, roomData) => this.put(`/rooms/${id}`, roomData),

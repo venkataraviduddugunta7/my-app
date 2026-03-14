@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/error.middleware');
 const appNotificationService = require('../services/app-notification.service');
+const webSocketService = require('../services/websocket.service');
 
 const prisma = new PrismaClient();
 
@@ -25,6 +26,7 @@ const NOTICE_TYPES = new Set([
 ]);
 
 const PRIORITIES = new Set(['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
+const NOTICE_AUDIENCES = new Set(['PROPERTY', 'FLOOR', 'ROOM', 'TENANT']);
 
 const parseBoolean = (value) => {
   if (value === undefined || value === null || value === '') return undefined;
@@ -53,11 +55,24 @@ const parseStringArray = (value) => {
     .filter(Boolean);
 };
 
-const verifyPropertyAccess = async (propertyId) => {
+const parseUniqueStringArray = (value) => [...new Set(parseStringArray(value))];
+
+const normalizeAudienceType = (value) => String(value || 'PROPERTY').toUpperCase();
+
+const formatAudienceLabel = (audienceType, count, singular) => {
+  if (count === 1) {
+    return singular;
+  }
+
+  return `${count} ${audienceType.toLowerCase()}s`;
+};
+
+const verifyPropertyAccess = async (propertyId, ownerId) => {
   return prisma.property.findFirst({
     where: {
       id: propertyId,
       isActive: true,
+      ownerId,
     },
     select: {
       id: true,
@@ -66,11 +81,279 @@ const verifyPropertyAccess = async (propertyId) => {
   });
 };
 
+const resolveNoticeAudience = async ({
+  propertyId,
+  audienceType,
+  targetTenantIds,
+  targetFloorIds,
+  targetRoomIds,
+}) => {
+  const normalizedAudience = normalizeAudienceType(audienceType);
+
+  if (!NOTICE_AUDIENCES.has(normalizedAudience)) {
+    return {
+      error: 'Invalid audience type',
+    };
+  }
+
+  const parsedTenantIds = parseUniqueStringArray(targetTenantIds);
+  const parsedFloorIds = parseUniqueStringArray(targetFloorIds);
+  const parsedRoomIds = parseUniqueStringArray(targetRoomIds);
+
+  let validatedFloorIds = [];
+  let validatedRoomIds = [];
+  let recipients = [];
+
+  if (normalizedAudience === 'PROPERTY') {
+    recipients = await prisma.tenant.findMany({
+      where: {
+        propertyId,
+        isActive: true,
+        status: 'ACTIVE',
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        fullName: true,
+      },
+    });
+  }
+
+  if (normalizedAudience === 'FLOOR') {
+    if (parsedFloorIds.length === 0) {
+      return {
+        error: 'Select at least one floor for this notice',
+      };
+    }
+
+    const validFloors = await prisma.floor.findMany({
+      where: {
+        id: { in: parsedFloorIds },
+        propertyId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (validFloors.length !== parsedFloorIds.length) {
+      return {
+        error: 'Some selected floors are invalid for this property',
+      };
+    }
+
+    validatedFloorIds = validFloors.map((floor) => floor.id);
+
+    recipients = await prisma.tenant.findMany({
+      where: {
+        propertyId,
+        isActive: true,
+        status: 'ACTIVE',
+        bed: {
+          room: {
+            floorId: { in: validatedFloorIds },
+          },
+        },
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        fullName: true,
+      },
+    });
+  }
+
+  if (normalizedAudience === 'ROOM') {
+    if (parsedRoomIds.length === 0) {
+      return {
+        error: 'Select at least one room for this notice',
+      };
+    }
+
+    const validRooms = await prisma.room.findMany({
+      where: {
+        id: { in: parsedRoomIds },
+        floor: {
+          propertyId,
+        },
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (validRooms.length !== parsedRoomIds.length) {
+      return {
+        error: 'Some selected rooms are invalid for this property',
+      };
+    }
+
+    validatedRoomIds = validRooms.map((room) => room.id);
+
+    recipients = await prisma.tenant.findMany({
+      where: {
+        propertyId,
+        isActive: true,
+        status: 'ACTIVE',
+        bed: {
+          roomId: { in: validatedRoomIds },
+        },
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        fullName: true,
+      },
+    });
+  }
+
+  if (normalizedAudience === 'TENANT') {
+    if (parsedTenantIds.length === 0) {
+      return {
+        error: 'Select at least one tenant for this notice',
+      };
+    }
+
+    recipients = await prisma.tenant.findMany({
+      where: {
+        id: { in: parsedTenantIds },
+        propertyId,
+        isActive: true,
+        status: 'ACTIVE',
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        fullName: true,
+      },
+    });
+
+    if (recipients.length !== parsedTenantIds.length) {
+      return {
+        error: 'Some selected tenants are invalid or inactive for this property',
+      };
+    }
+  }
+
+  return {
+    audienceType: normalizedAudience,
+    targetFloorIds: validatedFloorIds,
+    targetRoomIds: validatedRoomIds,
+    targetTenantIds: recipients.map((tenant) => tenant.id),
+    recipients,
+  };
+};
+
+const attachNoticeAudienceSummary = async (notices) => {
+  if (!Array.isArray(notices) || notices.length === 0) {
+    return [];
+  }
+
+  const floorIds = [...new Set(notices.flatMap((notice) => notice.targetFloorIds || []))];
+  const roomIds = [...new Set(notices.flatMap((notice) => notice.targetRoomIds || []))];
+
+  const [floors, rooms] = await Promise.all([
+    floorIds.length
+      ? prisma.floor.findMany({
+          where: { id: { in: floorIds } },
+          select: {
+            id: true,
+            name: true,
+            floorNumber: true,
+          },
+        })
+      : [],
+    roomIds.length
+      ? prisma.room.findMany({
+          where: { id: { in: roomIds } },
+          select: {
+            id: true,
+            roomNumber: true,
+            name: true,
+            floor: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        })
+      : [],
+  ]);
+
+  const floorMap = new Map(floors.map((floor) => [floor.id, floor]));
+  const roomMap = new Map(rooms.map((room) => [room.id, room]));
+
+  return notices.map((notice) => {
+    const floorTargets = (notice.targetFloorIds || [])
+      .map((id) => floorMap.get(id))
+      .filter(Boolean);
+    const roomTargets = (notice.targetRoomIds || [])
+      .map((id) => roomMap.get(id))
+      .filter(Boolean);
+    const totalTargets = notice._count?.targetTenants || 0;
+    const targetTenants = Array.isArray(notice.targetTenants) ? notice.targetTenants : [];
+
+    let audienceLabel = 'Entire property';
+    let audienceSubtitle = totalTargets
+      ? `${totalTargets} active tenant${totalTargets === 1 ? '' : 's'} targeted`
+      : 'No active tenants matched yet';
+
+    if (notice.audienceType === 'FLOOR') {
+      audienceLabel =
+        floorTargets.length === 1
+          ? floorTargets[0].name
+          : formatAudienceLabel('floor', floorTargets.length, '1 floor');
+      audienceSubtitle = floorTargets.map((floor) => floor.name).join(', ') || audienceSubtitle;
+    }
+
+    if (notice.audienceType === 'ROOM') {
+      audienceLabel =
+        roomTargets.length === 1
+          ? `Room ${roomTargets[0].roomNumber}`
+          : formatAudienceLabel('room', roomTargets.length, '1 room');
+      audienceSubtitle =
+        roomTargets.map((room) => `${room.roomNumber}${room.floor?.name ? ` • ${room.floor.name}` : ''}`).join(', ') ||
+        audienceSubtitle;
+    }
+
+    if (notice.audienceType === 'TENANT') {
+      audienceLabel =
+        totalTargets === 1 && targetTenants[0]
+          ? targetTenants[0].fullName
+          : formatAudienceLabel('tenant', totalTargets, '1 tenant');
+      audienceSubtitle =
+        targetTenants
+          .slice(0, 3)
+          .map((tenant) => tenant.fullName)
+          .join(', ') || audienceSubtitle;
+    }
+
+    return {
+      ...notice,
+      audience: {
+        type: notice.audienceType,
+        label: audienceLabel,
+        subtitle: audienceSubtitle,
+        floors: floorTargets,
+        rooms: roomTargets,
+      },
+      stats: {
+        totalTargets,
+        readCount: notice.readBy.length,
+        readRate: totalTargets > 0 ? Math.round((notice.readBy.length / totalTargets) * 100) : 0,
+      },
+    };
+  });
+};
+
 const getDocuments = asyncHandler(async (req, res) => {
   const { propertyId } = req.params;
   const { page = 1, limit = 20, documentType, isPublic, search, tags } = req.query;
 
-  const property = await verifyPropertyAccess(propertyId);
+  const property = await verifyPropertyAccess(propertyId, req.user.id);
   if (!property) {
     return res.status(404).json({
       success: false,
@@ -178,7 +461,7 @@ const createDocument = asyncHandler(async (req, res) => {
     });
   }
 
-  const property = await verifyPropertyAccess(propertyId);
+  const property = await verifyPropertyAccess(propertyId, req.user.id);
   if (!property) {
     return res.status(404).json({
       success: false,
@@ -252,7 +535,7 @@ const createDocument = asyncHandler(async (req, res) => {
 const updateDocument = asyncHandler(async (req, res) => {
   const { propertyId, documentId } = req.params;
 
-  const property = await verifyPropertyAccess(propertyId);
+  const property = await verifyPropertyAccess(propertyId, req.user.id);
   if (!property) {
     return res.status(404).json({
       success: false,
@@ -362,7 +645,7 @@ const updateDocument = asyncHandler(async (req, res) => {
 const deleteDocument = asyncHandler(async (req, res) => {
   const { propertyId, documentId } = req.params;
 
-  const property = await verifyPropertyAccess(propertyId);
+  const property = await verifyPropertyAccess(propertyId, req.user.id);
   if (!property) {
     return res.status(404).json({
       success: false,
@@ -397,9 +680,9 @@ const deleteDocument = asyncHandler(async (req, res) => {
 
 const getNotices = asyncHandler(async (req, res) => {
   const { propertyId } = req.params;
-  const { page = 1, limit = 20, noticeType, priority, isPublished, search } = req.query;
+  const { page = 1, limit = 20, noticeType, priority, audienceType, isPublished, search } = req.query;
 
-  const property = await verifyPropertyAccess(propertyId);
+  const property = await verifyPropertyAccess(propertyId, req.user.id);
   if (!property) {
     return res.status(404).json({
       success: false,
@@ -429,6 +712,17 @@ const getNotices = asyncHandler(async (req, res) => {
       });
     }
     where.priority = normalizedPriority;
+  }
+
+  if (audienceType) {
+    const normalizedAudience = normalizeAudienceType(audienceType);
+    if (!NOTICE_AUDIENCES.has(normalizedAudience)) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Invalid audience type' },
+      });
+    }
+    where.audienceType = normalizedAudience;
   }
 
   const parsedIsPublished = parseBoolean(isPublished);
@@ -477,17 +771,7 @@ const getNotices = asyncHandler(async (req, res) => {
     prisma.notice.count({ where }),
   ]);
 
-  const noticesWithStats = notices.map((notice) => ({
-    ...notice,
-    stats: {
-      totalTargets: notice._count.targetTenants,
-      readCount: notice.readBy.length,
-      readRate:
-        notice._count.targetTenants > 0
-          ? Math.round((notice.readBy.length / notice._count.targetTenants) * 100)
-          : 0,
-    },
-  }));
+  const noticesWithStats = await attachNoticeAudienceSummary(notices);
 
   res.status(200).json({
     success: true,
@@ -509,11 +793,14 @@ const createNotice = asyncHandler(async (req, res) => {
     title,
     content,
     noticeType = 'GENERAL',
+    audienceType = 'PROPERTY',
     priority = 'MEDIUM',
     isPublished = false,
     publishDate,
     expiryDate,
     targetTenantIds = [],
+    targetFloorIds = [],
+    targetRoomIds = [],
   } = req.body;
 
   if (!title || !content) {
@@ -540,7 +827,7 @@ const createNotice = asyncHandler(async (req, res) => {
     });
   }
 
-  const property = await verifyPropertyAccess(propertyId);
+  const property = await verifyPropertyAccess(propertyId, req.user.id);
   if (!property) {
     return res.status(404).json({
       success: false,
@@ -565,22 +852,26 @@ const createNotice = asyncHandler(async (req, res) => {
     });
   }
 
-  const tenantIds = parseStringArray(targetTenantIds);
-  if (tenantIds.length > 0) {
-    const validTenants = await prisma.tenant.findMany({
-      where: {
-        id: { in: tenantIds },
-        propertyId,
-      },
-      select: { id: true },
-    });
+  const resolvedAudience = await resolveNoticeAudience({
+    propertyId,
+    audienceType,
+    targetTenantIds,
+    targetFloorIds,
+    targetRoomIds,
+  });
 
-    if (validTenants.length !== tenantIds.length) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Some targetTenantIds are invalid for this property' },
-      });
-    }
+  if (resolvedAudience.error) {
+    return res.status(400).json({
+      success: false,
+      error: { message: resolvedAudience.error },
+    });
+  }
+
+  if ((parseBoolean(isPublished) ?? false) && resolvedAudience.targetTenantIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'No active tenants matched this audience. Adjust the audience or save it as a draft.' },
+    });
   }
 
   const notice = await prisma.notice.create({
@@ -588,16 +879,19 @@ const createNotice = asyncHandler(async (req, res) => {
       title: String(title).trim(),
       content: String(content).trim(),
       noticeType: normalizedType,
+      audienceType: resolvedAudience.audienceType,
       priority: normalizedPriority,
       isPublished: parseBoolean(isPublished) ?? false,
       publishDate: parsedPublishDate || (parseBoolean(isPublished) ? new Date() : null),
       expiryDate: parsedExpiryDate,
+      targetFloorIds: resolvedAudience.targetFloorIds,
+      targetRoomIds: resolvedAudience.targetRoomIds,
       propertyId,
       createdById: req.user.id,
       targetTenants:
-        tenantIds.length > 0
+        resolvedAudience.targetTenantIds.length > 0
           ? {
-              connect: tenantIds.map((id) => ({ id })),
+              connect: resolvedAudience.targetTenantIds.map((id) => ({ id })),
             }
           : undefined,
     },
@@ -618,6 +912,16 @@ const createNotice = asyncHandler(async (req, res) => {
     },
   });
 
+  webSocketService.broadcastActivity(propertyId, {
+    type: 'notice_created',
+    message: `${notice.title} was ${notice.isPublished ? 'published' : 'saved as draft'}.`,
+    data: {
+      noticeId: notice.id,
+      audienceType: notice.audienceType,
+      targetCount: notice.targetTenants.length,
+    },
+  });
+
   await appNotificationService.notifyPropertyOwner(propertyId, {
     title: 'Notice published',
     message: `${notice.title} was ${notice.isPublished ? 'published' : 'saved'} for ${property.name}.`,
@@ -629,6 +933,7 @@ const createNotice = asyncHandler(async (req, res) => {
     metadata: {
       noticeType: notice.noticeType,
       priority: notice.priority,
+      audienceType: notice.audienceType,
       targetCount: notice.targetTenants.length,
     },
   });
@@ -643,7 +948,7 @@ const createNotice = asyncHandler(async (req, res) => {
 const updateNotice = asyncHandler(async (req, res) => {
   const { propertyId, noticeId } = req.params;
 
-  const property = await verifyPropertyAccess(propertyId);
+  const property = await verifyPropertyAccess(propertyId, req.user.id);
   if (!property) {
     return res.status(404).json({
       success: false,
@@ -656,7 +961,19 @@ const updateNotice = asyncHandler(async (req, res) => {
       id: noticeId,
       propertyId,
     },
-    select: { id: true },
+    select: {
+      id: true,
+      title: true,
+      audienceType: true,
+      targetFloorIds: true,
+      targetRoomIds: true,
+      isPublished: true,
+      targetTenants: {
+        select: {
+          id: true,
+        },
+      },
+    },
   });
 
   if (!existingNotice) {
@@ -670,11 +987,14 @@ const updateNotice = asyncHandler(async (req, res) => {
     title,
     content,
     noticeType,
+    audienceType,
     priority,
     isPublished,
     publishDate,
     expiryDate,
     targetTenantIds,
+    targetFloorIds,
+    targetRoomIds,
   } = req.body;
 
   const updateData = {};
@@ -741,28 +1061,47 @@ const updateNotice = asyncHandler(async (req, res) => {
     }
   }
 
-  if (targetTenantIds !== undefined) {
-    const tenantIds = parseStringArray(targetTenantIds);
+  const audienceWasTouched =
+    audienceType !== undefined ||
+    targetTenantIds !== undefined ||
+    targetFloorIds !== undefined ||
+    targetRoomIds !== undefined ||
+    isPublished !== undefined;
 
-    if (tenantIds.length > 0) {
-      const validTenants = await prisma.tenant.findMany({
-        where: {
-          id: { in: tenantIds },
-          propertyId,
-        },
-        select: { id: true },
+  if (audienceWasTouched) {
+    const resolvedAudience = await resolveNoticeAudience({
+      propertyId,
+      audienceType: audienceType ?? existingNotice.audienceType,
+      targetTenantIds:
+        targetTenantIds !== undefined
+          ? targetTenantIds
+          : existingNotice.targetTenants.map((tenant) => tenant.id),
+      targetFloorIds: targetFloorIds !== undefined ? targetFloorIds : existingNotice.targetFloorIds,
+      targetRoomIds: targetRoomIds !== undefined ? targetRoomIds : existingNotice.targetRoomIds,
+    });
+
+    if (resolvedAudience.error) {
+      return res.status(400).json({
+        success: false,
+        error: { message: resolvedAudience.error },
       });
-
-      if (validTenants.length !== tenantIds.length) {
-        return res.status(400).json({
-          success: false,
-          error: { message: 'Some targetTenantIds are invalid for this property' },
-        });
-      }
     }
 
+    const nextPublishedState =
+      updateData.isPublished !== undefined ? updateData.isPublished : existingNotice.isPublished;
+
+    if (nextPublishedState && resolvedAudience.targetTenantIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'No active tenants matched this audience. Adjust the audience or save it as a draft.' },
+      });
+    }
+
+    updateData.audienceType = resolvedAudience.audienceType;
+    updateData.targetFloorIds = resolvedAudience.targetFloorIds;
+    updateData.targetRoomIds = resolvedAudience.targetRoomIds;
     updateData.targetTenants = {
-      set: tenantIds.map((id) => ({ id })),
+      set: resolvedAudience.targetTenantIds.map((id) => ({ id })),
     };
   }
 
@@ -786,6 +1125,16 @@ const updateNotice = asyncHandler(async (req, res) => {
     },
   });
 
+  webSocketService.broadcastActivity(propertyId, {
+    type: 'notice_updated',
+    message: `${updatedNotice.title} was updated.`,
+    data: {
+      noticeId: updatedNotice.id,
+      audienceType: updatedNotice.audienceType,
+      targetCount: updatedNotice.targetTenants.length,
+    },
+  });
+
   res.status(200).json({
     success: true,
     data: updatedNotice,
@@ -796,7 +1145,7 @@ const updateNotice = asyncHandler(async (req, res) => {
 const deleteNotice = asyncHandler(async (req, res) => {
   const { propertyId, noticeId } = req.params;
 
-  const property = await verifyPropertyAccess(propertyId);
+  const property = await verifyPropertyAccess(propertyId, req.user.id);
   if (!property) {
     return res.status(404).json({
       success: false,
@@ -809,7 +1158,10 @@ const deleteNotice = asyncHandler(async (req, res) => {
       id: noticeId,
       propertyId,
     },
-    select: { id: true },
+    select: {
+      id: true,
+      title: true,
+    },
   });
 
   if (!existingNotice) {
@@ -821,6 +1173,14 @@ const deleteNotice = asyncHandler(async (req, res) => {
 
   await prisma.notice.delete({
     where: { id: noticeId },
+  });
+
+  webSocketService.broadcastActivity(propertyId, {
+    type: 'notice_deleted',
+    message: `${existingNotice.title} was removed.`,
+    data: {
+      noticeId,
+    },
   });
 
   res.status(200).json({
@@ -845,15 +1205,32 @@ const markNoticeAsRead = asyncHandler(async (req, res) => {
       id: noticeId,
       propertyId,
       isPublished: true,
-      OR: [{ targetTenants: { some: { id: tenantId } } }, { targetTenants: { none: {} } }],
     },
     select: {
       id: true,
       readBy: true,
+      audienceType: true,
+      targetTenants: {
+        select: {
+          id: true,
+        },
+      },
     },
   });
 
   if (!notice) {
+    return res.status(404).json({
+      success: false,
+      error: { message: 'Notice not found or not accessible' },
+    });
+  }
+
+  const canRead =
+    notice.targetTenants.length === 0
+      ? notice.audienceType === 'PROPERTY'
+      : notice.targetTenants.some((tenant) => tenant.id === tenantId);
+
+  if (!canRead) {
     return res.status(404).json({
       success: false,
       error: { message: 'Notice not found or not accessible' },

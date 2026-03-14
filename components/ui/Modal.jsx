@@ -90,7 +90,7 @@ const Modal = forwardRef(({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center mt-[-24px] mb-[-24px]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           {/* Overlay fills the entire viewport, unaffected by padding */}
           <motion.div
             variants={overlayVariants}
@@ -98,7 +98,7 @@ const Modal = forwardRef(({
             animate="visible"
             exit="hidden"
             onClick={closeOnOverlayClick ? onClose : undefined}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm mt-[-24px] mb-[-24px]"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
           />
 
           {/* Modal */}
@@ -110,7 +110,7 @@ const Modal = forwardRef(({
             exit="exit"
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'relative w-full bg-white rounded-2xl shadow-luxury border border-gray-200 overflow-hidden',
+              'relative flex w-full max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-luxury sm:max-h-[calc(100vh-3rem)]',
               sizeClasses[size],
               className
             )}
@@ -118,7 +118,7 @@ const Modal = forwardRef(({
           >
             {/* Header */}
             {(title || description || showCloseButton) && (
-              <div className="relative px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white m-0">
+              <div className="relative flex-shrink-0 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-6 py-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     {title && (
@@ -161,7 +161,7 @@ const Modal = forwardRef(({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="relative p-6 m-0"
+              className="relative flex-1 overflow-y-auto p-6"
             >
               {children}
             </motion.div>

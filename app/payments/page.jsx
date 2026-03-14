@@ -1,17 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import apiService from '@/services/api';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Modal } from '@/components/ui';
+import { addToast } from '@/store/slices/uiSlice';
+import { Button, Dropdown, Input, Modal } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   CheckCircle2,
   CircleAlert,
   CreditCard,
-  Loader2,
   Plus,
   RefreshCw,
+  Search,
+  User,
+  WalletCards,
 } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -38,24 +41,111 @@ const PAYMENT_TYPE_OPTIONS = [
 
 const PAYMENT_METHOD_OPTIONS = ['CASH', 'UPI', 'BANK_TRANSFER', 'CARD', 'CHEQUE'];
 
+const DEFAULT_CREATE_FORM = {
+  paymentId: '',
+  tenantId: '',
+  amount: '',
+  paymentType: 'RENT',
+  paymentMethod: 'UPI',
+  dueDate: '',
+  description: '',
+};
+
+const PAYMENT_METRIC_STYLES = {
+  sky: 'border-sky-200/80 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(255,255,255,0.92))] text-sky-700',
+  emerald: 'border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,0.92))] text-emerald-700',
+  amber: 'border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(255,255,255,0.92))] text-amber-700',
+  rose: 'border-rose-200/80 bg-[linear-gradient(180deg,rgba(255,241,242,0.96),rgba(255,255,255,0.92))] text-rose-700',
+};
+
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-function PaymentStatCard({ title, value, helper }) {
+const formatEnumLabel = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .split('_')
+    .filter(Boolean)
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(' ');
+
+const canMarkPaid = (status) => ['PENDING', 'OVERDUE', 'PARTIAL'].includes(String(status || '').toUpperCase());
+
+function PaymentMetricCard({ icon: Icon, label, value, helper, tone = 'sky' }) {
   return (
-    <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
-      <CardContent className="p-5">
-        <p className="text-sm text-gray-600">{title}</p>
-        <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
-        {helper && <p className="mt-1 text-xs text-gray-500">{helper}</p>}
-      </CardContent>
-    </Card>
+    <div
+      className={`rounded-[1.5rem] border px-4 py-3.5 shadow-[0_12px_30px_rgba(15,23,42,0.04)] ${PAYMENT_METRIC_STYLES[tone]}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+          <p className="mt-1.5 text-[1.8rem] font-semibold tracking-tight text-slate-950">{value}</p>
+          {helper ? <p className="mt-1.5 text-xs text-slate-500">{helper}</p> : null}
+        </div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-[1.1rem] border border-white/70 bg-white/80">
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaymentFormSection({ icon: Icon, title, children, tone = 'slate' }) {
+  const toneClasses = {
+    slate: 'border-slate-200/80 bg-white/90',
+    sky: 'border-sky-200/80 bg-sky-50/70',
+  };
+
+  return (
+    <section
+      className={`overflow-visible rounded-[1.5rem] border p-4 shadow-[0_12px_32px_rgba(15,23,42,0.04)] sm:p-5 ${toneClasses[tone]}`}
+    >
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-slate-700">
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+        <div className="flex min-h-10 items-center">
+          <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PaymentStatusBadge({ status }) {
+  const normalized = String(status || '').toUpperCase();
+  const className =
+    normalized === 'PAID'
+      ? 'border-emerald-200/80 bg-emerald-50 text-emerald-700'
+      : normalized === 'OVERDUE'
+      ? 'border-rose-200/80 bg-rose-50 text-rose-700'
+      : normalized === 'PENDING'
+      ? 'border-amber-200/80 bg-amber-50 text-amber-700'
+      : normalized === 'PARTIAL'
+      ? 'border-sky-200/80 bg-sky-50 text-sky-700'
+      : 'border-slate-200/80 bg-slate-50 text-slate-600';
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>
+      {formatEnumLabel(normalized)}
+    </span>
+  );
+}
+
+function PaymentsPageSkeleton() {
+  return (
+    <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 px-6 py-14 text-center shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+      <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
+      <p className="mt-4 text-sm text-slate-500">Loading payment records for the selected property...</p>
+    </section>
   );
 }
 
 export default function PaymentsPage() {
+  const dispatch = useDispatch();
   const { selectedProperty } = useSelector((state) => state.property);
 
   const [filters, setFilters] = useState({
@@ -69,26 +159,46 @@ export default function PaymentsPage() {
   const [payments, setPayments] = useState([]);
   const [stats, setStats] = useState(null);
   const [tenants, setTenants] = useState([]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [markingPaymentId, setMarkingPaymentId] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-
-  const [createForm, setCreateForm] = useState({
-    paymentId: '',
-    tenantId: '',
-    amount: '',
-    paymentType: 'RENT',
-    paymentMethod: 'UPI',
-    dueDate: '',
-    description: '',
-  });
-
+  const [createForm, setCreateForm] = useState(DEFAULT_CREATE_FORM);
   const [createErrors, setCreateErrors] = useState({});
 
+  const statusDropdownOptions = useMemo(
+    () => STATUS_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+    []
+  );
+  const paymentTypeDropdownOptions = useMemo(
+    () => PAYMENT_TYPE_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+    []
+  );
+  const paymentMethodDropdownOptions = useMemo(
+    () => PAYMENT_METHOD_OPTIONS.map((method) => ({
+      value: method,
+      label: formatEnumLabel(method),
+    })),
+    []
+  );
+
+  const tenantOptions = useMemo(
+    () =>
+      tenants.map((tenant) => ({
+        value: tenant.id,
+        label: tenant.fullName,
+        description: `${tenant.tenantId}${tenant.bed?.room?.roomNumber ? ` • Room ${tenant.bed.room.roomNumber}` : ''}`,
+      })),
+    [tenants]
+  );
+
   const loadPayments = useCallback(async () => {
-    if (!selectedProperty?.id) return;
+    if (!selectedProperty?.id) {
+      setPayments([]);
+      setStats(null);
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -128,14 +238,7 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [
-    filters.month,
-    filters.paymentType,
-    filters.search,
-    filters.status,
-    filters.year,
-    selectedProperty?.id,
-  ]);
+  }, [filters.month, filters.paymentType, filters.search, filters.status, filters.year, selectedProperty?.id]);
 
   const loadTenants = useCallback(async () => {
     if (!selectedProperty?.id) return;
@@ -171,21 +274,64 @@ export default function PaymentsPage() {
     };
   }, [stats]);
 
-  const onFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  const hasActiveFilters = Boolean(filters.status || filters.paymentType || filters.search || filters.month);
+
+  const updateFilter = (key, value) => {
+    setFilters((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: '',
+      paymentType: '',
+      search: '',
+      month: '',
+      year: String(new Date().getFullYear()),
+    });
+  };
+
+  const updateCreateField = (field, value) => {
+    setCreateForm((previous) => ({ ...previous, [field]: value }));
+    setCreateErrors((previous) => ({ ...previous, [field]: undefined }));
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setCreateForm(DEFAULT_CREATE_FORM);
+    setCreateErrors({});
   };
 
   const markAsPaid = async (payment) => {
-    if (!payment?.id || payment.status === 'PAID') return;
+    if (!payment?.id || !canMarkPaid(payment.status)) return;
+
+    setMarkingPaymentId(payment.id);
 
     try {
       await apiService.payments.markPaid(payment.id, {
         paymentMethod: payment.paymentMethod || 'UPI',
         paidDate: new Date().toISOString(),
       });
+
       await loadPayments();
+      dispatch(
+        addToast({
+          title: 'Payment updated',
+          description: `${payment.paymentId} was marked as paid.`,
+          variant: 'success',
+        })
+      );
     } catch (err) {
-      setError(err.message || 'Failed to mark payment as paid');
+      const message = err.message || 'Failed to mark payment as paid';
+      setError(message);
+      dispatch(
+        addToast({
+          title: 'Update failed',
+          description: message,
+          variant: 'error',
+        })
+      );
+    } finally {
+      setMarkingPaymentId('');
     }
   };
 
@@ -193,19 +339,19 @@ export default function PaymentsPage() {
     const errors = {};
 
     if (!createForm.tenantId) {
-      errors.tenantId = 'Tenant is required';
+      errors.tenantId = 'Tenant is required.';
     }
 
     if (!createForm.amount || toNumber(createForm.amount) <= 0) {
-      errors.amount = 'Enter a valid amount';
+      errors.amount = 'Enter a valid amount.';
     }
 
     if (!createForm.dueDate) {
-      errors.dueDate = 'Due date is required';
+      errors.dueDate = 'Due date is required.';
     }
 
     if (!createForm.paymentType) {
-      errors.paymentType = 'Payment type is required';
+      errors.paymentType = 'Payment type is required.';
     }
 
     setCreateErrors(errors);
@@ -216,7 +362,16 @@ export default function PaymentsPage() {
     event.preventDefault();
 
     if (!selectedProperty?.id) return;
-    if (!validateCreateForm()) return;
+    if (!validateCreateForm()) {
+      dispatch(
+        addToast({
+          title: 'Complete required fields',
+          description: 'Review the highlighted payment details before saving.',
+          variant: 'warning',
+        })
+      );
+      return;
+    }
 
     setSaving(true);
     setError('');
@@ -236,342 +391,401 @@ export default function PaymentsPage() {
         status: 'PENDING',
       });
 
-      setShowCreateModal(false);
-      setCreateForm({
-        paymentId: '',
-        tenantId: '',
-        amount: '',
-        paymentType: 'RENT',
-        paymentMethod: 'UPI',
-        dueDate: '',
-        description: '',
-      });
-      setCreateErrors({});
+      dispatch(
+        addToast({
+          title: 'Payment added',
+          description: 'The payment entry was created successfully.',
+          variant: 'success',
+        })
+      );
+
+      handleCloseCreateModal();
       await loadPayments();
     } catch (err) {
-      setError(err.message || 'Failed to create payment');
+      const message = err.message || 'Failed to create payment';
+      setError(message);
+      dispatch(
+        addToast({
+          title: 'Create failed',
+          description: message,
+          variant: 'error',
+        })
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const getStatusBadge = (status) => {
-    const normalized = String(status || '').toUpperCase();
-    const className =
-      normalized === 'PAID'
-        ? 'bg-green-100 text-green-800 border-green-200'
-        : normalized === 'OVERDUE'
-        ? 'bg-red-100 text-red-800 border-red-200'
-        : normalized === 'PENDING'
-        ? 'bg-amber-100 text-amber-800 border-amber-200'
-        : 'bg-gray-100 text-gray-700 border-gray-200';
-
-    return (
-      <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}>
-        {normalized}
-      </span>
-    );
-  };
-
   if (!selectedProperty) {
     return (
-      <div className="space-y-6 p-6">
-        <Card hover={false} className="border-gray-200 bg-white/85">
-          <CardContent className="p-10 text-center text-gray-600">
-            Select a property to manage payments.
-          </CardContent>
-        </Card>
+      <div className="app-shell min-h-screen space-y-6 p-4 sm:p-6">
+        <section className="app-surface rounded-[2rem] p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-slate-200/80 bg-slate-50 text-slate-500">
+            <CreditCard className="h-6 w-6" />
+          </div>
+          <h3 className="mt-5 text-lg font-semibold text-slate-900">No property selected</h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Choose a property from the header first, then the payment records and collection actions will load here.
+          </p>
+        </section>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Payments</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Manage rent collection and dues for <span className="font-medium">{selectedProperty.name}</span>
-          </p>
+    <div className="app-shell min-h-screen space-y-6 p-4 sm:p-6">
+      <section className="app-surface rounded-[2rem] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Payments</h1>
+          </div>
+
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            <Button variant="outline" onClick={loadPayments} loading={loading}>
+              {!loading && <RefreshCw className="h-4 w-4" />}
+              <span>Refresh</span>
+            </Button>
+            <Button onClick={() => setShowCreateModal(true)}>
+              <Plus className="h-4 w-4" />
+              <span>Add payment</span>
+            </Button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={loadPayments} loading={loading}>
-            {!loading && <RefreshCw className="h-4 w-4" />}
-            <span>Refresh</span>
-          </Button>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus className="h-4 w-4" />
-            <span>Add Payment</span>
-          </Button>
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <PaymentMetricCard
+            icon={CreditCard}
+            label="Total entries"
+            value={String(summary.totalPayments)}
+            helper="Payment records for current filters"
+            tone="sky"
+          />
+          <PaymentMetricCard
+            icon={CheckCircle2}
+            label="Collected"
+            value={formatCurrency(summary.paidRevenue)}
+            helper={`${summary.paidPayments} paid`}
+            tone="emerald"
+          />
+          <PaymentMetricCard
+            icon={WalletCards}
+            label="Pending due"
+            value={formatCurrency(summary.pendingRevenue)}
+            helper={`${summary.pendingPayments} still open`}
+            tone="amber"
+          />
+          <PaymentMetricCard
+            icon={CircleAlert}
+            label="Overdue"
+            value={String(summary.overduePayments)}
+            helper="Needs immediate follow-up"
+            tone="rose"
+          />
         </div>
-      </div>
+      </section>
 
-      {error && (
-        <Card hover={false} className="border-red-200 bg-red-50/70">
-          <CardContent className="flex items-center gap-2 p-4 text-sm text-red-700">
+      {error ? (
+        <section className="rounded-[1.75rem] border border-rose-200/80 bg-rose-50/80 px-4 py-3 text-sm text-rose-700 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+          <div className="flex items-center gap-2">
             <CircleAlert className="h-4 w-4" />
             <span>{error}</span>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <PaymentStatCard title="Total Payments" value={String(summary.totalPayments)} helper="Entries for selected filters" />
-        <PaymentStatCard title="Collected" value={formatCurrency(summary.paidRevenue)} helper={`${summary.paidPayments} paid`} />
-        <PaymentStatCard title="Pending" value={formatCurrency(summary.pendingRevenue)} helper={`${summary.pendingPayments} pending`} />
-        <PaymentStatCard title="Overdue" value={String(summary.overduePayments)} helper="Immediate follow-up required" />
-      </div>
-
-      <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
-            <Input
-              label="Search"
-              placeholder="Payment ID / Tenant"
-              value={filters.search}
-              onChange={(event) => onFilterChange('search', event.target.value)}
-            />
-
-            <label className="flex flex-col gap-1 text-sm text-gray-700">
-              <span className="text-sm font-medium">Status</span>
-              <select
-                value={filters.status}
-                onChange={(event) => onFilterChange('status', event.target.value)}
-                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm text-gray-700">
-              <span className="text-sm font-medium">Type</span>
-              <select
-                value={filters.paymentType}
-                onChange={(event) => onFilterChange('paymentType', event.target.value)}
-                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                {PAYMENT_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <Input
-              label="Month"
-              placeholder="YYYY-MM"
-              value={filters.month}
-              onChange={(event) => onFilterChange('month', event.target.value)}
-            />
-
-            <Input
-              label="Year"
-              type="number"
-              placeholder="2026"
-              value={filters.year}
-              onChange={(event) => onFilterChange('year', event.target.value)}
-            />
           </div>
-        </CardContent>
-      </Card>
+        </section>
+      ) : null}
 
-      <Card hover={false} className="border-gray-200/80 bg-white/85 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CreditCard className="h-4 w-4" />
-            Payment Records
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center gap-2 py-12 text-sm text-gray-600">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading payments...</span>
+      <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] backdrop-blur sm:p-5">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.75fr)_auto]">
+          <Input
+            premium
+            icon={Search}
+            label="Search"
+            placeholder="Payment ID or tenant"
+            value={filters.search}
+            onChange={(event) => updateFilter('search', event.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            name="payments-record-search"
+          />
+
+          <Dropdown
+            premium
+            label="Status"
+            options={statusDropdownOptions}
+            value={filters.status}
+            onChange={(value) => updateFilter('status', value)}
+            placeholder="All statuses"
+          />
+
+          <Dropdown
+            premium
+            label="Type"
+            options={paymentTypeDropdownOptions}
+            value={filters.paymentType}
+            onChange={(value) => updateFilter('paymentType', value)}
+            placeholder="All types"
+          />
+
+          <Input
+            premium
+            label="Month"
+            type="month"
+            value={filters.month}
+            onChange={(event) => updateFilter('month', event.target.value)}
+          />
+
+          <Input
+            premium
+            label="Year"
+            type="number"
+            value={filters.year}
+            onChange={(event) => updateFilter('year', event.target.value)}
+            min="2020"
+            max="2100"
+            placeholder="2026"
+          />
+
+          <div className="flex items-end">
+            <Button
+              variant="outline"
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+              className="w-full"
+            >
+              <span>Clear</span>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {loading ? (
+        <PaymentsPageSkeleton />
+      ) : (
+        <section className="rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] border border-sky-200/80 bg-sky-100/80 text-sky-700 shadow-[0_10px_20px_rgba(56,189,248,0.12)]">
+                <CreditCard className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">Payment records</h2>
+                <p className="text-sm text-slate-500">{payments.length} matching entries</p>
+              </div>
             </div>
-          ) : payments.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-600">No payment records found for the selected filters.</p>
+          </div>
+
+          {payments.length === 0 ? (
+            <div className="rounded-[1.35rem] border border-dashed border-slate-200/80 bg-slate-50/50 px-6 py-12 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[1rem] border border-slate-200/80 bg-white text-slate-500">
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 text-base font-semibold text-slate-900">No payment records found</h3>
+              <p className="mt-2 text-sm text-slate-500">Adjust your filters or create a new payment entry for this property.</p>
+            </div>
           ) : (
             <>
               <div className="space-y-3 md:hidden">
                 {payments.map((payment) => (
-                  <div key={payment.id} className="rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm">
+                  <div
+                    key={payment.id}
+                    className="rounded-[1.5rem] border border-slate-200/80 bg-white/92 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.04)]"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{payment.paymentId}</p>
-                        <p className="text-xs text-gray-500">{payment.paymentMethod?.replace('_', ' ') || 'NA'}</p>
+                        <p className="text-sm font-semibold text-slate-950">{payment.paymentId}</p>
+                        <p className="mt-1 text-xs text-slate-500">{formatEnumLabel(payment.paymentMethod) || 'NA'}</p>
                       </div>
-                      {getStatusBadge(payment.status)}
+                      <PaymentStatusBadge status={payment.status} />
                     </div>
-                    <div className="mt-3 space-y-1.5 text-sm text-gray-700">
-                      <p><span className="font-medium text-gray-900">Tenant:</span> {payment.tenant?.fullName || 'Unknown tenant'}</p>
-                      <p><span className="font-medium text-gray-900">Type:</span> {String(payment.paymentType || '').replace(/_/g, ' ')}</p>
-                      <p><span className="font-medium text-gray-900">Due:</span> {payment.dueDate ? formatDate(payment.dueDate) : '-'}</p>
-                      <p><span className="font-medium text-gray-900">Amount:</span> {formatCurrency(toNumber(payment.amount))}</p>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Tenant</p>
+                        <p className="mt-1 text-sm font-medium text-slate-900">{payment.tenant?.fullName || 'Unknown tenant'}</p>
+                        <p className="mt-1 text-xs text-slate-500">{payment.tenant?.tenantId || '-'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Type</p>
+                        <p className="mt-1 text-sm font-medium text-slate-900">{formatEnumLabel(payment.paymentType)}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Due</p>
+                        <p className="mt-1 text-sm font-medium text-slate-900">{payment.dueDate ? formatDate(payment.dueDate) : '-'}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Amount</p>
+                        <p className="mt-1 text-sm font-medium text-slate-900">{formatCurrency(toNumber(payment.amount))}</p>
+                      </div>
                     </div>
-                    <div className="mt-3">
-                      {(payment.status === 'PENDING' || payment.status === 'OVERDUE' || payment.status === 'PARTIAL') ? (
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => markAsPaid(payment)}>
+
+                    <div className="mt-4">
+                      {canMarkPaid(payment.status) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full border-emerald-200/80 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800"
+                          onClick={() => markAsPaid(payment)}
+                          loading={markingPaymentId === payment.id}
+                        >
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>Mark Paid</span>
+                          <span>Mark paid</span>
                         </Button>
                       ) : (
-                        <p className="text-center text-xs text-gray-400">No action</p>
+                        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-center text-xs font-medium text-slate-500">
+                          No action required
+                        </div>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="hidden overflow-x-auto rounded-2xl border border-gray-200/80 bg-white md:block">
-                <table className="min-w-[760px] w-full text-sm">
-                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100/70">
-                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
-                      <th className="px-4 py-3">Payment</th>
-                      <th className="px-4 py-3">Tenant</th>
-                      <th className="px-4 py-3">Type</th>
-                      <th className="px-4 py-3">Due Date</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {payments.map((payment) => (
-                      <tr key={payment.id} className="align-top">
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-gray-900">{payment.paymentId}</p>
-                          <p className="text-xs text-gray-500">{payment.paymentMethod?.replace('_', ' ') || 'NA'}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-gray-900">{payment.tenant?.fullName || 'Unknown tenant'}</p>
-                          <p className="text-xs text-gray-500">{payment.tenant?.tenantId || '-'}</p>
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">{String(payment.paymentType || '').replace(/_/g, ' ')}</td>
-                        <td className="px-4 py-3 text-gray-700">{payment.dueDate ? formatDate(payment.dueDate) : '-'}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{formatCurrency(toNumber(payment.amount))}</td>
-                        <td className="px-4 py-3">{getStatusBadge(payment.status)}</td>
-                        <td className="px-4 py-3 text-right">
-                          {(payment.status === 'PENDING' || payment.status === 'OVERDUE' || payment.status === 'PARTIAL') ? (
-                            <Button size="sm" variant="outline" onClick={() => markAsPaid(payment)}>
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              <span>Mark Paid</span>
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-gray-400">No action</span>
-                          )}
-                        </td>
+              <div className="hidden overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] shadow-[0_18px_40px_rgba(15,23,42,0.05)] md:block">
+                <div className="overflow-x-auto">
+                  <table className="min-w-[860px] w-full text-sm">
+                    <thead className="bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.96))]">
+                      <tr>
+                        <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Payment</th>
+                        <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Tenant</th>
+                        <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Type</th>
+                        <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Due date</th>
+                        <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Amount</th>
+                        <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Status</th>
+                        <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200/70">
+                      {payments.map((payment, index) => (
+                        <tr
+                          key={payment.id}
+                          className={`${index % 2 === 0 ? 'bg-white/95' : 'bg-slate-50/35'} align-top transition-colors hover:bg-sky-50/45`}
+                        >
+                          <td className="px-5 py-4">
+                            <p className="text-sm font-semibold text-slate-950">{payment.paymentId}</p>
+                            <p className="mt-1 text-xs text-slate-500">{formatEnumLabel(payment.paymentMethod) || 'NA'}</p>
+                          </td>
+                          <td className="px-5 py-4">
+                            <p className="text-sm font-semibold text-slate-950">{payment.tenant?.fullName || 'Unknown tenant'}</p>
+                            <p className="mt-1 text-xs text-slate-500">{payment.tenant?.tenantId || '-'}</p>
+                          </td>
+                          <td className="px-5 py-4 text-sm text-slate-700">{formatEnumLabel(payment.paymentType)}</td>
+                          <td className="px-5 py-4 text-sm text-slate-700">{payment.dueDate ? formatDate(payment.dueDate) : '-'}</td>
+                          <td className="px-5 py-4 text-sm font-semibold text-slate-950">{formatCurrency(toNumber(payment.amount))}</td>
+                          <td className="px-5 py-4">
+                            <PaymentStatusBadge status={payment.status} />
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            {canMarkPaid(payment.status) ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-emerald-200/80 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800"
+                                onClick={() => markAsPaid(payment)}
+                                loading={markingPaymentId === payment.id}
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                <span>Mark paid</span>
+                              </Button>
+                            ) : (
+                              <span className="text-xs font-medium text-slate-400">No action</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </section>
+      )}
 
-      <Modal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title="Create Payment"
-        description="Add a new payment entry for this property"
-      >
-        <form className="space-y-4" onSubmit={createPayment}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="Payment ID (Optional)"
-              placeholder="Auto-generated if empty"
-              value={createForm.paymentId}
-              onChange={(event) => setCreateForm((prev) => ({ ...prev, paymentId: event.target.value }))}
-            />
+      <Modal isOpen={showCreateModal} onClose={handleCloseCreateModal} title="Add payment" size="lg">
+        <form className="space-y-5" onSubmit={createPayment}>
+          <div className="max-h-[72vh] space-y-5 overflow-y-auto pr-1">
+            <PaymentFormSection icon={User} title="Tenant and payment type">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Dropdown
+                  premium
+                  searchable
+                  label="Tenant"
+                  options={tenantOptions}
+                  value={createForm.tenantId}
+                  onChange={(value) => updateCreateField('tenantId', value)}
+                  placeholder={tenantOptions.length ? 'Select active tenant' : 'No active tenants'}
+                  error={createErrors.tenantId}
+                  disabled={!tenantOptions.length}
+                />
 
-            <label className="flex flex-col gap-1 text-sm text-gray-700">
-              <span className="text-sm font-medium">Tenant *</span>
-              <select
-                value={createForm.tenantId}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, tenantId: event.target.value }))}
-                className={`h-10 rounded-lg border bg-white px-3 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 ${
-                  createErrors.tenantId ? 'border-red-400' : 'border-gray-200'
-                }`}
-              >
-                <option value="">Select tenant</option>
-                {tenants.map((tenant) => (
-                  <option key={tenant.id} value={tenant.id}>
-                    {tenant.fullName} ({tenant.tenantId})
-                  </option>
-                ))}
-              </select>
-              {createErrors.tenantId && <span className="text-xs text-red-600">{createErrors.tenantId}</span>}
-            </label>
+                <Dropdown
+                  premium
+                  label="Payment Type"
+                  options={paymentTypeDropdownOptions.filter((option) => option.value)}
+                  value={createForm.paymentType}
+                  onChange={(value) => updateCreateField('paymentType', value)}
+                  error={createErrors.paymentType}
+                />
 
-            <Input
-              label="Amount *"
-              type="number"
-              min="1"
-              placeholder="0"
-              value={createForm.amount}
-              onChange={(event) => setCreateForm((prev) => ({ ...prev, amount: event.target.value }))}
-              error={createErrors.amount}
-            />
+                <Dropdown
+                  premium
+                  label="Payment Method"
+                  options={paymentMethodDropdownOptions}
+                  value={createForm.paymentMethod}
+                  onChange={(value) => updateCreateField('paymentMethod', value)}
+                />
 
-            <Input
-              label="Due Date *"
-              type="date"
-              value={createForm.dueDate}
-              onChange={(event) => setCreateForm((prev) => ({ ...prev, dueDate: event.target.value }))}
-              error={createErrors.dueDate}
-            />
+                <Input
+                  premium
+                  label="Payment ID"
+                  placeholder="Auto-generated if empty"
+                  value={createForm.paymentId}
+                  onChange={(event) => updateCreateField('paymentId', event.target.value)}
+                />
+              </div>
+            </PaymentFormSection>
 
-            <label className="flex flex-col gap-1 text-sm text-gray-700">
-              <span className="text-sm font-medium">Payment Type *</span>
-              <select
-                value={createForm.paymentType}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, paymentType: event.target.value }))}
-                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                {PAYMENT_TYPE_OPTIONS.filter((option) => option.value).map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <PaymentFormSection icon={WalletCards} title="Amount and schedule" tone="sky">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  premium
+                  label="Amount"
+                  type="number"
+                  min="1"
+                  placeholder="0"
+                  value={createForm.amount}
+                  onChange={(event) => updateCreateField('amount', event.target.value)}
+                  error={createErrors.amount}
+                />
 
-            <label className="flex flex-col gap-1 text-sm text-gray-700">
-              <span className="text-sm font-medium">Payment Method</span>
-              <select
-                value={createForm.paymentMethod}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, paymentMethod: event.target.value }))}
-                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                {PAYMENT_METHOD_OPTIONS.map((method) => (
-                  <option key={method} value={method}>
-                    {method.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <Input
+                  premium
+                  label="Due date"
+                  type="date"
+                  value={createForm.dueDate}
+                  onChange={(event) => updateCreateField('dueDate', event.target.value)}
+                  error={createErrors.dueDate}
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  rows={3}
+                  value={createForm.description}
+                  onChange={(event) => updateCreateField('description', event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-elegant transition-all duration-200 hover:border-gray-300 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/15"
+                  placeholder="Optional note for this payment"
+                />
+              </div>
+            </PaymentFormSection>
           </div>
 
-          <Input
-            label="Description"
-            placeholder="Optional note for this payment"
-            value={createForm.description}
-            onChange={(event) => setCreateForm((prev) => ({ ...prev, description: event.target.value }))}
-          />
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+          <div className="flex justify-end gap-2 border-t border-slate-200/80 pt-4">
+            <Button variant="outline" onClick={handleCloseCreateModal}>
               Cancel
             </Button>
             <Button type="submit" loading={saving}>
-              <span>Create Payment</span>
+              <span>Create payment</span>
             </Button>
           </div>
         </form>

@@ -415,6 +415,13 @@ enum PaymentStatus {
   CANCELLED
 }
 
+enum NoticeAudience {
+  PROPERTY
+  FLOOR
+  ROOM
+  TENANT
+}
+
 enum NotificationType {
   INFO
   SUCCESS
@@ -439,12 +446,15 @@ model Notice {
   title       String
   content     String
   noticeType  NoticeType  @default(GENERAL)
+  audienceType NoticeAudience @default(PROPERTY)
   priority    Priority    @default(MEDIUM)
   isPublished Boolean     @default(false)
   publishDate DateTime?
   expiryDate  DateTime?
   attachment  String?     // File path
   readBy      String[]    @default([]) // Array of tenant IDs
+  targetFloorIds String[] @default([])
+  targetRoomIds  String[] @default([])
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
