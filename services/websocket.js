@@ -143,12 +143,18 @@ class WebSocketService {
     // Bed updates
     this.socket.on('bed-update', (data) => {
       console.log('🛏️ Bed update received:', data);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bed-update', { detail: data }));
+      }
       store.dispatch(updateBedStatus(data.data));
     });
 
     // Tenant updates
     this.socket.on('tenant-update', (data) => {
       console.log('👤 Tenant update received:', data);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tenant-update', { detail: data }));
+      }
       
       switch (data.type) {
         case 'create':
@@ -178,6 +184,13 @@ class WebSocketService {
             variant: 'info'
           }));
           break;
+      }
+    });
+
+    this.socket.on('property-metrics-update', (data) => {
+      console.log('🏠 Property metrics update received:', data);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('property-metrics-update', { detail: data }));
       }
     });
 

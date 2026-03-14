@@ -75,6 +75,29 @@ const getNotificationStyles = (type) => {
   }
 };
 
+const getPropertyLiveSnapshot = (property) => {
+  const floors = Array.isArray(property?.floors) ? property.floors : [];
+
+  let liveBeds = 0;
+  let occupiedBeds = 0;
+
+  floors.forEach((floor) => {
+    const rooms = Array.isArray(floor?.rooms) ? floor.rooms : [];
+
+    rooms.forEach((room) => {
+      const beds = Array.isArray(room?.beds) ? room.beds : [];
+      liveBeds += beds.length;
+      occupiedBeds += beds.filter((bed) => bed?.status === 'OCCUPIED').length;
+    });
+  });
+
+  return {
+    liveBeds,
+    occupiedBeds,
+    plannedBeds: Number(property?.totalBeds) || 0,
+  };
+};
+
 export function Header({ onOpenSidebar }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -112,8 +135,10 @@ export function Header({ onOpenSidebar }) {
 
     if (typeof window !== 'undefined') {
       window.addEventListener('property-update', handlePropertyUpdate);
+      window.addEventListener('property-metrics-update', handlePropertyUpdate);
       return () => {
         window.removeEventListener('property-update', handlePropertyUpdate);
+        window.removeEventListener('property-metrics-update', handlePropertyUpdate);
       };
     }
   }, []);
@@ -353,8 +378,10 @@ export function Header({ onOpenSidebar }) {
                       </div>
                     ) : properties.length ? (
                       properties.map((property) => {
-                        const totalBeds = property.totalBeds || 0;
-                        const occupiedBeds = property.occupiedBeds || 0;
+                        const { liveBeds, occupiedBeds, plannedBeds } = getPropertyLiveSnapshot(property);
+                        const occupancyLabel = liveBeds > 0
+                          ? `${occupiedBeds}/${liveBeds} beds occupied`
+                          : `${plannedBeds} planned beds`;
 
                         return (
                           <button
@@ -384,7 +411,7 @@ export function Header({ onOpenSidebar }) {
                                   {property.city || property.address}
                                 </p>
                                 <p className="mt-1 text-[11px] text-slate-400">
-                                  {occupiedBeds}/{totalBeds} beds occupied
+                                  {occupancyLabel}
                                 </p>
                               </div>
                               {selectedProperty?.id === property.id ? (

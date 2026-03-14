@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/error.middleware');
+const webSocketService = require('../services/websocket.service');
 
 const prisma = new PrismaClient();
 
@@ -278,6 +279,30 @@ const createBed = asyncHandler(async (req, res) => {
 
     console.log('✅ Bed created successfully:', bed.id);
 
+    await prisma.room.update({
+      where: { id: roomId },
+      data: {
+        currentBeds: {
+          increment: 1
+        }
+      }
+    });
+
+    await prisma.floor.update({
+      where: { id: room.floorId },
+      data: {
+        totalBeds: {
+          increment: 1
+        }
+      }
+    });
+
+    webSocketService.broadcastPropertyMetricsUpdate(room.floor.propertyId || room.floor.property?.id, {
+      source: 'beds',
+      action: 'create',
+      bedId: bed.id
+    });
+
     res.status(201).json({
       success: true,
       data: bed,
@@ -368,6 +393,8 @@ const updateBed = asyncHandler(async (req, res) => {
       }
     }
   });
+
+  webSocketService.broadcastBedUpdate(updatedBed.room.floor.property.id, updatedBed);
 
   res.status(200).json({
     success: true,
@@ -588,21 +615,17 @@ const deleteBed = asyncHandler(async (req, res) => {
     }
   });
 
-  // Update property bed count
-  await prisma.property.update({
-    where: { id: bed.room.floor.propertyId },
-    data: {
-      totalBeds: {
-        decrement: 1
-      }
-    }
-  });
-
   const responseMessage = bed.tenant 
     ? (relocateTenantToBedId 
       ? `Bed deleted successfully and tenant relocated to new bed`
       : `Bed deleted successfully and tenant marked as unassigned`)
     : 'Bed deleted successfully';
+
+  webSocketService.broadcastPropertyMetricsUpdate(bed.room.floor.propertyId, {
+    source: 'beds',
+    action: 'delete',
+    bedId: bed.id
+  });
 
   res.status(200).json({
     success: true,
@@ -669,7 +692,15 @@ const assignTenant = asyncHandler(async (req, res) => {
       status: 'OCCUPIED'
     },
     include: {
-      room: true,
+      room: {
+        include: {
+          floor: {
+            select: {
+              propertyId: true
+            }
+          }
+        }
+      },
       tenant: {
         select: {
           id: true,
@@ -680,6 +711,8 @@ const assignTenant = asyncHandler(async (req, res) => {
       }
     }
   });
+
+  webSocketService.broadcastBedUpdate(updatedBed.room.floor.propertyId, updatedBed);
 
   res.status(200).json({
     success: true,
@@ -722,9 +755,19 @@ const unassignTenant = asyncHandler(async (req, res) => {
       status: 'AVAILABLE'
     },
     include: {
-      room: true
+      room: {
+        include: {
+          floor: {
+            select: {
+              propertyId: true
+            }
+          }
+        }
+      }
     }
   });
+
+  webSocketService.broadcastBedUpdate(updatedBed.room.floor.propertyId, updatedBed);
 
   res.status(200).json({
     success: true,

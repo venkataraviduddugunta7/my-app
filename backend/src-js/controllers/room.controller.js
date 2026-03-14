@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/error.middleware');
+const webSocketService = require('../services/websocket.service');
 
 const prisma = new PrismaClient();
 
@@ -244,6 +245,21 @@ const createRoom = asyncHandler(async (req, res) => {
     });
 
     console.log('✅ Room created successfully:', room.id);
+
+    await prisma.floor.update({
+      where: { id: floorId },
+      data: {
+        totalRooms: {
+          increment: 1
+        }
+      }
+    });
+
+    webSocketService.broadcastPropertyMetricsUpdate(floor.propertyId, {
+      source: 'rooms',
+      action: 'create',
+      roomId: room.id
+    });
 
     res.status(201).json({
       success: true,
@@ -521,22 +537,15 @@ const deleteRoom = asyncHandler(async (req, res) => {
     }
   });
 
-  // Update property counts
-  await prisma.property.update({
-    where: { id: room.floor.propertyId },
-    data: {
-      totalRooms: {
-        decrement: 1
-      },
-      totalBeds: {
-        decrement: room.beds.length
-      }
-    }
-  });
-
   const responseMessage = occupiedBeds.length > 0 && forceDelete
     ? `Room deleted successfully. ${occupiedBeds.length} tenants marked as unassigned.`
     : 'Room deleted successfully';
+
+  webSocketService.broadcastPropertyMetricsUpdate(room.floor.propertyId, {
+    source: 'rooms',
+    action: 'delete',
+    roomId: room.id
+  });
 
   res.status(200).json({
     success: true,

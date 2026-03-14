@@ -162,125 +162,60 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 // GET /api/dashboard/recent-activities - Get recent activities
 const getRecentActivities = asyncHandler(async (req, res) => {
   const { propertyId, limit = 20 } = req.query;
-  const userId = req.user.id;
+  const pageSize = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
 
-  // Build where clause for user's properties
-  const whereClause = {};
+  const where = {
+    userId: req.user.id,
+  };
+
   if (propertyId) {
-    whereClause.propertyId = propertyId;
-  } else {
-    const userProperties = await prisma.property.findMany({
-      where: { ownerId: userId },
-      select: { id: true }
-    });
-    whereClause.propertyId = { in: userProperties.map(p => p.id) };
+    where.OR = [{ propertyId }, { propertyId: null }];
   }
 
-  // Get recent activities from different sources
-  const [recentTenants, recentPayments, recentMaintenance] = await Promise.all([
-    // Recent tenant activities
-    prisma.tenant.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      select: {
-        id: true,
-        fullName: true,
-        createdAt: true,
-        status: true,
-        bed: {
-          select: {
-            bedNumber: true,
-            room: {
-              select: {
-                roomNumber: true
-              }
-            }
-          }
-        }
-      }
-    }),
-    
-    // Recent payments
-    prisma.payment.findMany({
-      where: {
-        ...whereClause,
-        status: 'PAID'
+  const notifications = await prisma.notification.findMany({
+    where,
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: pageSize,
+    select: {
+      id: true,
+      title: true,
+      message: true,
+      type: true,
+      category: true,
+      actionUrl: true,
+      entityType: true,
+      entityId: true,
+      createdAt: true,
+      isRead: true,
+      property: {
+        select: {
+          id: true,
+          name: true,
+        },
       },
-      orderBy: { paidDate: 'desc' },
-      take: 5,
-      select: {
-        id: true,
-        amount: true,
-        paidDate: true,
-        tenant: {
-          select: {
-            fullName: true
-          }
-        }
-      }
-    }),
-    
-    // Recent maintenance requests
-    prisma.maintenanceRequest ? prisma.maintenanceRequest.findMany({
-      where: {
-        status: 'COMPLETED'
-      },
-      orderBy: { completedAt: 'desc' },
-      take: 3,
-      select: {
-        id: true,
-        title: true,
-        completedAt: true,
-        cost: true
-      }
-    }) : []
-  ]);
-
-  // Format activities
-  const activities = [];
-
-  // Add tenant activities
-  recentTenants.forEach(tenant => {
-    activities.push({
-      id: `tenant-${tenant.id}`,
-      type: 'tenant_joined',
-      message: `${tenant.fullName} joined ${tenant.bed?.room?.roomNumber || 'room'}`,
-      timestamp: tenant.createdAt.toISOString(),
-      data: { tenantId: tenant.id }
-    });
+    },
   });
 
-  // Add payment activities
-  recentPayments.forEach(payment => {
-    activities.push({
-      id: `payment-${payment.id}`,
-      type: 'payment_received',
-      message: `Payment received from ${payment.tenant.fullName} - ₹${payment.amount}`,
-      timestamp: payment.paidDate.toISOString(),
-      data: { paymentId: payment.id, amount: payment.amount }
-    });
-  });
+  const activities = notifications.map((notification) => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.message,
+    type: notification.type,
+    category: notification.category,
+    actionUrl: notification.actionUrl,
+    entityType: notification.entityType,
+    entityId: notification.entityId,
+    timestamp: notification.createdAt.toISOString(),
+    isRead: notification.isRead,
+    propertyId: notification.property?.id || null,
+    propertyName: notification.property?.name || null,
+  }));
 
-  // Add maintenance activities
-  if (Array.isArray(recentMaintenance)) {
-    recentMaintenance.forEach(maintenance => {
-      activities.push({
-        id: `maintenance-${maintenance.id}`,
-        type: 'maintenance_completed',
-        message: `${maintenance.title} completed - ₹${maintenance.cost || 0}`,
-        timestamp: maintenance.completedAt.toISOString(),
-        data: { maintenanceId: maintenance.id, cost: maintenance.cost }
-      });
-    });
-  }
-
-  // Sort by timestamp and limit
-  activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  
   res.status(200).json({
     success: true,
-    data: activities.slice(0, parseInt(limit))
+    data: activities,
   });
 });
 

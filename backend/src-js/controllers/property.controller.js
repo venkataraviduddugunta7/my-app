@@ -7,9 +7,61 @@ const VALID_PROPERTY_TYPES = new Set(['Men', 'Women', 'Co-ed']);
 const PINCODE_REGEX = /^\d{6}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[0-9+\-()\s]{7,20}$/;
+const INDIA_STATE_OPTIONS = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry'
+];
+const INDIA_STATES = new Set(INDIA_STATE_OPTIONS);
+const STATE_ALIAS_MAP = {
+  nctofdelhi: 'Delhi',
+  delhi: 'Delhi',
+  orissa: 'Odisha',
+  odisha: 'Odisha',
+  pondicherry: 'Puducherry',
+  puducherry: 'Puducherry',
+  dadraandnagarhavelianddamananddiu: 'Dadra and Nagar Haveli and Daman and Diu'
+};
 
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const cleanString = (value) => (typeof value === 'string' ? value.trim() : value);
+const normalizeTextToken = (value) =>
+  cleanString(value)
+    ?.toLowerCase()
+    .replace(/[^a-z0-9]/g, '') || '';
 
 const toInteger = (value) => {
   if (value === '' || value === null || value === undefined) return undefined;
@@ -40,6 +92,28 @@ const sanitizeAmenities = (amenities) =>
   Array.isArray(amenities)
     ? [...new Set(amenities.map((item) => cleanString(item)).filter(Boolean))]
     : [];
+
+const normalizeIndianState = (value) => {
+  const text = cleanString(value);
+  if (!text) return '';
+
+  if (INDIA_STATES.has(text)) {
+    return text;
+  }
+
+  const token = normalizeTextToken(text);
+  if (STATE_ALIAS_MAP[token]) {
+    return STATE_ALIAS_MAP[token];
+  }
+
+  for (const option of INDIA_STATE_OPTIONS) {
+    if (normalizeTextToken(option) === token) {
+      return option;
+    }
+  }
+
+  return text;
+};
 
 const validatePropertyPayload = (input, options = {}) => {
   const { isUpdate = false, existingProperty = null } = options;
@@ -76,9 +150,14 @@ const validatePropertyPayload = (input, options = {}) => {
   }
 
   if (shouldValidate('state')) {
-    const state = cleanString(input.state);
-    if (!state) errors.push('State is required.');
-    else payload.state = state;
+    const state = normalizeIndianState(input.state);
+    if (!state) {
+      errors.push('State is required.');
+    } else if (!INDIA_STATES.has(state)) {
+      errors.push('Select a valid Indian state/UT.');
+    } else {
+      payload.state = state;
+    }
   }
 
   if (shouldValidate('pincode')) {
@@ -170,13 +249,46 @@ const validatePropertyPayload = (input, options = {}) => {
 
   if (shouldValidate('description')) {
     const description = cleanString(input.description);
-    payload.description = description || null;
+    if (description && description.length > 500) {
+      errors.push('Description should be 500 characters or fewer.');
+    } else {
+      payload.description = description || null;
+    }
   }
 
   if (shouldValidate('amenities')) {
     payload.amenities = sanitizeAmenities(input.amenities);
   } else if (!isUpdate) {
     payload.amenities = [];
+  }
+
+  const resolvedTotalFloors =
+    payload.totalFloors !== undefined ? payload.totalFloors : existingProperty?.totalFloors;
+  const resolvedTotalRooms =
+    payload.totalRooms !== undefined ? payload.totalRooms : existingProperty?.totalRooms;
+  const resolvedTotalBeds =
+    payload.totalBeds !== undefined ? payload.totalBeds : existingProperty?.totalBeds;
+
+  if (
+    resolvedTotalRooms !== undefined &&
+    resolvedTotalBeds !== undefined &&
+    resolvedTotalRooms !== null &&
+    resolvedTotalBeds !== null &&
+    resolvedTotalRooms > resolvedTotalBeds
+  ) {
+    errors.push('Total rooms cannot be greater than total beds.');
+  }
+
+  if (
+    resolvedTotalFloors !== undefined &&
+    resolvedTotalRooms !== undefined &&
+    resolvedTotalFloors !== null &&
+    resolvedTotalRooms !== null &&
+    resolvedTotalFloors > 0 &&
+    resolvedTotalRooms > 0 &&
+    resolvedTotalRooms < resolvedTotalFloors
+  ) {
+    errors.push('Total rooms should be greater than or equal to total floors.');
   }
 
   return { errors, payload };
@@ -205,7 +317,16 @@ const getProperties = asyncHandler(async (req, res) => {
         include: {
           rooms: {
             include: {
-              beds: true
+              beds: {
+                include: {
+                  tenant: {
+                    select: {
+                      id: true,
+                      status: true
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -247,7 +368,16 @@ const getProperty = asyncHandler(async (req, res) => {
         include: {
           rooms: {
             include: {
-              beds: true
+              beds: {
+                include: {
+                  tenant: {
+                    select: {
+                      id: true,
+                      status: true
+                    }
+                  }
+                }
+              }
             }
           }
         }

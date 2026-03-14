@@ -10,12 +10,6 @@ export const fetchDashboardStats = createAsyncThunk(
     try {
       const state = getState();
       const token = state.auth.token;
-      
-      // Check if data was fetched recently (within last 30 seconds)
-      const lastFetch = state.dashboard.lastFetch.stats;
-      if (lastFetch && Date.now() - new Date(lastFetch).getTime() < 30000) {
-        return state.dashboard.stats; // Return cached data
-      }
 
       const url = new URL(`${API_BASE_URL}/dashboard/stats`);
       if (propertyId) url.searchParams.append('propertyId', propertyId);
@@ -191,16 +185,6 @@ export const fetchDashboardData = createAsyncThunk(
     try {
       const state = getState();
       const token = state.auth.token;
-      
-      // Check if data was fetched recently (within last 30 seconds)
-      const lastFetch = state.dashboard.lastFetch.stats;
-      if (lastFetch && Date.now() - new Date(lastFetch).getTime() < 30000) {
-        return {
-          stats: state.dashboard.stats,
-          activities: state.dashboard.recentActivities,
-          settings: state.dashboard.userSettings
-        };
-      }
 
       // Batch multiple API calls
       const baseUrl = API_BASE_URL;

@@ -168,6 +168,11 @@ class WebSocketService {
         data: bedData,
         timestamp: new Date().toISOString()
       });
+      this.broadcastPropertyMetricsUpdate(propertyId, {
+        source: 'beds',
+        action: 'update',
+        bedId: bedData?.id || null
+      });
     }
   }
 
@@ -177,6 +182,11 @@ class WebSocketService {
         type: action, // 'create', 'update', 'delete', 'vacate'
         data: tenantData,
         timestamp: new Date().toISOString()
+      });
+      this.broadcastPropertyMetricsUpdate(propertyId, {
+        source: 'tenants',
+        action,
+        tenantId: tenantData?.id || null
       });
     }
   }
@@ -246,6 +256,18 @@ class WebSocketService {
         priority: 'CRITICAL',
         timestamp: new Date().toISOString()
       });
+    }
+  }
+
+  broadcastPropertyMetricsUpdate(propertyId, changes = {}) {
+    if (this.io && propertyId) {
+      const payload = {
+        propertyId,
+        ...changes,
+        timestamp: new Date().toISOString()
+      };
+
+      this.io.to('properties').emit('property-metrics-update', payload);
     }
   }
 
