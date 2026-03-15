@@ -1550,10 +1550,7 @@ export default function RoomsPage() {
   };
 
   // Navigation handlers
-  const handleFloorClick = (floorOrId) => {
-    const floorId = typeof floorOrId === 'string' ? floorOrId : floorOrId?.id;
-    if (!floorId) return;
-
+  const handleFloorClick = (floorId) => {
     // Set the floor filter and navigate to rooms tab
     setSelectedFloorFilter(floorId.toString());
     setActiveTab('rooms');
@@ -1561,10 +1558,7 @@ export default function RoomsPage() {
     setRoomSearchTerm('');
   };
 
-  const handleRoomClick = (roomOrId) => {
-    const roomId = typeof roomOrId === 'string' ? roomOrId : roomOrId?.id;
-    if (!roomId) return;
-
+  const handleRoomClick = (roomId) => {
     // Set the room filter and navigate to beds tab
     setSelectedRoomFilter(roomId.toString());
     setActiveTab('beds');
