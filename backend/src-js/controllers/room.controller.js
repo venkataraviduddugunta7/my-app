@@ -3,12 +3,29 @@ const { asyncHandler } = require('../middleware/error.middleware');
 const webSocketService = require('../services/websocket.service');
 
 const prisma = new PrismaClient();
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+const roomTypeDisplayMapping = {
+  SINGLE: 'Single',
+  SHARED: 'Shared',
+  DORMITORY: 'Dormitory'
+};
+
+const withDisplayRoomType = (room) => ({
+  ...room,
+  type: roomTypeDisplayMapping[room.roomType] || room.roomType
+});
 
 // GET /api/rooms - Get all rooms
 const getRooms = asyncHandler(async (req, res) => {
   const { floorId, propertyId, status } = req.query;
   
-  const where = {};
+  const where = {
+    floor: {
+      property: {
+        ownerId: req.user.id
+      }
+    }
+  };
   
   if (floorId) {
     where.floorId = floorId;
@@ -16,6 +33,7 @@ const getRooms = asyncHandler(async (req, res) => {
   
   if (propertyId) {
     where.floor = {
+      ...where.floor,
       propertyId: propertyId
     };
   }
@@ -61,16 +79,7 @@ const getRooms = asyncHandler(async (req, res) => {
   });
 
   // Map enum values to display values
-  const roomTypeDisplayMapping = {
-    'SINGLE': 'Single',
-    'SHARED': 'Shared',
-    'DORMITORY': 'Dormitory'
-  };
-
-  const roomsWithDisplayTypes = rooms.map(room => ({
-    ...room,
-    type: roomTypeDisplayMapping[room.roomType] || room.roomType
-  }));
+  const roomsWithDisplayTypes = rooms.map(withDisplayRoomType);
 
   res.status(200).json({
     success: true,
@@ -83,8 +92,15 @@ const getRooms = asyncHandler(async (req, res) => {
 const getRoom = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const room = await prisma.room.findUnique({
-    where: { id },
+  const room = await prisma.room.findFirst({
+    where: {
+      id,
+      floor: {
+        property: {
+          ownerId: req.user.id
+        }
+      }
+    },
     include: {
       floor: {
         include: {
@@ -123,20 +139,9 @@ const getRoom = asyncHandler(async (req, res) => {
   }
 
   // Map enum values to display values
-  const roomTypeDisplayMapping = {
-    'SINGLE': 'Single',
-    'SHARED': 'Shared',
-    'DORMITORY': 'Dormitory'
-  };
-
-  const roomWithDisplayType = {
-    ...room,
-    type: roomTypeDisplayMapping[room.roomType] || room.roomType
-  };
-
   res.status(200).json({
     success: true,
-    data: roomWithDisplayType
+    data: withDisplayRoomType(room)
   });
 });
 
@@ -263,7 +268,7 @@ const createRoom = asyncHandler(async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: room,
+      data: withDisplayRoomType(room),
       message: 'Room created successfully'
     });
   } catch (error) {
@@ -291,8 +296,15 @@ const updateRoom = asyncHandler(async (req, res) => {
   } = req.body;
 
   // Check if room exists
-  const existingRoom = await prisma.room.findUnique({
-    where: { id }
+  const existingRoom = await prisma.room.findFirst({
+    where: {
+      id,
+      floor: {
+        property: {
+          ownerId: req.user.id
+        }
+      }
+    }
   });
 
   if (!existingRoom) {
@@ -320,19 +332,29 @@ const updateRoom = asyncHandler(async (req, res) => {
     }
   }
 
+  const nextCapacity = hasOwn(req.body, 'capacity') ? parseInt(capacity) : existingRoom.capacity;
+  if (Number.isFinite(nextCapacity) && nextCapacity < existingRoom.currentBeds) {
+    return res.status(400).json({
+      success: false,
+      error: { message: `Room capacity cannot be lower than current configured beds (${existingRoom.currentBeds})` }
+    });
+  }
+
+  const nextRoomType = req.body.roomType || req.body.type;
+  const updateData = {};
+  if (hasOwn(req.body, 'roomNumber') && roomNumber) updateData.roomNumber = roomNumber;
+  if (hasOwn(req.body, 'name')) updateData.name = name || null;
+  if (hasOwn(req.body, 'roomType') || hasOwn(req.body, 'type')) updateData.roomType = nextRoomType ? nextRoomType.toUpperCase() : existingRoom.roomType;
+  if (hasOwn(req.body, 'capacity')) updateData.capacity = parseInt(capacity);
+  if (hasOwn(req.body, 'rent')) updateData.rent = rent === '' || rent === null ? 0 : parseFloat(rent);
+  if (hasOwn(req.body, 'deposit')) updateData.deposit = deposit === '' || deposit === null ? 0 : parseFloat(deposit);
+  if (hasOwn(req.body, 'description')) updateData.description = description || null;
+  if (hasOwn(req.body, 'amenities')) updateData.amenities = amenities || [];
+  if (hasOwn(req.body, 'status') && status) updateData.status = status;
+
   const updatedRoom = await prisma.room.update({
     where: { id },
-    data: {
-      ...(roomNumber && { roomNumber }),
-      ...(name && { name }),
-      ...(roomType && { roomType }),
-      ...(capacity && { capacity: parseInt(capacity) }),
-      ...(rent && { rent: parseFloat(rent) }),
-      ...(deposit && { deposit: parseFloat(deposit) }),
-      ...(description !== undefined && { description }),
-      ...(amenities && { amenities }),
-      ...(status && { status })
-    },
+    data: updateData,
     include: {
       floor: {
         include: {
@@ -360,7 +382,7 @@ const updateRoom = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: updatedRoom,
+    data: withDisplayRoomType(updatedRoom),
     message: 'Room updated successfully'
   });
 });
@@ -371,8 +393,15 @@ const deleteRoom = asyncHandler(async (req, res) => {
   const { forceDelete = false } = req.body;
 
   // Check if room exists
-  const room = await prisma.room.findUnique({
-    where: { id },
+  const room = await prisma.room.findFirst({
+    where: {
+      id,
+      floor: {
+        property: {
+          ownerId: req.user.id
+        }
+      }
+    },
     include: {
       beds: {
         include: {
@@ -563,8 +592,27 @@ const deleteRoom = asyncHandler(async (req, res) => {
 const getRoomBeds = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
+  const room = await prisma.room.findFirst({
+    where: {
+      id,
+      floor: {
+        property: {
+          ownerId: req.user.id
+        }
+      }
+    },
+    select: { id: true }
+  });
+
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      error: { message: 'Room not found' }
+    });
+  }
+
   const beds = await prisma.bed.findMany({
-    where: { roomId: id },
+    where: { roomId: room.id },
     include: {
       tenant: {
         select: {

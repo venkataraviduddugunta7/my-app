@@ -127,7 +127,7 @@ export default function AuthScreen({ initialMode = 'login' }) {
         body: JSON.stringify({ email: loginData.email, password: loginData.password }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Login failed');
+      if (!response.ok) throw new Error(data.error?.message || data.message || 'Login failed');
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', data.data.token);
@@ -153,7 +153,17 @@ export default function AuthScreen({ initialMode = 'login' }) {
     try {
       const result = await dispatch(registerUser(payload));
       if (registerUser.fulfilled.match(result)) {
-        dispatch(addToast({ title: 'Account created', description: 'Redirecting to dashboard', variant: 'success' }));
+        const status = result.payload?.user?.subscriptionStatus;
+        dispatch(
+          addToast({
+            title: 'Account created',
+            description:
+              status === 'WAITING_APPROVAL'
+                ? 'Your account is pending approval. You can continue while approval is in progress.'
+                : 'Redirecting to dashboard',
+            variant: 'success',
+          })
+        );
         setTimeout(() => router.push('/'), 300);
       }
     } finally {

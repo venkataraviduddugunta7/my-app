@@ -56,6 +56,47 @@ import {
   Briefcase
 } from 'lucide-react';
 
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+
+const parseEmergencyContact = (value = '') => {
+  const normalizedValue = String(value || '').trim();
+  if (!normalizedValue) {
+    return {
+      emergencyContact: '',
+      emergencyContactPhone: '',
+    };
+  }
+
+  const phoneMatch = normalizedValue.match(/(\+91[\s-]*)?[6-9]\d{9}/);
+  if (!phoneMatch) {
+    return {
+      emergencyContact: normalizedValue,
+      emergencyContactPhone: '',
+    };
+  }
+
+  const emergencyContactPhone = phoneMatch[0].replace(/\s+/g, '');
+  const emergencyContact = normalizedValue
+    .replace(phoneMatch[0], '')
+    .replace(/[-|(),]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return {
+    emergencyContact,
+    emergencyContactPhone,
+  };
+};
+
+const formatEmergencyContact = ({ emergencyContact, emergencyContactPhone }) => {
+  const name = String(emergencyContact || '').trim();
+  const phone = String(emergencyContactPhone || '').trim();
+
+  if (name && phone) return `${name} - ${phone}`;
+  if (phone) return phone;
+  return name;
+};
+
 function InventoryMetricCard({ icon: Icon, label, value, helper, active = false }) {
   return (
     <div
@@ -682,8 +723,9 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
     idProofNumber: '',
     occupation: '',
     company: '',
-    monthlyIncome: '',
     emergencyContact: '',
+    emergencyContactPhone: '',
+    termsAccepted: false,
     floorId: '',
     roomId: '',
     bedId: '',
@@ -695,6 +737,7 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
   useEffect(() => {
     if (tenant) {
       console.log('🔧 Editing tenant, populating form with:', tenant);
+      const parsedEmergencyContact = parseEmergencyContact(tenant.emergencyContact);
       setFormData({
         fullName: tenant.fullName || '',
         email: tenant.email || '',
@@ -705,8 +748,9 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
         idProofNumber: tenant.idProofNumber || '',
         occupation: tenant.occupation || '',
         company: tenant.company || '',
-        monthlyIncome: tenant.monthlyIncome || '',
-        emergencyContact: tenant.emergencyContact || '',
+        emergencyContact: parsedEmergencyContact.emergencyContact,
+        emergencyContactPhone: parsedEmergencyContact.emergencyContactPhone,
+        termsAccepted: tenant.termsAccepted ?? true,
         floorId: tenant.bed?.room?.floorId || '',
         roomId: tenant.bed?.roomId || '',
         bedId: tenant.bed?.id || '',
@@ -725,8 +769,9 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
         idProofNumber: '',
         occupation: '',
         company: '',
-        monthlyIncome: '',
         emergencyContact: '',
+        emergencyContactPhone: '',
+        termsAccepted: false,
         floorId: '',
         roomId: '',
         bedId: '',
@@ -849,13 +894,26 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
       return;
     }
 
+    if (!formData.termsAccepted) {
+      alert('Please confirm that the tenant has accepted the house rules');
+      return;
+    }
+
+    if (formData.emergencyContactPhone && !PHONE_REGEX.test(formData.emergencyContactPhone.replace(/\s+/g, ''))) {
+      alert('Please enter a valid emergency mobile number');
+      return;
+    }
+
     const tenantData = {
       ...formData,
-      monthlyIncome: formData.monthlyIncome ? parseFloat(formData.monthlyIncome) : null,
+      emergencyContact: formatEmergencyContact(formData),
       securityDeposit: formData.securityDeposit ? parseFloat(formData.securityDeposit) : 0,
       advanceRent: formData.advanceRent ? parseFloat(formData.advanceRent) : 0,
-      joiningDate: new Date().toISOString()
+      joiningDate: new Date().toISOString(),
+      termsAcceptedAt: formData.termsAccepted ? new Date().toISOString() : null,
     };
+
+    delete tenantData.emergencyContactPhone;
 
     console.log('🔧 Submitting tenant data:', tenantData);
     onSubmit(tenantData);
@@ -945,7 +1003,7 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
               <Briefcase className="w-5 h-5 mr-2 text-purple-600" />
               Occupation Details
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Occupation"
                 value={formData.occupation}
@@ -958,26 +1016,20 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
                 onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
                 placeholder="Company name"
               />
-              <Input
-                label="Monthly Income (₹)"
-                type="number"
-                min="0"
-                value={formData.monthlyIncome || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const numValue = value === '' ? 0 : parseFloat(value);
-                  setFormData(prev => ({ ...prev, monthlyIncome: isNaN(numValue) ? 0 : numValue }));
-                }}
-                placeholder="Enter monthly income"
-              />
             </div>
             
-            <div className="mt-4">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Emergency Contact"
+                label="Emergency Contact Name"
                 value={formData.emergencyContact}
                 onChange={(e) => setFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
-                placeholder="Emergency contact name and phone"
+                placeholder="Emergency contact name"
+              />
+              <Input
+                label="Emergency Contact Number"
+                value={formData.emergencyContactPhone}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactPhone: e.target.value.replace(/[^\d+\s-]/g, '') }))}
+                placeholder="Emergency contact mobile number"
               />
             </div>
           </div>
@@ -1110,12 +1162,24 @@ function TenantFormModal({ isOpen, onClose, tenant = null, onSubmit, availableBe
             </div>
           </div>
 
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <label className="flex items-start gap-3 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={formData.termsAccepted}
+                onChange={(e) => setFormData(prev => ({ ...prev, termsAccepted: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+              />
+              <span>I confirm the resident has accepted the current house rules before admission.</span>
+            </label>
+          </div>
+
           {/* Form Actions */}
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={!formData.termsAccepted}>
               {tenant ? 'Update Tenant' : 'Add Tenant'}
             </Button>
           </div>

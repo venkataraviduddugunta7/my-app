@@ -5,6 +5,14 @@ const { asyncHandler } = require('../middleware/error.middleware');
 
 const prisma = new PrismaClient();
 
+const usernameRegex = /^[a-zA-Z0-9._-]{3,30}$/;
+
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+const normalizeOptionalString = (value) => {
+  const normalized = String(value || '').trim();
+  return normalized ? normalized : null;
+};
+
 // Generate JWT Token
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -14,20 +22,31 @@ const generateToken = (userId) => {
 
 // POST /api/auth/register - Register new user
 const register = asyncHandler(async (req, res) => {
-  const { email, password, fullName, phone, role = 'OWNER' } = req.body;
+  const { email, password, fullName, phone, username } = req.body;
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedFullName = String(fullName || '').trim();
+  const normalizedPhone = String(phone || '').trim();
+  const normalizedUsername = normalizeOptionalString(username);
 
   // Validation
-  if (!email || !password || !fullName || !phone) {
+  if (!normalizedEmail || !password || !normalizedFullName || !normalizedPhone) {
     return res.status(400).json({
       success: false,
       error: { message: 'Email, password, full name, and phone are required' }
     });
   }
 
+  if (normalizedUsername && !usernameRegex.test(normalizedUsername)) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'Username should be 3-30 characters and use only letters, numbers, dots, underscores, or hyphens' }
+    });
+  }
+
   // Check if user already exists
   const existingUser = await prisma.user.findFirst({
     where: {
-      email
+      email: normalizedEmail
     }
   });
 
@@ -38,6 +57,21 @@ const register = asyncHandler(async (req, res) => {
     });
   }
 
+  if (normalizedUsername) {
+    const existingUsername = await prisma.user.findFirst({
+      where: {
+        username: normalizedUsername
+      }
+    });
+
+    if (existingUsername) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Username is already taken' }
+      });
+    }
+  }
+
   // Hash password
   const saltRounds = 12;
   const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -45,12 +79,12 @@ const register = asyncHandler(async (req, res) => {
   // Create user with WAITING_APPROVAL status by default
   const user = await prisma.user.create({
     data: {
-      email,
-      username: email, // Use email as username for now
+      email: normalizedEmail,
+      username: normalizedUsername || normalizedEmail,
       password: hashedPassword,
-      fullName,
-      phone,
-      role,
+      fullName: normalizedFullName,
+      phone: normalizedPhone,
+      role: 'OWNER',
       subscriptionStatus: 'WAITING_APPROVAL', // Default status for new users
     },
     select: {
@@ -82,9 +116,10 @@ const register = asyncHandler(async (req, res) => {
 // POST /api/auth/login - Login user
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = normalizeEmail(email);
 
   // Validation
-  if (!email || !password) {
+  if (!normalizedEmail || !password) {
     return res.status(400).json({
       success: false,
       error: { message: 'Email and password are required' }
@@ -94,7 +129,7 @@ const login = asyncHandler(async (req, res) => {
   // Find user by email
   const user = await prisma.user.findFirst({
     where: {
-      email,
+      email: normalizedEmail,
       isActive: true
     }
   });

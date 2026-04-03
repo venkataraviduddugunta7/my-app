@@ -3,6 +3,8 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
+const ALLOWED_SUBSCRIPTION_STATUSES = ['ACTIVE', 'WAITING_APPROVAL'];
+
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -32,6 +34,7 @@ const authenticate = async (req, res, next) => {
           fullName: true,
           phone: true,
           role: true,
+          subscriptionStatus: true,
           isActive: true,
         }
       });
@@ -40,6 +43,23 @@ const authenticate = async (req, res, next) => {
         return res.status(401).json({
           success: false,
           error: { message: 'Invalid token - user not found' }
+        });
+      }
+
+      if (user.role !== 'ADMIN' && !ALLOWED_SUBSCRIPTION_STATUSES.includes(user.subscriptionStatus)) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: 'Account access denied. Please contact administrator.',
+            subscriptionStatus: user.subscriptionStatus
+          }
+        });
+      }
+
+      if (user.subscriptionStatus === 'ACTIVE') {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() }
         });
       }
 
@@ -86,11 +106,12 @@ const optionalAuth = async (req, res, next) => {
           fullName: true,
           phone: true,
           role: true,
+          subscriptionStatus: true,
           isActive: true,
         }
       });
 
-      if (user) {
+      if (user && (user.role === 'ADMIN' || ALLOWED_SUBSCRIPTION_STATUSES.includes(user.subscriptionStatus))) {
         req.user = user;
       }
     } catch (jwtError) {

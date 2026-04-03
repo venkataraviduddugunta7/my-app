@@ -134,9 +134,10 @@ export const logoutUser = createAsyncThunk(
         });
       }
 
-      // Remove token from localStorage
+      // Remove persisted auth state from localStorage
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
       }
 
       return null;
@@ -144,6 +145,7 @@ export const logoutUser = createAsyncThunk(
       // Still logout locally even if API call fails
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
       }
       return null;
     }

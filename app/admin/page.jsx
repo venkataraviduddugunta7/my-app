@@ -29,6 +29,8 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { Dropdown } from "@/components/ui/Dropdown";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api';
+
 export default function AdminPage() {
   const router = useRouter();
   const { user } = useSelector((state) => state.auth);
@@ -40,6 +42,11 @@ export default function AdminPage() {
   const [roleFilter, setRoleFilter] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionModal, setActionModal] = useState({ open: false, type: null, user: null });
+
+  const getAuthHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+    'Content-Type': 'application/json',
+  });
 
   // Check if user is admin
   useEffect(() => {
@@ -64,11 +71,8 @@ export default function AdminPage() {
       if (roleFilter) params.append('role', roleFilter);
       params.append('limit', '50');
 
-      const response = await fetch(`http://localhost:9000/api/admin/users?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch(`${API_BASE_URL}/admin/users?${params}`, {
+        headers: getAuthHeaders(),
       });
 
       const data = await response.json();
@@ -82,11 +86,8 @@ export default function AdminPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/admin/users/stats', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch(`${API_BASE_URL}/admin/users/stats`, {
+        headers: getAuthHeaders(),
       });
 
       const data = await response.json();
@@ -102,12 +103,9 @@ export default function AdminPage() {
 
   const updateUserStatus = async (userId, status, reason = '') => {
     try {
-      const response = await fetch('http://localhost:9000/api/admin/users/status', {
+      const response = await fetch(`${API_BASE_URL}/admin/users/status`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ userId, status, reason }),
       });
 
@@ -124,12 +122,9 @@ export default function AdminPage() {
 
   const deleteUser = async (userId, reason) => {
     try {
-      const response = await fetch('http://localhost:9000/api/admin/users', {
+      const response = await fetch(`${API_BASE_URL}/admin/users`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ userId, reason }),
       });
 

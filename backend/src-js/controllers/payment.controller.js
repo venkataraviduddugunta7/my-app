@@ -5,15 +5,23 @@ const appNotificationService = require('../services/app-notification.service');
 const logger = require('../services/logger.service');
 
 const prisma = new PrismaClient();
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 
 // GET /api/payments - Get all payments
 const getPayments = asyncHandler(async (req, res) => {
   const { propertyId, tenantId, status, paymentType, month, year } = req.query;
   
-  const where = {};
+  const where = {
+    property: {
+      ownerId: req.user.id,
+    },
+  };
   
   if (propertyId) {
-    where.propertyId = propertyId;
+    where.property = {
+      ...where.property,
+      id: propertyId,
+    };
   }
   
   if (tenantId) {
@@ -97,8 +105,13 @@ const getPayments = asyncHandler(async (req, res) => {
 const getPayment = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const payment = await prisma.payment.findUnique({
-    where: { id },
+  const payment = await prisma.payment.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    },
     include: {
       tenant: {
         select: {
@@ -204,8 +217,14 @@ const createPayment = asyncHandler(async (req, res) => {
   }
 
   // Check if tenant exists
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId }
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      id: tenantId,
+      propertyId,
+      property: {
+        ownerId: req.user.id,
+      },
+    }
   });
 
   if (!tenant) {
@@ -216,8 +235,11 @@ const createPayment = asyncHandler(async (req, res) => {
   }
 
   // Check if property exists
-  const property = await prisma.property.findUnique({
-    where: { id: propertyId }
+  const property = await prisma.property.findFirst({
+    where: {
+      id: propertyId,
+      ownerId: req.user.id,
+    }
   });
 
   if (!property) {
@@ -229,8 +251,18 @@ const createPayment = asyncHandler(async (req, res) => {
 
   // If bedId is provided, check if bed exists
   if (bedId) {
-    const bed = await prisma.bed.findUnique({
-      where: { id: bedId }
+    const bed = await prisma.bed.findFirst({
+      where: {
+        id: bedId,
+        room: {
+          floor: {
+            propertyId,
+            property: {
+              ownerId: req.user.id,
+            },
+          },
+        },
+      }
     });
 
     if (!bed) {
@@ -351,8 +383,13 @@ const updatePayment = asyncHandler(async (req, res) => {
   } = req.body;
 
   // Check if payment exists
-  const existingPayment = await prisma.payment.findUnique({
-    where: { id }
+  const existingPayment = await prisma.payment.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    }
   });
 
   if (!existingPayment) {
@@ -362,18 +399,20 @@ const updatePayment = asyncHandler(async (req, res) => {
     });
   }
 
+  const updateData = {};
+
+  if (hasOwn(req.body, 'amount')) updateData.amount = parseFloat(amount);
+  if (hasOwn(req.body, 'paymentMethod') && paymentMethod) updateData.paymentMethod = paymentMethod;
+  if (hasOwn(req.body, 'paidDate')) updateData.paidDate = paidDate ? new Date(paidDate) : null;
+  if (hasOwn(req.body, 'status') && status) updateData.status = status;
+  if (hasOwn(req.body, 'description')) updateData.description = description || null;
+  if (hasOwn(req.body, 'lateFee')) updateData.lateFee = lateFee === '' || lateFee === null ? 0 : parseFloat(lateFee);
+  if (hasOwn(req.body, 'discount')) updateData.discount = discount === '' || discount === null ? 0 : parseFloat(discount);
+  if (hasOwn(req.body, 'transactionId')) updateData.transactionId = transactionId || null;
+
   const updatedPayment = await prisma.payment.update({
     where: { id },
-    data: {
-      ...(amount && { amount: parseFloat(amount) }),
-      ...(paymentMethod && { paymentMethod }),
-      ...(paidDate !== undefined && { paidDate: paidDate ? new Date(paidDate) : null }),
-      ...(status && { status }),
-      ...(description !== undefined && { description }),
-      ...(lateFee !== undefined && { lateFee: parseFloat(lateFee) }),
-      ...(discount !== undefined && { discount: parseFloat(discount) }),
-      ...(transactionId !== undefined && { transactionId })
-    },
+    data: updateData,
     include: {
       tenant: {
         select: {
@@ -420,8 +459,13 @@ const deletePayment = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // Check if payment exists
-  const payment = await prisma.payment.findUnique({
-    where: { id }
+  const payment = await prisma.payment.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    }
   });
 
   if (!payment) {
@@ -456,8 +500,13 @@ const markPaymentPaid = asyncHandler(async (req, res) => {
   const { paymentMethod, transactionId, paidDate } = req.body;
 
   // Check if payment exists
-  const payment = await prisma.payment.findUnique({
-    where: { id }
+  const payment = await prisma.payment.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    }
   });
 
   if (!payment) {
@@ -556,8 +605,11 @@ const getPaymentStats = asyncHandler(async (req, res) => {
   
   const currentYear = year ? parseInt(year) : new Date().getFullYear();
   const where = {
+    property: {
+      ownerId: req.user.id,
+      ...(propertyId ? { id: propertyId } : {}),
+    },
     year: currentYear,
-    ...(propertyId && { propertyId })
   };
 
   const [totalPayments, paidPayments, pendingPayments, overduePayments] = await Promise.all([

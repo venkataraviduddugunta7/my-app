@@ -73,8 +73,13 @@ const getFloors = asyncHandler(async (req, res) => {
 const getFloor = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const floor = await prisma.floor.findUnique({
-    where: { id },
+  const floor = await prisma.floor.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id
+      }
+    },
     include: {
       rooms: {
         include: {

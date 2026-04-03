@@ -5,6 +5,7 @@ const logger = require('../services/logger.service');
 const appNotificationService = require('../services/app-notification.service');
 
 const prisma = new PrismaClient();
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 
 // GET /api/tenants - Get all tenants
 const getTenants = asyncHandler(async (req, res) => {
@@ -170,8 +171,13 @@ const searchTenantsByName = asyncHandler(async (req, res) => {
 const getTenant = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id },
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    },
     include: {
       bed: {
         include: {
@@ -272,6 +278,13 @@ const createTenant = asyncHandler(async (req, res) => {
     });
   }
 
+  if (termsAccepted !== true) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'Tenant rules must be accepted before creating the tenant record' }
+    });
+  }
+
   // Check if tenantId already exists
   const existingTenant = await prisma.tenant.findUnique({
     where: { tenantId }
@@ -285,8 +298,11 @@ const createTenant = asyncHandler(async (req, res) => {
   }
 
   // Check if property exists
-  const property = await prisma.property.findUnique({
-    where: { id: propertyId }
+  const property = await prisma.property.findFirst({
+    where: {
+      id: propertyId,
+      ownerId: req.user.id,
+    }
   });
 
   if (!property) {
@@ -298,8 +314,18 @@ const createTenant = asyncHandler(async (req, res) => {
 
   // If bedId is provided, check if bed is available
   if (bedId) {
-    const bed = await prisma.bed.findUnique({
-      where: { id: bedId },
+    const bed = await prisma.bed.findFirst({
+      where: {
+        id: bedId,
+        room: {
+          floor: {
+            propertyId,
+            property: {
+              ownerId: req.user.id,
+            },
+          },
+        },
+      },
       include: { tenant: true }
     });
 
@@ -318,11 +344,11 @@ const createTenant = asyncHandler(async (req, res) => {
     }
   }
 
-  const tenant = await prisma.tenant.create({
+  let tenant = await prisma.tenant.create({
     data: {
       tenantId,
       fullName,
-      email,
+      email: email ? String(email).trim().toLowerCase() : null,
       phone,
       alternatePhone,
       emergencyContact,
@@ -378,6 +404,27 @@ const createTenant = asyncHandler(async (req, res) => {
         id: tenant.id,
         fullName: tenant.fullName,
         phone: tenant.phone
+      }
+    });
+
+    tenant = await prisma.tenant.findUnique({
+      where: { id: tenant.id },
+      include: {
+        bed: {
+          include: {
+            room: {
+              include: {
+                floor: true
+              }
+            }
+          }
+        },
+        property: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     });
   }
@@ -443,8 +490,13 @@ const updateTenant = asyncHandler(async (req, res) => {
   } = req.body;
 
   // Check if tenant exists
-  const existingTenant = await prisma.tenant.findUnique({
-    where: { id }
+  const existingTenant = await prisma.tenant.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    }
   });
 
   if (!existingTenant) {
@@ -454,23 +506,25 @@ const updateTenant = asyncHandler(async (req, res) => {
     });
   }
 
+  const updateData = {};
+
+  if (hasOwn(req.body, 'fullName') && fullName) updateData.fullName = fullName;
+  if (hasOwn(req.body, 'email')) updateData.email = email ? String(email).trim().toLowerCase() : null;
+  if (hasOwn(req.body, 'phone') && phone) updateData.phone = phone;
+  if (hasOwn(req.body, 'alternatePhone')) updateData.alternatePhone = alternatePhone || null;
+  if (hasOwn(req.body, 'emergencyContact')) updateData.emergencyContact = emergencyContact || null;
+  if (hasOwn(req.body, 'address') && address) updateData.address = address;
+  if (hasOwn(req.body, 'occupation')) updateData.occupation = occupation || null;
+  if (hasOwn(req.body, 'company')) updateData.company = company || null;
+  if (hasOwn(req.body, 'monthlyIncome')) updateData.monthlyIncome = monthlyIncome === '' || monthlyIncome === null ? null : parseFloat(monthlyIncome);
+  if (hasOwn(req.body, 'leavingDate')) updateData.leavingDate = leavingDate ? new Date(leavingDate) : null;
+  if (hasOwn(req.body, 'status') && status) updateData.status = status;
+  if (hasOwn(req.body, 'securityDeposit')) updateData.securityDeposit = securityDeposit === '' || securityDeposit === null ? 0 : parseFloat(securityDeposit);
+  if (hasOwn(req.body, 'advanceRent')) updateData.advanceRent = advanceRent === '' || advanceRent === null ? 0 : parseFloat(advanceRent);
+
   const updatedTenant = await prisma.tenant.update({
     where: { id },
-    data: {
-      ...(fullName && { fullName }),
-      ...(email !== undefined && { email }),
-      ...(phone && { phone }),
-      ...(alternatePhone !== undefined && { alternatePhone }),
-      ...(emergencyContact !== undefined && { emergencyContact }),
-      ...(address && { address }),
-      ...(occupation !== undefined && { occupation }),
-      ...(company !== undefined && { company }),
-      ...(monthlyIncome && { monthlyIncome: parseFloat(monthlyIncome) }),
-      ...(leavingDate && { leavingDate: new Date(leavingDate) }),
-      ...(status && { status }),
-      ...(securityDeposit && { securityDeposit: parseFloat(securityDeposit) }),
-      ...(advanceRent && { advanceRent: parseFloat(advanceRent) })
-    },
+    data: updateData,
     include: {
       bed: {
         include: {
@@ -526,8 +580,13 @@ const deleteTenant = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // Check if tenant exists
-  const tenant = await prisma.tenant.findUnique({
-    where: { id },
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    },
     include: {
       bed: true,
       payments: {
@@ -612,8 +671,13 @@ const assignBed = asyncHandler(async (req, res) => {
   }
 
   // Check if tenant exists
-  const tenant = await prisma.tenant.findUnique({
-    where: { id },
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    },
     include: { bed: true }
   });
 
@@ -625,8 +689,18 @@ const assignBed = asyncHandler(async (req, res) => {
   }
 
   // Check if bed exists and is available
-  const bed = await prisma.bed.findUnique({
-    where: { id: bedId },
+  const bed = await prisma.bed.findFirst({
+    where: {
+      id: bedId,
+      room: {
+        floor: {
+          propertyId: tenant.propertyId,
+          property: {
+            ownerId: req.user.id,
+          },
+        },
+      },
+    },
     include: { tenant: true }
   });
 
@@ -745,8 +819,13 @@ const vacateTenant = asyncHandler(async (req, res) => {
   }
 
   // Check if tenant exists first to get joining date
-  const tenant = await prisma.tenant.findUnique({
-    where: { id },
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      id,
+      property: {
+        ownerId: req.user.id,
+      },
+    },
     include: {
       bed: {
         include: {
